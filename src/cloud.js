@@ -26,6 +26,10 @@ async function cloudSave(state) {
   if (error) throw error;
   OP.rowId = data.id; OP.at = data.updated_at;
 }
+async function cloudDelete() {
+  const { error } = await sbc.from("portfolio").delete().eq("user_id", OP.user.id);
+  if (error) throw error; OP.rowId = null; OP.at = null;
+}
 async function cloudStamp() {
   const { data, error } = await sbc.from("portfolio").select("updated_at").eq("user_id", OP.user.id).maybeSingle();
   if (error) throw error; return data && data.updated_at;
@@ -49,7 +53,7 @@ function showLogin(view, msg) {
   d.hidden = false; document.body.classList.add("locked");
   const V = view || "signin";
   const title = { signin: "Sign in to One Portfolio", signup: "Create your account", forgot: "Reset your password", newpass: "Choose a new password", check: "Check your email" }[V];
-  const sub = { signin: "Your investments in India, the US and Japan, in one place.", signup: "Only the owner's email address can create an account.", forgot: "We'll email you a link to set a new password.", newpass: "Pick a password you don't use anywhere else.", check: msg || "We sent you a link. Open it on this device to finish." }[V];
+  const sub = { signin: "Your investments in India, the US and Japan, in one place.", signup: "Use your email and a new password. Everything you upload is private to your account.", forgot: "We'll email you a link to set a new password. If it doesn't arrive within a few minutes, ask the person who runs this app to reset it for you.", newpass: "Pick a password you don't use anywhere else.", check: msg || "We sent you a link. Open it on this device to finish." }[V];
   const email = `<label class="lf" for="lg-email"><span>Email</span><input id="lg-email" type="email" autocomplete="email" inputmode="email" required></label>`;
   const pass = (ac, lbl) => `<label class="lf" for="lg-pass"><span>${lbl || "Password"}</span><input id="lg-pass" type="password" autocomplete="${ac}" minlength="${ac === "new-password" ? 10 : 1}" required></label>`;
   const body = V === "check" ? `<button class="btn primary" type="button" data-lv="signin">Back to sign in</button>`
@@ -70,20 +74,23 @@ function showLogin(view, msg) {
     const here = location.origin + location.pathname;
     try {
       if (V === "signin") { const { error } = await sbc.auth.signInWithPassword({ email: em, password: pw }); if (error) throw error; OP.freshLogin = Date.now(); hideLogin(); boot(); return; }
-      if (V === "signup") { if ((pw || "").length < 10) throw new Error("Use at least 10 characters."); const { data, error } = await sbc.auth.signUp({ email: em, password: pw, options: { emailRedirectTo: here } }); if (error) throw error; if (data.session) { OP.freshLogin = Date.now(); hideLogin(); boot(); return; } return showLogin("check", "We sent a confirmation link to " + em + ". Open it, then sign in."); }
+      if (V === "signup") { if ((pw || "").length < 10) throw new Error("Use at least 10 characters."); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em || "")) throw new Error("Enter a valid email address.");
+        const { data, error } = await sbc.auth.signUp({ email: em, password: pw, options: { emailRedirectTo: here } }); if (error) throw error; if (data.session) { OP.freshLogin = Date.now(); hideLogin(); boot(); return; }
+        if (data.user && Array.isArray(data.user.identities) && !data.user.identities.length) throw new Error("already registered");
+        return showLogin("check", "We sent a confirmation link to " + em + ". Open it, then sign in."); }
       if (V === "forgot") { const { error } = await sbc.auth.resetPasswordForEmail(em, { redirectTo: here }); if (error) throw error; return showLogin("check", "If " + em + " has an account, a reset link is on its way. Open it on this device."); }
       if (V === "newpass") { if ((pw || "").length < 10) throw new Error("Use at least 10 characters."); const { error } = await sbc.auth.updateUser({ password: pw }); if (error) throw error; OP.recovery = false; OP.freshLogin = Date.now(); history.replaceState(null, "", here); hideLogin(); boot(); return; }
     } catch (e) {
       back();
       const m = String(e && e.message || e);
-      err(/Invalid login/i.test(m) ? "That email and password don't match." : /Email not confirmed/i.test(m) ? "Confirm your email first: open the link we sent you." : /Sign-up is closed|Database error saving new user/i.test(m) ? "Sign-up is closed for this app." : /rate limit/i.test(m) ? "Too many attempts. Wait a few minutes and try again." : cloudErr(e));
+      err(/Invalid login/i.test(m) ? "That email and password don't match." : /Email not confirmed/i.test(m) ? "Confirm your email first: open the link we sent you." : /already registered|already been registered|User already/i.test(m) ? "That email already has an account. Sign in instead." : /Sign-up is full|Database error saving new user/i.test(m) ? "Sign-up is full or closed for this app right now." : /Password should|weak/i.test(m) ? "Pick a longer, less common password." : /rate limit/i.test(m) ? "Too many attempts. Wait a few minutes and try again." : cloudErr(e));
     }
   };
 }
 function hideLogin() { const d = $("#loginscr"); if (d) d.hidden = true; if (!LOCKED) document.body.classList.remove("locked"); }
 async function signOut() { try { await sbc.auth.signOut(); } catch (e) {} OP.user = null; OP.rowId = null; S = null; HELD = null; LOCKED = false; mode = "signedout"; try { sessionStorage.removeItem("op-unlock"); } catch (e) {} const l = $("#lockscr"); if (l) l.hidden = true; renderAll(); showLogin("signin"); }
 
-/* ---------- optional AI helper (free Gemini key kept as a Supabase secret) ---------- */
+/* ---------- optional AI helper (free Gemini key kept as a Supabase secret; a daily cap per person) ---------- */
 const blobB64 = (b) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res({ type: b.type || "image/png", data: String(r.result).split(",")[1] }); r.onerror = rej; r.readAsDataURL(b); });
 async function aiCall(body) {
   const { data, error } = await sbc.functions.invoke("ai", { body });

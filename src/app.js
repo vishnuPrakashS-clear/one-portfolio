@@ -121,9 +121,19 @@ function securityCard() {
   const L = S && S.lock;
   return `<div class="card" id="seccard"><div class="fields" style="justify-content:space-between;align-items:flex-start"><div><div class="eyebrow">Security</div><h2>App lock ${L ? `<span class="chip good">On</span>` : `<span class="chip neutral">Off</span>`}</h2>
     <p class="note">Your data is private to your login: the database only lets your signed-in account read or change it. ${L ? `A PIN is also asked whenever you open the app, and after 10 minutes without activity. PIN set on ${fmtDate(L.set)}.` : `Add a PIN so the app also asks for it when opened, and locks itself after 10 minutes without activity. Useful if someone else uses your phone or laptop while you're signed in.`}</p></div>
-    <div class="fields">${L ? `<button class="btn" type="button" data-sec="lock">Lock now</button><button class="btn" type="button" data-sec="change">Change PIN</button><button class="btn" type="button" data-sec="off">Turn off</button>` : `<button class="btn primary" type="button" data-sec="set" ${S ? "" : "disabled"}>Set a PIN</button>`}</div></div></div>`;
+    <div class="fields">${L ? `<button class="btn" type="button" data-sec="lock">Lock now</button><button class="btn" type="button" data-sec="change">Change PIN</button><button class="btn" type="button" data-sec="off">Turn off</button>` : `<button class="btn primary" type="button" data-sec="set" ${S ? "" : "disabled"}>Set a PIN</button>`}</div></div>
+    <details class="danger-zone"><summary>Delete all my data</summary><p class="note">Removes your portfolio and its saved versions from the database for good. Your login stays, so you can start again by uploading reports.</p><button class="btn danger" type="button" id="del-data" ${S ? "" : "disabled"}>Delete my data permanently</button></details></div>`;
 }
-function wireSecurity() { document.querySelectorAll("[data-sec]").forEach((b) => (b.onclick = () => (b.dataset.sec === "lock" ? lockNow() : pinDialog(b.dataset.sec)))); }
+function wireSecurity() {
+  document.querySelectorAll("[data-sec]").forEach((b) => (b.onclick = () => (b.dataset.sec === "lock" ? lockNow() : pinDialog(b.dataset.sec))));
+  const del = $("#del-data"); if (del) del.onclick = async () => {
+    if (!confirm("Delete your whole portfolio and every saved version? This can't be undone.")) return;
+    if (prompt('Type DELETE to confirm') !== "DELETE") return;
+    del.disabled = true; del.textContent = "Deleting…";
+    try { await cloudDelete(); S = null; HELD = null; LOCKED = false; renderAll(); resultModal([{ name: "Your data", what: "Deleted. Upload reports any time to start again." }], [], ""); }
+    catch (e) { del.disabled = false; del.textContent = "Delete my data permanently"; resultModal([], ["Couldn't delete: " + cloudErr(e)], ""); }
+  };
+}
 function pinDialog(kind) {
   let d = $("#pinmodal"); if (!d) { d = document.createElement("dialog"); d.id = "pinmodal"; d.className = "upmodal pwbox"; document.body.appendChild(d); }
   const needOld = kind !== "set" && !(OP.freshLogin && Date.now() - OP.freshLogin < 10 * 60 * 1000), needNew = kind !== "off";
@@ -340,13 +350,15 @@ async function handleFiles(files) {
   parsed.sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   const done = [];
   for (const p of parsed) {
+    const nImp = (S.imports || []).length;
+    if (p.kind === "india-sheet" && !S.india) { upErrs.push(`${p.name}: upload your CDSL or NSDL consolidated statement (CAS) first; broker reports add to it`); continue; }
     if (p.kind === "statement") { const ch = applyStatement(S, p.data); logLines([`${p.name}: statement for ${p.data.periodEnd}, ${ch.length} updates`, ...ch]); }
-    else if (p.kind === "india-sheet") { const ch = applyIndiaSheet(S, p.data, p.name); logLines([`${p.name}: ${KIND_IN[p.data.kind] || "Indian report"}`, ...ch]); }
+    else if (p.kind === "india-sheet") { const ch = applyIndiaSheet(S, p.data, p.name); logLines([`${p.name}: ${KIND_IN[p.data.kind] || "Indian report"}`, ...ch]); if ((S.imports || []).length === nImp && ch.length) { upErrs.push(`${p.name}: ${ch[0]}`); continue; } }
     else if (p.kind === "cas") { const ch = applyCAS(S, p.data); logLines([`${p.name}: consolidated account statement`, ...ch]); }
     else if (p.kind === "transactions") { const ch = applyTransactions(S, p.data); logLines([`${p.name}: transaction history, ${p.data.length} trades`, ...ch]); }
     else { const ch = applyHoldingsReport(S, p.data, TODAY); logLines([`${p.name}: holdings report${p.data.asOf ? " of " + p.data.asOf : ""}, ${ch.length} changes`, ...ch]); }
     stampImport(p.name);
-    const rec = S.imports[S.imports.length - 1]; done.push({ name: p.name, what: `${KIND[rec.kind] || rec.kind}${rec.period ? " · up to " + fmtDate(rec.period) : ""}${rec.count ? ` · ${rec.count} ${/orders$/.test(rec.kind) ? "orders" : rec.kind === "ib-cf" ? "payouts" : rec.kind === "wint" || rec.kind === "ib-bonds" ? "bonds" : ["report", "cas", "gr-stocks", "gr-mf", "zd-hold"].includes(rec.kind) ? "holdings" : rec.count === 1 ? "trade" : "trades"}` : ""}` });
+    const rec = S.imports[S.imports.length - 1]; if (!rec) continue; done.push({ name: p.name, what: `${KIND[rec.kind] || rec.kind}${rec.period ? " · up to " + fmtDate(rec.period) : ""}${rec.count ? ` · ${rec.count} ${/orders$/.test(rec.kind) ? "orders" : rec.kind === "ib-cf" ? "payouts" : rec.kind === "wint" || rec.kind === "ib-bonds" ? "bonds" : ["report", "cas", "gr-stocks", "gr-mf", "zd-hold"].includes(rec.kind) ? "holdings" : rec.count === 1 ? "trade" : "trades"}` : ""}` });
   }
   if (parsed.length) dirty();
   renderAll(); showTab("upload");
@@ -637,7 +649,7 @@ function stageData() {
     return { segs: b.map((x) => ({ label: x.bucket, v: x.pct, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: usd(val), small: "Your sleeve today, by bucket" };
   }
   const t = (S ? S.targets : DEFAULT_TARGETS).filter((x) => x.w > 0);
-  return { segs: t.map((x) => ({ label: x.bucket, v: x.w, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: "₹10,000 / month", small: "The target mix" };
+  return { segs: t.map((x) => ({ label: x.bucket, v: x.w, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: `${inr((S && S.settings && S.settings.monthlyInr) || 10000)} / month`, small: "The target mix" };
 }
 let _gl = null;
 function hasWebGL() { if (_gl !== null) return _gl; try { const c = document.createElement("canvas"), g = c.getContext("webgl") || c.getContext("experimental-webgl"); _gl = !!g; const ext = g && g.getExtension("WEBGL_lose_context"); if (ext) ext.loseContext(); } catch (e) { _gl = false; } return _gl; }
@@ -1907,7 +1919,7 @@ function renderIndia() {
     { app: "Groww", what: "Reports → Transactions → Stocks - Order history (from account opening)", gives: "purchase date of each share, for the 12-month long-term rule", left: I.src && I.src.grStO ? 0 : H.filter((h) => h.acct === "Groww" && h.type !== "mf" && h.type !== "bond").length },
     { app: "Groww", what: "Reports → Transactions → Mutual Funds - Order history (from account opening)", gives: "date of each SIP instalment, for the long-term rule", left: I.src && I.src.grMFO ? 0 : H.filter((h) => h.type === "mf").length },
     { app: "Groww", what: "Reports → Mutual funds → Holdings report (Excel)", gives: "amount invested in each fund held in your Groww demat", left: needCost("Groww", ["mf"]).length },
-    { app: "Zerodha", what: "Console → Portfolio → Holdings → Download (Excel)", gives: "average buy price for ACME Solar, Hyundai and SBI ELSS", left: needCost("Zerodha", ["stock", "etf", "mf"]).length },
+    { app: "Zerodha", what: "Console → Portfolio → Holdings → Download (Excel)", gives: "average buy price of each Zerodha holding", left: needCost("Zerodha", ["stock", "etf", "mf"]).length },
     { app: "Wint Wealth", what: "Master Report (Excel)", gives: "price paid, YTM and payouts for each bond", left: needCost("Wint Wealth (NSDL)", ["bond"]).length },
     ...[...new Set(H.filter((h) => h.type === "bond" && h.via && h.cost == null).map((h) => h.via))].map((v) => { const hs = H.filter((h) => h.type === "bond" && h.via === v && h.cost == null); return { app: v, what: v === "IndiaBonds" ? "transaction statement (Excel)" : "screenshot of each bond's screen showing the amount invested", gives: "price paid for " + hs.map((h) => h.name).join(" and "), left: hs.length }; }),
     { app: "Groww", what: "your bond order confirmations (Groww's holdings report shows ₹0 cost for bonds)", gives: "price paid for bonds bought on Groww", left: H.filter((h) => h.acct === "Groww" && h.type === "bond" && !h.via && h.cost == null).length },

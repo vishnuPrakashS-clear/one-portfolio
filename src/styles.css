@@ -579,3 +579,5 @@ h2 .flag{width:28px;height:18.6px;margin-right:8px;vertical-align:-2px}
 .lg-links{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px}
 .linkbtn{background:none;border:0;padding:0;color:var(--accent);font:inherit;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .lg-foot{font-size:.76rem;text-align:center;margin-top:4px}
+.danger-zone{margin-top:14px;border-top:1px dashed var(--line);padding-top:10px}.danger-zone summary{cursor:pointer;color:var(--bad);font-weight:600}.danger-zone .note{margin:8px 0}
+.btn.danger{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}

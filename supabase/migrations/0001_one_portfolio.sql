@@ -59,8 +59,9 @@ alter table public.allowed_users enable row level security;
 create policy "owner reads own portfolio" on public.portfolio for select to authenticated using (user_id = auth.uid() and app_private.is_allowed());
 create policy "owner adds own portfolio" on public.portfolio for insert to authenticated with check (user_id = auth.uid() and app_private.is_allowed());
 create policy "owner changes own portfolio" on public.portfolio for update to authenticated using (user_id = auth.uid() and app_private.is_allowed()) with check (user_id = auth.uid() and app_private.is_allowed());
+create policy "owner deletes own portfolio" on public.portfolio for delete to authenticated using (user_id = auth.uid());
 create policy "owner reads own history" on public.portfolio_history for select to authenticated using (user_id = auth.uid() and app_private.is_allowed());
-grant select, insert, update on public.portfolio to authenticated;
+grant select, insert, update, delete on public.portfolio to authenticated;
 grant select on public.portfolio_history to authenticated;
 
 -- price refresh helpers used by the refresh-prices Edge Function (run with the service role)

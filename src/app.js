@@ -652,7 +652,7 @@ function stageData() {
   if (hasData()) {
     const b = bucketView(S).filter((x) => x.value > 0.005);
     const val = holdingRows(S, TODAY).reduce((a, r) => a + r.value, 0);
-    return { segs: b.map((x) => ({ label: x.bucket, v: x.pct, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: "", small: "Point at a slice or pick a bucket below" };
+    return { segs: b.map((x) => ({ label: x.bucket, v: x.pct, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: "", small: matchMedia("(hover: none)").matches ? "Tap a slice or a bucket below" : "Point at a slice or pick a bucket below" };
   }
   const t = (S ? S.targets : DEFAULT_TARGETS).filter((x) => x.w > 0);
   return { segs: t.map((x) => ({ label: x.bucket, v: x.w, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: `${inr((S && S.settings && S.settings.monthlyInr) || 10000)} / month`, small: "The target mix" };
@@ -712,18 +712,18 @@ function initThree(stage) {
   // globe
   const globe = new T.Group(); globe.position.y = 1.35; scene.add(globe);
   const Rg = 1.0;
-  const earthMat = new T.MeshStandardMaterial({ roughness: 0.75, metalness: 0.05 });
+  const earthMat = new T.MeshStandardMaterial({ roughness: 0.75, metalness: 0.05, emissive: new T.Color(dark ? 0x22403f : 0x000000), emissiveIntensity: dark ? 0.55 : 0 });
   const earth = new T.Mesh(new T.SphereGeometry(Rg, 64, 48), earthMat); globe.add(earth);
-  const atmo = new T.Mesh(new T.SphereGeometry(Rg * 1.08, 48, 32), new T.MeshBasicMaterial({ color: 0x9fe870, transparent: true, opacity: 0.1, side: T.BackSide })); globe.add(atmo);
+  const atmo = new T.Mesh(new T.SphereGeometry(Rg * 1.08, 48, 32), new T.MeshBasicMaterial({ color: dark ? 0x7fd6e8 : 0x9fe870, transparent: true, opacity: dark ? 0.22 : 0.1, side: T.BackSide })); globe.add(atmo);
   const pinsG = new T.Group(); globe.add(pinsG);
   globe.rotation.x = 0.35;
   const labelBox = document.createElement("div"); labelBox.className = "pins"; stage.appendChild(labelBox);
   let pinEls = [], pins = [];
   const ll2v = (lat, lon, r) => { const phi = ((90 - lat) * Math.PI) / 180, th = ((lon + 180) * Math.PI) / 180; return new T.Vector3(-r * Math.sin(phi) * Math.cos(th), r * Math.cos(phi), r * Math.sin(phi) * Math.sin(th)); };
   function setCountries() {
-    const ex = countryExposure().filter((e) => CC[e.cc] && CC[e.cc].ll), cols = {};
+    const exAll = countryExposure().filter((e) => CC[e.cc] && CC[e.cc].ll), ex = exAll.filter((e) => e.pct >= 5), cols = {};
     const colOf = (cc) => { const b = Object.entries(BUCKET_CC).find(([k, v]) => v[0] === cc && k !== "US tech"); return b ? cssVar(BCOL[b[0]]) : cssVar("--accent"); };
-    ex.forEach((e) => (cols[CC[e.cc].id] = colOf(e.cc)));
+    exAll.forEach((e) => (cols[CC[e.cc].id] = colOf(e.cc)));
     if (earthMat.map) earthMat.map.dispose(); earthMat.map = worldTexture(T, dark, cols); earthMat.needsUpdate = true;
     while (pinsG.children.length) { const m = pinsG.children.pop(); m.geometry.dispose(); m.material.dispose(); }
     pins = ex.map((e) => { const p = ll2v(CC[e.cc].ll[0], CC[e.cc].ll[1], Rg), n = p.clone().normalize(), h = 0.1 + Math.min(0.32, e.pct / 180);
@@ -1175,7 +1175,8 @@ function missionsCard() {
 function badgesCard() {
   const a = achievements();
   return `<div class="card"><div class="fields" style="justify-content:space-between;align-items:center"><h2>Badges</h2><span class="chip neutral">${a.filter((x) => x.got).length}/${a.length} unlocked</span></div>
-    <div class="badges">${a.map((x) => `<div class="badge ${x.got ? "got" : ""} tilt" title="${esc(x.how)}"><span class="bi">${svg(x.k)}</span><b>${esc(x.name)}</b><span class="note">${x.got ? "Unlocked" : esc(x.how)}</span></div>`).join("")}</div></div>`;
+    <div class="badges">${a.map((x) => `<div class="badge ${x.got ? "got" : ""} tilt" title="${esc(x.how)}"><span class="bi">${svg(x.k)}</span><b>${esc(x.name)}</b><span class="note">${x.got ? "Unlocked" : esc(x.how)}</span></div>`).join("")}</div>
+    ${(() => { const nx = a.find((x) => !x.got); return nx ? `<p class="badge-next"><span class="bi-s">${svg(nx.k)}</span><span><b>Next to unlock: ${esc(nx.name)}</b><span class="note">${esc(nx.how)}</span></span></p>` : `<p class="badge-next"><span><b>Every badge unlocked</b></span></p>`; })()}</div>`;
 }
 /* pause 3D loops while they're scrolled out of view (saves battery) */
 const onScreen = new WeakMap();
@@ -1785,7 +1786,7 @@ function wireIndiaChart(root, hist) {
     const box = svg.getBoundingClientRect(), sx = box.width / svg.viewBox.baseVal.width, x = +d.getAttribute("cx") * sx, y = +d.getAttribute("cy") * sx;
     tip.hidden = false; tip.innerHTML = `<b>${full(h.m)}</b><span class="num">${inr(h.v)}</span>${ch != null ? `<em class="${cls(ch)}">${sgn(ch)}${inr(Math.abs(ch))} (${pctf(pc)}) vs ${full(p.m).split(" ")[0]}</em>` : `<em>first month shown</em>`}`;
     tip.style.left = `${Math.min(Math.max(x, 80), box.width - 80)}px`; tip.style.top = `${y}px`;
-    if (pin) { sel = i; det.innerHTML = `<span class="chip neutral">${full(h.m)}</span> Portfolio ${inr(h.v)}${ch != null ? ` · <span class="${cls(ch)}">${sgn(ch)}${inr(Math.abs(ch))} (${pctf(pc)})</span> from ${full(p.m)}` : ""} · ${sgn(fromStart)}${inr(Math.abs(fromStart))} since ${full(hist[0].m)}. <span class="muted">Changes include money you added or withdrew.</span>`; hits.forEach((r, k) => r.setAttribute("tabindex", k === i ? 0 : -1)); }
+    if (pin) { sel = i; det.innerHTML = `<span class="chip neutral">${full(h.m)}</span> Portfolio ${inr(h.v)}${ch != null ? ` · <span class="${cls(ch)}">${sgn(ch)}${inr(Math.abs(ch))} (${pctf(pc)})</span> from ${full(p.m)}` : ""} · <span class="nowrap">${sgn(fromStart)}${inr(Math.abs(fromStart))}</span> since ${full(hist[0].m)}. <span class="muted">Changes include money you added or withdrew.</span>`; hits.forEach((r, k) => r.setAttribute("tabindex", k === i ? 0 : -1)); }
   };
   const hide = () => { tip.hidden = true; guide.classList.remove("on"); dots.forEach((x, k) => x.classList.toggle("on", k === sel)); };
   hits.forEach((r) => {

@@ -412,20 +412,21 @@ tr.hrow:hover td{background:var(--raised)}
 }
 
 /* ---------- this month's buys: 3D flip cards ---------- */
-.flips{display:grid;grid-template-columns:repeat(auto-fit,minmax(176px,1fr));grid-auto-rows:1fr;gap:14px;align-items:stretch}
-.flip{all:unset;box-sizing:border-box;cursor:pointer;display:block;perspective:900px;min-height:204px;height:100%;border-radius:20px}
+.flips{display:grid;grid-template-columns:repeat(auto-fit,minmax(176px,1fr));gap:14px;align-items:stretch}
+.flip{all:unset;box-sizing:border-box;cursor:pointer;display:block;perspective:900px;height:100%;border-radius:20px}
 .flip:focus-visible{outline:2px solid var(--focus);outline-offset:3px}
-.flip-in{position:relative;display:grid;width:100%;height:100%;min-height:204px;transform-style:preserve-3d;transition:transform .6s var(--ease)}
+.flip-in{position:relative;display:grid;width:100%;height:100%;min-height:180px;transform-style:preserve-3d;transition:transform .6s var(--ease)}
 .flip:hover .flip-in,.flip.on .flip-in{transform:rotateY(180deg)}
-.face{position:relative;grid-area:1/1;display:grid;align-content:start;gap:6px;padding:16px;border-radius:20px;backface-visibility:hidden;-webkit-backface-visibility:hidden;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;min-width:0}
-.front{background:var(--raised);color:var(--ink)}
-.front::before{content:"";position:absolute;right:14px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--c);box-shadow:inset -3px -4px 0 rgba(0,0,0,.18),0 4px 8px -4px rgba(14,15,12,.5)}
+.face{position:relative;grid-area:1/1;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:16px;border-radius:20px;backface-visibility:hidden;-webkit-backface-visibility:hidden;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere;min-width:0}
+.front{background:var(--raised);color:var(--ink);padding-top:26px}
+.front::after{content:"";position:absolute;left:0;right:0;top:0;height:10px;border-radius:20px 20px 0 0;background:var(--c)}
+.front::before{content:"";position:absolute;right:14px;top:22px;width:26px;height:26px;border-radius:50%;background:var(--c);box-shadow:inset -3px -4px 0 rgba(0,0,0,.18),0 4px 8px -4px rgba(14,15,12,.5)}
 .front .eyebrow{color:var(--body);font-weight:600;padding-right:34px}
 .front .note{color:var(--body)}
 .face .eyebrow .flag{width:16px;height:10.67px;margin-right:5px}
 .tick-big{font:800 26px/1.1 var(--f-display);letter-spacing:-.02em}
 .amt{font:700 20px/1.2 var(--f-display);font-variant-numeric:tabular-nums}
-.gap{margin-top:auto;font:600 12.5px/1 var(--f-ui);background:var(--surface);color:var(--ink);padding:6px 10px;border-radius:999px;justify-self:start}
+.gap{margin-top:auto;align-self:flex-start;font:600 12.5px/1 var(--f-ui);background:var(--surface);color:var(--ink);padding:6px 10px;border-radius:999px;justify-self:start}
 .back{transform:rotateY(180deg);background:var(--raised);color:var(--ink)}
 .done-note{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0 2px}
 
@@ -451,9 +452,9 @@ tr.hrow:hover td{background:var(--raised)}
 .missions li.done>span:nth-child(2){color:var(--muted)}
 .badges{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
 @media (min-width:1001px){.b5 .badges{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.badge{display:grid;justify-items:center;align-content:start;text-align:center;gap:6px;padding:12px 6px 8px}
-.badge .bi{position:relative;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--muted);background:var(--surface);box-shadow:inset 0 0 0 2px var(--line);transform:translateZ(14px)}
-.badge .bi svg{position:relative;z-index:2;width:24px;height:24px}
+.badge{display:grid;justify-items:center;align-content:start;text-align:center;gap:6px;padding:14px 6px 12px}
+.badge .bi{position:relative;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;color:var(--muted);background:var(--surface);box-shadow:inset 0 0 0 2px var(--line);transform:translateZ(14px)}
+.badge .bi svg{position:relative;z-index:2;width:26px;height:26px}
 .badge.got .bi{color:var(--on-lime);background:none;box-shadow:none}
 .badge.got .bi::before,.badge.got .bi::after{content:"";position:absolute;inset:0;border-radius:50%}
 .badge.got .bi::before{z-index:0;background:#6fbf43;transform:translateY(5px)}
@@ -461,8 +462,11 @@ tr.hrow:hover td{background:var(--raised)}
 .badge b{font:700 14px/1.25 var(--f-display)}
 .badge .note{font-size:12.5px;line-height:1.35}
 .bento>.b5:has(.badges){align-self:stretch}
-.card:has(> .badges){grid-template-rows:auto 1fr;align-content:stretch}
-.card > .badges{align-content:space-between}
+.card:has(> .badges){grid-template-rows:auto auto 1fr}
+.badge-next{display:flex;gap:12px;align-items:center;align-self:end;margin:0;padding-top:14px;border-top:1px solid var(--rule);font-size:14px;max-width:none}
+.badge-next>span:last-child{display:grid;gap:2px}
+.bi-s{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:var(--muted);box-shadow:inset 0 0 0 2px var(--line);flex:none}
+.bi-s svg{width:16px;height:16px}
 .badge:not(.got) b{color:var(--body)}
 
 /* ---------- allocation vs target (dumbbell) ---------- */
@@ -582,6 +586,7 @@ details.card .log{margin-top:12px}
 .month{display:grid;grid-template-columns:96px 1fr;gap:14px;align-items:start;padding:14px 0;border-bottom:1px solid var(--rule)}
 .month:last-child{border-bottom:0}
 .month .m{font:800 17px/1.2 var(--f-display)}
+.bento>.card:has(.dumb){align-self:stretch}
 .checks{display:grid;gap:10px}
 .checks label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
 .checks input{margin-top:3px;width:18px;height:18px}

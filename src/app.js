@@ -729,7 +729,7 @@ function initThree(stage) {
     pins = ex.map((e) => { const p = ll2v(CC[e.cc].ll[0], CC[e.cc].ll[1], Rg), n = p.clone().normalize(), h = 0.1 + Math.min(0.32, e.pct / 180);
       const stalk = new T.Mesh(new T.CylinderGeometry(0.012, 0.012, h, 6), new T.MeshBasicMaterial({ color: 0xffffff })); stalk.position.copy(p.clone().add(n.clone().multiplyScalar(h / 2))); stalk.quaternion.setFromUnitVectors(new T.Vector3(0, 1, 0), n); pinsG.add(stalk);
       const head = new T.Mesh(new T.SphereGeometry(0.045, 12, 10), new T.MeshBasicMaterial({ color: new T.Color(colOf(e.cc)) })); head.position.copy(p.clone().add(n.clone().multiplyScalar(h))); pinsG.add(head);
-      return { e, head, n }; });
+      return { e, head, stalk, n }; });
     labelBox.innerHTML = pins.map(({ e }) => `<span class="pin">${flag(e.cc)}<b>${esc(CC[e.cc].name)}</b><em>${e.pct.toFixed(0)}%</em></span>`).join("");
     pinEls = [...labelBox.children]; pins.forEach((p, i) => { if (p.e.pct < 5 && pinEls[i]) pinEls[i].dataset.small = '1'; });
   }
@@ -775,7 +775,7 @@ function initThree(stage) {
       const px = ((v3.x + 1) / 2) * w, py = ((1 - v3.y) / 2) * hh, ew = el.offsetWidth || 90;
       const show = front && py > top && !el.dataset.small && !placed.some((q) => Math.abs(q.x - px) < (q.w + ew) / 2 + 4 && Math.abs(q.y - py) < 28);
       if (show) placed.push({ x: px, y: py, w: ew });
-      el.style.opacity = show ? "1" : "0"; el.style.transform = `translate(${px}px, ${py}px) translate(-50%, -120%)`; });
+      el.style.opacity = show ? "1" : "0"; p.head.visible = p.stalk.visible = show || !front; el.style.transform = `translate(${px}px, ${py}px) translate(-50%, -120%)`; });
     raf = requestAnimationFrame(frame);
   }
   raf = requestAnimationFrame(frame);
@@ -1174,9 +1174,9 @@ function missionsCard() {
 }
 function badgesCard() {
   const a = achievements();
-  return `<div class="card"><div class="fields" style="justify-content:space-between;align-items:center"><h2>Badges</h2><span class="chip neutral">${a.filter((x) => x.got).length}/${a.length} unlocked</span></div>
+  return `<div class="card"><h2>Badges</h2>
     <div class="badges">${a.map((x) => `<div class="badge ${x.got ? "got" : ""} tilt" title="${esc(x.how)}"><span class="bi">${svg(x.k)}</span><b>${esc(x.name)}</b><span class="note">${x.got ? "Unlocked" : esc(x.how)}</span></div>`).join("")}</div>
-    ${(() => { const nx = a.find((x) => !x.got); return nx ? `<p class="badge-next"><span class="bi-s">${svg(nx.k)}</span><span><b>Next to unlock: ${esc(nx.name)}</b><span class="note">${esc(nx.how)}</span></span></p>` : `<p class="badge-next"><span><b>Every badge unlocked</b></span></p>`; })()}</div>`;
+    ${(() => { const g = a.filter((x) => x.got).length; return `<div class="badge-next"><div class="xp" role="progressbar" aria-valuemin="0" aria-valuemax="${a.length}" aria-valuenow="${g}" aria-label="Badges unlocked"><i style="width:${(100 * g) / a.length}%"></i><span>${g} of ${a.length} badges unlocked</span></div></div>`; })()}</div>`;
 }
 /* pause 3D loops while they're scrolled out of view (saves battery) */
 const onScreen = new WeakMap();

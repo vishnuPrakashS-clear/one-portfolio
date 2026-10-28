@@ -61,7 +61,7 @@ function showLogin(view, msg) {
        <p class="um-err" id="lg-err" ${msg && V !== "check" ? "" : "hidden"}>${esc(msg || "")}</p>
        <button class="btn primary" type="submit" id="lg-go">${{ signin: "Sign in", signup: "Create account", forgot: "Email me a link", newpass: "Save password" }[V]}</button>
        <div class="lg-links">${V === "signin" ? `<button type="button" class="linkbtn" data-lv="forgot">Forgot password?</button><button type="button" class="linkbtn" data-lv="signup">First time? Create your account</button>` : V !== "newpass" ? `<button type="button" class="linkbtn" data-lv="signin">Back to sign in</button>` : ""}</div>`;
-  d.innerHTML = `<form class="lock-card login-card" id="lgform" novalidate><div class="login-logo" aria-hidden="true">📈</div><h2>${title}</h2><p class="note">${esc(sub)}</p>${body}
+  d.innerHTML = `<form class="lock-card login-card" id="lgform" novalidate><div class="login-logo" aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="8.5"/><path d="M16 7.5V16h8.5"/></svg></div><h2>${title}</h2><p class="note">${esc(sub)}</p>${body}
     <p class="note lg-foot">Secured by Supabase Auth · your data is readable only by your account.</p></form>`;
   d.querySelectorAll("[data-lv]").forEach((b) => (b.onclick = () => showLogin(b.dataset.lv)));
   const f = $("#lgform"), err = (t) => { const e = $("#lg-err"); if (e) { e.hidden = false; e.textContent = t; } };

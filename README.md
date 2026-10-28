@@ -32,7 +32,8 @@ Everyone signs in with their own email and password. The database itself enforce
 
 ```
 index.html                         page markup and script order
-src/styles.css                     all styles
+src/styles.css                     all styles (design tokens at the top; light and dark themes)
+src/fonts/                         Inter and Figtree, self-hosted (SIL Open Font License, see LICENSE-*.txt)
 src/core.js                        report parsing, holdings, tax rules, monthly split
 src/app.js                         screens: overview, India, holdings, plan, tax, calendar, upload
 src/cloud.js                       Supabase: sign-in screen, load/save, "refresh now", AI helper
@@ -42,6 +43,9 @@ supabase/sql/price_refresh.sql     the two database functions the price refresh 
 supabase/functions/refresh-prices  the daily price refresh
 supabase/functions/ai              the optional AI helper
 .github/workflows/pages.yml        publishes the site on every push to main
+PRODUCT.md                         who the app is for and what it must keep doing
+DESIGN.md                          the visual system: colours, type, spacing, components, 3D and game layer
+.impeccable/surfaces/              the design direction the current look was built from
 ```
 
 ## Setup (already done for the owner's project)

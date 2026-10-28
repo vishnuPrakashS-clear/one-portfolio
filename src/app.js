@@ -28,7 +28,7 @@ function statusIdle() {
   if (mode === "sberr") return setStatus("err", "Supabase isn't reachable · nothing can be saved");
   if (mode === "signedout") return setStatus("busy", "Signed out");
   const p = oldestPrice();
-  setStatus(mode === "sb" ? "ok" : "err", (mode === "sb" ? `Saved to your account${OP.user ? " · " + OP.user.email : ""}` : "Not connected to Supabase") + (p ? ` · prices as of ${fmtDate(p)}` : ""));
+  setStatus(mode === "sb" ? "ok" : "err", (mode === "sb" ? `Saved to your account${OP.user ? " · " + OP.user.email : ""}` : "Not connected to Supabase") + (p ? ` · US prices: close of ${fmtDate(p)}` : ""));
 }
 function dirty() { if (!S || LOCKED) return; S.updatedAt = new Date().toISOString(); clearTimeout(timer); timer = setTimeout(save, 600); setStatus("busy", "Saving…"); }
 async function save() {
@@ -68,13 +68,23 @@ document.addEventListener("visibilitychange", async () => {
 });
 
 /* ---------- tabs ---------- */
+const TAB_TITLE = { overview: "Overview", india: "India", upload: "Upload", holdings: "Abroad", plan: "Monthly plan", tax: "Sell & tax", growth: "Growth plan", calendar: "Yearly checklist", ask: "Ask about your money" };
 function showTab(t, scroll) {
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.tab === t)));
+  document.body.dataset.tab = t; const mbtn = $("#morebtn"); if (mbtn) mbtn.classList.toggle("on", !!document.querySelector(`#tabs .xtra[data-tab="${t}"]`)); const pt = $("#pt"); if (pt) pt.textContent = TAB_TITLE[t] || "One Portfolio";
+  document.title = t === "overview" ? "One Portfolio" : `${TAB_TITLE[t] || t} · One Portfolio`;
+  const sel = document.querySelector(`#tabs [data-tab="${t}"]`); if (sel && sel.scrollIntoView && innerWidth < 1180) sel.scrollIntoView({ block: "nearest", inline: "center" });
   document.querySelectorAll("section.panel").forEach((p) => (p.hidden = p.id !== "p-" + t));
   try { localStorage.setItem("gbp-tab", t); } catch (e) {}
   if (scroll) { const m = document.querySelector("main"), top = m ? m.getBoundingClientRect().top : 0; if (m && (top > innerHeight * 0.6 || top < 0)) m.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }); }
 }
-$("#tabs").addEventListener("click", (e) => { const b = e.target.closest("button[data-tab]"); if (b) showTab(b.dataset.tab, true); });
+addEventListener("scroll", () => document.body.classList.toggle("scrolled", scrollY > 4), { passive: true });
+$("#tabs").addEventListener("click", (e) => {
+  const nav = $("#tabs"), mb = $("#morebtn");
+  if (e.target.closest("#morebtn")) { const open = !nav.classList.contains("open"); nav.classList.toggle("open", open); mb.setAttribute("aria-expanded", String(open)); return; }
+  const b = e.target.closest("button[data-tab]"); if (b) { nav.classList.remove("open"); if (mb) mb.setAttribute("aria-expanded", "false"); showTab(b.dataset.tab, true); }
+});
+document.addEventListener("keydown", (e) => { const nav = $("#tabs"); if (e.key === "Escape" && nav && nav.classList.contains("open")) { nav.classList.remove("open"); $("#morebtn").setAttribute("aria-expanded", "false"); $("#morebtn").focus(); } });
 document.addEventListener("click", (e) => { const g = e.target.closest("[data-go]"); if (g) showTab(g.dataset.go, true); });
 
 /* ---------- app lock: a PIN on top of your Claude sign-in ----------
@@ -102,7 +112,7 @@ function syncLockBtn() { const b = $("#lockbtn"); if (b) b.hidden = !(S && S.loc
 function showLock() {
   let d = $("#lockscr"); if (!d) { d = document.createElement("div"); d.id = "lockscr"; d.className = "lockscr"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true"); d.setAttribute("aria-label", "App locked"); document.body.appendChild(d); }
   d.hidden = false; document.body.classList.add("locked");
-  d.innerHTML = `<form class="lock-card" id="lockform" autocomplete="off"><div class="lock-ic" aria-hidden="true">🔒</div><h2>One Portfolio is locked</h2><p class="note">Enter your PIN to see your investments.</p>
+  d.innerHTML = `<form class="lock-card" id="lockform" autocomplete="off"><div class="lock-ic" aria-hidden="true"><svg viewBox="0 0 24 24">${UI_IC.lock}</svg></div><h2>One Portfolio is locked</h2><p class="note">Enter your PIN to see your investments.</p>
     <label class="sr" for="lockpin">PIN</label><input id="lockpin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off" placeholder="PIN" required>
     <p class="um-err" id="lockerr" hidden></p><button class="btn primary" type="submit">Unlock</button>
     <p class="note">Forgot your PIN? <button type="button" class="linkbtn" onclick="signOut()">Sign out</button> and sign in again with your password; then turn the lock off or set a new PIN.</p></form>`;
@@ -138,7 +148,7 @@ function pinDialog(kind) {
   let d = $("#pinmodal"); if (!d) { d = document.createElement("dialog"); d.id = "pinmodal"; d.className = "upmodal pwbox"; document.body.appendChild(d); }
   const needOld = kind !== "set" && !(OP.freshLogin && Date.now() - OP.freshLogin < 10 * 60 * 1000), needNew = kind !== "off";
   const f = (id, label, ac) => `<label class="pinf" for="${id}"><span>${label}</span><input id="${id}" type="password" inputmode="numeric" pattern="[0-9]*" minlength="4" maxlength="8" autocomplete="${ac}" required></label>`;
-  d.innerHTML = `<div class="um-ic mix" aria-hidden="true">🔒</div><h2>${kind === "set" ? "Set a PIN" : kind === "change" ? "Change your PIN" : "Turn off the app lock"}</h2>
+  d.innerHTML = `<div class="um-ic mix" aria-hidden="true"><svg viewBox="0 0 24 24">${UI_IC.lock}</svg></div><h2>${kind === "set" ? "Set a PIN" : kind === "change" ? "Change your PIN" : "Turn off the app lock"}</h2>
     <form id="pinform">${needOld ? f("pin-old", "Current PIN", "current-password") : ""}${needNew ? f("pin-new", "New PIN (4 to 8 digits)", "new-password") + f("pin-new2", "Type it again", "new-password") : ""}
     <p class="um-err" id="pinerr" hidden></p><p class="note">${needNew ? "Pick digits that aren't your card PIN or birthday. The PIN itself is never saved, only a scrambled check value." : "The app will open straight away when you're signed in to Claude."}</p>
     <div class="fields"><button class="btn primary" type="submit">${kind === "off" ? "Turn off" : "Save PIN"}</button><button class="btn" type="button" id="pincancel">Cancel</button></div></form>`;
@@ -169,7 +179,7 @@ function uploadHistory() {
   const what = (x) => (/orders$/.test(x.kind) ? `${x.count} orders` : /^(gr|zd)-/.test(x.kind) ? `${x.count} holdings` : x.kind === "ib-cf" ? `${x.count} payouts` : x.kind === "divs" ? `${x.count} dividends` : x.kind === "mf-lots" ? `${x.count} purchases` : x.kind === "hold-shot" ? `${x.count} buy price${x.count === 1 ? "" : "s"}` : x.kind === "wint" || x.kind === "bond-shot" || x.kind === "ib-bonds" ? `${x.count} bond${x.count === 1 ? "" : "s"}` : x.kind === "cas" ? `${x.count} holdings · ${inr(x.total || 0)}` : x.count ? `${x.count} ${x.kind === "report" ? (x.count === 1 ? "holding" : "holdings") : x.count === 1 ? "trade" : "trades"}` : x.kind === "statement" && x.total ? `Total ${usd(x.total)}` : x.kind === "1042s" ? `Withheld $${x.withheld}` : "");
   return `<div class="card"><div class="fields" style="justify-content:space-between;align-items:center"><div><div class="eyebrow">History</div><h2>Uploaded reports</h2></div><span class="chip neutral">${list.length} uploaded</span></div>
     ${list.length ? `<div class="tbl-wrap"><table class="up-tbl"><thead><tr><th>Report</th><th>Covers</th><th>Uploaded on</th><th>Added</th><th>Status</th></tr></thead><tbody>
-    ${list.map((x) => `<tr><td><b>${esc(KIND[x.kind] || x.kind)}</b><span class="nm">${esc(x.file || "")}</span></td><td class="num">${x.period ? fmtDate(x.period) : "—"}</td><td class="num">${esc(when(x))}</td><td>${esc(what(x))}</td><td><span class="chip good">✓ Saved</span></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Nothing uploaded yet.</p>`}</div>`;
+    ${list.map((x) => `<tr><td><b>${esc(KIND[x.kind] || x.kind)}</b><span class="nm">${esc(x.file || "")}</span></td><td class="num">${x.period ? fmtDate(x.period) : "—"}</td><td class="num">${esc(when(x))}</td><td>${esc(what(x))}</td><td><span class="chip good">${ic("check")}Saved</span></td></tr>`).join("")}</tbody></table></div>` : `<p class="muted">Nothing uploaded yet.</p>`}</div>`;
 }
 function reportCards() {
   const tx = lastImport("transactions"), rep = lastImport("report"), st = lastImport("statement"), f1042 = lastImport("1042s");
@@ -199,7 +209,7 @@ function monthStatus() {
 }
 function orders() {
   const rows = holdingRows(S, TODAY), sp = monthlySplit(S), out = [], ms = monthStatus();
-  if (ms.done) out.push({ mid: "buy", tone: "good", tag: "Done ✓", title: `${longMonth(ms.ym)} is invested`, body: `You bought ${ms.boughtTxt} (${usd(ms.spent)}). Nothing more to buy this month.` });
+  if (ms.done) out.push({ mid: "buy", tone: "good", tag: "Done", title: `${longMonth(ms.ym)} is invested`, body: `You bought ${ms.boughtTxt} (${usd(ms.spent)}). Nothing more to buy this month.` });
   out.push({ mid: ms.done ? "" : "buy", tone: ms.done ? "neutral" : "good", tag: ms.done ? "Next" : "Monthly", title: ms.done ? `${ms.label}: invest ${inr(S.settings.monthlyInr)} mid-month` : `Invest ${inr(S.settings.monthlyInr)} this month`, body: `${ms.done ? "Planned split (it updates with prices until you buy):" : "Buy in INDmoney:"} ${sp.rows.filter((r) => r.reb >= 1).map((r) => `<b>${tk(r.buy)}</b> ${r.shares ? `${r.shares} whole share${r.shares > 1 ? "s" : ""} (≈${usd(r.reb)})` : usd(r.reb)}`).join(" · ")}.${sp.rows.some((r) => r.paused || (r.whole && !r.shares)) ? ` Nothing for ${sp.rows.filter((r) => r.paused || (r.whole && !r.shares)).map((r) => tk(r.buy)).join(", ")} ${ms.short}.` : ""}${sp.rows.filter((r) => r.shares).map((r) => ` ${tk(r.buy)} is sold in whole shares only: enter 1 in Qty. ${esc(r.vc ? r.vc.text : "")}.`).join("")} Same day each month.` });
   const harvest = rows.filter((r) => r.plan === "legacy" && r.gain < 0);
   if (harvest.length) out.push({ mid: "harvest", tone: "act", tag: "Do once", title: `Sell ${harvest.map((r) => tk(r.sym)).join(", ")} (${usd(-harvest.reduce((a, r) => a + r.gain, 0))} loss)`, body: "No tax on a loss. The loss reduces any other capital gain this financial year, or carries forward 8 years if you file your ITR on time. Put the cash into this month's buys." });
@@ -221,11 +231,7 @@ function renderOverview() {
   const month = new Date(TODAY + "T00:00:00Z").toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
   el.innerHTML = `
   <div class="bento">
-    <div class="kpi k1 tilt b3 reveal">${icon3d("coins")}<span class="eyebrow">Invested</span><span class="v" data-count="${cost}" data-fmt="usd">${usd(cost)}</span><span class="s">${rows.length} holdings</span></div>
-    <div class="kpi k2 tilt b3 reveal">${icon3d("globe")}<span class="eyebrow">Value</span><span class="v" data-count="${val}" data-fmt="usd">${usd(val)}</span><span class="s">${p ? "prices as of " + fmtDate(p) : "no prices yet"}</span></div>
-    <div class="kpi k3 tilt b3 reveal">${icon3d("chart")}<span class="eyebrow">Gain</span><span class="v">${sgn(g)}<span data-count="${Math.abs(g)}" data-fmt="usd">${usd(Math.abs(g))}</span></span><span class="s">${pctf(cost ? g / cost : 0)}</span></div>
-    <div class="kpi k4 tilt b3 reveal">${icon3d("shield")}<span class="eyebrow">Data health</span><span class="v">${hc.length - bad.length}/${hc.length}</span><span class="s">${bad.length ? bad.length + " to fix by uploading" : "all checks pass"}</span></div>
-    ${(() => { const ms = monthStatus(); return `<div class="card b12 reveal"><div><div class="eyebrow">${ms.done ? `${longMonth(ms.ym)} done ✓ · next: ${ms.label}` : `Step 1 · ${month}`}</div><h2>${ms.done ? `${ms.label.split(" ")[0]}'s buys` : "This month's buys"}</h2>${ms.done ? `<p class="done-note"><span class="chip good">✓ Bought ${new Date(TODAY + "T00:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}</span> ${ms.boughtTxt}</p><p class="note">Next month's plan below. Amounts update with prices until you buy, around mid-${ms.label.split(" ")[0]}. Tap a card to see why.</p>` : `<p class="note">Tap a card to flip it and see why.</p>`}</div>${buyCards()}</div>`; })()}
+    ${(() => { const ms = monthStatus(); return `<div class="card b12 reveal"><div><div class="eyebrow">${ms.done ? `${longMonth(ms.ym)} done · next: ${ms.label}` : `Step 1 · ${month}`}</div><h2>${ms.done ? `${ms.label.split(" ")[0]}'s buys` : "This month's buys"}</h2>${ms.done ? `<p class="done-note"><span class="chip good">${ic("check")}Bought ${new Date(TODAY + "T00:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}</span> ${ms.boughtTxt}</p><p class="note">Next month's plan below. Amounts update with prices until you buy, around mid-${ms.label.split(" ")[0]}. Tap a card to see why.</p>` : `<p class="note">Tap a card to flip it and see why.</p>`}</div>${buyCards()}</div>`; })()}
     ${questCard(month)}
     <div class="b5 reveal">${badgesCard()}</div>
     <div class="card glass b7 reveal"><div><h2>Allocation vs target</h2><p class="note">Dot is today, ring is the target. Monthly buys close the gaps, so you never sell to rebalance. Within 5 points counts as on target.</p></div>
@@ -250,7 +256,7 @@ function countUp(root) {
   if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   root.querySelectorAll("[data-count]").forEach((n) => {
     if (counted.has(n)) return; counted.add(n);
-    const end = +n.dataset.count, fmt = n.dataset.fmt === "usd" ? usd : (v) => v.toFixed(0), t0 = performance.now(), D = 900;
+    const end = +n.dataset.count, fmt = n.dataset.fmt === "usd" ? usd : n.dataset.fmt === "nw" ? (v) => (CUR === "INR" ? inr(v) : usdRaw(v)) : (v) => v.toFixed(0), t0 = performance.now(), D = 900;
     const tick = (now) => { const k = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - k, 3); n.textContent = fmt(end * e); if (k < 1) requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
   });
@@ -298,7 +304,7 @@ function stampImport(file) { const rec = S.imports[S.imports.length - 1]; if (re
 function resultModal(done, errs, note) {
   let d = $("#upmodal"); if (!d) { d = document.createElement("dialog"); d.id = "upmodal"; d.className = "upmodal"; document.body.appendChild(d); }
   const ok = done.length && !errs.length;
-  d.innerHTML = `<div class="um-ic ${ok ? "ok" : errs.length && !done.length ? "bad" : "mix"}" aria-hidden="true">${ok ? "✓" : done.length ? "!" : "×"}</div>
+  d.innerHTML = `<div class="um-ic ${ok ? "ok" : errs.length && !done.length ? "bad" : "mix"}" aria-hidden="true">${ok ? ic("check") : done.length ? ic("alert") : ic("x")}</div>
     <h2>${done.length ? `${done.length === 1 ? "Report" : done.length + " reports"} updated successfully` : "Nothing was updated"}</h2>
     ${done.length ? `<ul>${done.map((x) => `<li><b>${esc(x.name)}</b><span>${esc(x.what)}</span></li>`).join("")}</ul>` : ""}
     ${errs.length ? `<p class="um-err">${errs.map(esc).join("<br>")}</p>` : ""}${note ? `<p class="note">${esc(note)}</p>` : ""}
@@ -414,7 +420,7 @@ let pwName = "";
 function askPassword(wrong) {
   return new Promise((res) => {
     let d = $("#pwmodal"); if (!d) { d = document.createElement("dialog"); d.id = "pwmodal"; d.className = "upmodal pwbox"; document.body.appendChild(d); }
-    d.innerHTML = `<div class="um-ic mix" aria-hidden="true">🔒</div><h2>${wrong ? "That password didn't work" : "This PDF is password-protected"}</h2>
+    d.innerHTML = `<div class="um-ic mix" aria-hidden="true"><svg viewBox="0 0 24 24">${UI_IC.lock}</svg></div><h2>${wrong ? "That password didn't work" : "This PDF is password-protected"}</h2>
       <p class="note">${esc(pwName)} needs its password to open. For a CDSL or NSDL statement it's usually based on your PAN; the exact rule is printed in the email it came with.</p>
       <form method="dialog" id="pwform"><label class="sr" for="pwin">PDF password</label><input id="pwin" type="password" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Password">
       <p class="note">Used only to open this file in your browser. It is never saved or sent anywhere.</p>
@@ -490,7 +496,7 @@ function renderPlan() {
   if (!S) { el.innerHTML = emptyCard(); return; }
   const s = S.settings, sp = monthlySplit(S);
   el.innerHTML = `
-  ${(() => { const ms = monthStatus(); return ms.done ? `<div class="card"><p class="done-note"><span class="chip good">✓ ${longMonth(ms.ym)} invested</span> ${ms.boughtTxt}</p></div>` : ""; })()}
+  ${(() => { const ms = monthStatus(); return ms.done ? `<div class="card"><p class="done-note"><span class="chip good">${ic("check")}${longMonth(ms.ym)} invested</span> ${ms.boughtTxt}</p></div>` : ""; })()}
   <div class="card"><h2>${monthStatus().done ? `Next month's investment · ${monthStatus().label}` : "This month's investment"}</h2>
     <div class="facts"><div><span class="eyebrow">Monthly amount</span><span class="num">${inr(s.monthlyInr)}</span></div><div><span class="eyebrow">₹ per $</span><span class="num">${s.fx}</span><span class="note">${s.fxAt ? "as of " + fmtDate(s.fxAt) : ""}</span></div><div><span class="eyebrow">Bank + brokerage</span><span class="num">~${s.feePct}%</span></div><div><span class="eyebrow">You invest</span><span class="num">${usd(sp.usd)}</span></div></div>
     <div class="tbl-wrap"><table>
@@ -646,7 +652,7 @@ function stageData() {
   if (hasData()) {
     const b = bucketView(S).filter((x) => x.value > 0.005);
     const val = holdingRows(S, TODAY).reduce((a, r) => a + r.value, 0);
-    return { segs: b.map((x) => ({ label: x.bucket, v: x.pct, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: usd(val), small: "Your sleeve today, by bucket" };
+    return { segs: b.map((x) => ({ label: x.bucket, v: x.pct, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: "", small: "Point at a slice or pick a bucket below" };
   }
   const t = (S ? S.targets : DEFAULT_TARGETS).filter((x) => x.w > 0);
   return { segs: t.map((x) => ({ label: x.bucket, v: x.w, color: cssVar(BCOL[x.bucket] || "--b-em") })), big: `${inr((S && S.settings && S.settings.monthlyInr) || 10000)} / month`, small: "The target mix" };
@@ -669,9 +675,8 @@ function renderStage() {
 /* ---------- main 3D: a globe of where your money is, circled by the allocation ring ---------- */
 function worldTexture(T, dark, colorsByCC) {
   const W = 2048, H = 1024, c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d");
-  const og = x.createLinearGradient(0, 0, 0, H); og.addColorStop(0, dark ? "#0c2a22" : "#2f7fb0"); og.addColorStop(0.5, dark ? "#0f3a2e" : "#4a9fd0"); og.addColorStop(1, dark ? "#0c2a22" : "#2f7fb0");
-  x.fillStyle = og; x.fillRect(0, 0, W, H);
-  x.strokeStyle = dark ? "rgba(120,220,170,.10)" : "rgba(255,255,255,.16)"; x.lineWidth = 2;
+  x.fillStyle = dark ? "#1f4148" : "#cfe5ee"; x.fillRect(0, 0, W, H);
+  x.strokeStyle = dark ? "rgba(255,255,255,.06)" : "rgba(14,15,12,.07)"; x.lineWidth = 2;
   for (let lon = -180; lon <= 180; lon += 30) { const px = ((lon + 180) / 360) * W; x.beginPath(); x.moveTo(px, 0); x.lineTo(px, H); x.stroke(); }
   for (let lat = -60; lat <= 60; lat += 30) { const py = ((90 - lat) / 180) * H; x.beginPath(); x.moveTo(0, py); x.lineTo(W, py); x.stroke(); }
   let geo = null; try { geo = JSON.parse(document.getElementById("world-110m").textContent); } catch (e) {}
@@ -680,7 +685,7 @@ function worldTexture(T, dark, colorsByCC) {
     for (const f of fc.features) {
       if (f.id === "010") continue; // Antarctica
       const col = colorsByCC[f.id];
-      x.fillStyle = col || (dark ? "#2c5a46" : "#8fcf9a"); x.strokeStyle = dark ? "rgba(7,18,13,.8)" : "rgba(255,255,255,.9)"; x.lineWidth = col ? 3 : 1.4;
+      x.fillStyle = col || (dark ? "#55604c" : "#b7c1ae"); x.strokeStyle = dark ? "rgba(14,15,12,.9)" : "rgba(255,255,255,.95)"; x.lineWidth = col ? 3 : 1.4;
       const polys = f.geometry.type === "Polygon" ? [f.geometry.coordinates] : f.geometry.type === "MultiPolygon" ? f.geometry.coordinates : [];
       for (const poly of polys) {
         x.beginPath();
@@ -699,17 +704,17 @@ function initThree(stage) {
   const dark = document.documentElement.getAttribute("data-theme") === "dark" || (document.documentElement.getAttribute("data-theme") !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
   const scene = new T.Scene(), cam = new T.PerspectiveCamera(34, 1, 0.1, 100);
   cam.position.set(0, 4.6, 8.4); cam.lookAt(0, 1.0, 0);
-  scene.add(new T.AmbientLight(0xffffff, 0.5));
+  scene.add(new T.AmbientLight(0xffffff, dark ? 0.75 : 0.5));
   const key = new T.DirectionalLight(0xffffff, 1.0); key.position.set(4, 6, 5); scene.add(key);
-  const rim = new T.PointLight(0x57d38a, 1.2, 22); rim.position.set(-4.5, 3, -3); scene.add(rim);
-  const fill = new T.PointLight(0x4d7cf5, 0.7, 22); fill.position.set(4.5, 1.5, -2); scene.add(fill);
+  const rim = new T.PointLight(0x9fe870, 0.9, 22); rim.position.set(-4.5, 3, -3); scene.add(rim);
+  const fill = new T.PointLight(0x38c8ff, 0.6, 22); fill.position.set(4.5, 1.5, -2); scene.add(fill);
   const group = new T.Group(); scene.add(group);
   // globe
   const globe = new T.Group(); globe.position.y = 1.35; scene.add(globe);
   const Rg = 1.0;
   const earthMat = new T.MeshStandardMaterial({ roughness: 0.75, metalness: 0.05 });
   const earth = new T.Mesh(new T.SphereGeometry(Rg, 64, 48), earthMat); globe.add(earth);
-  const atmo = new T.Mesh(new T.SphereGeometry(Rg * 1.08, 48, 32), new T.MeshBasicMaterial({ color: 0x57d38a, transparent: true, opacity: 0.12, side: T.BackSide })); globe.add(atmo);
+  const atmo = new T.Mesh(new T.SphereGeometry(Rg * 1.08, 48, 32), new T.MeshBasicMaterial({ color: 0x9fe870, transparent: true, opacity: 0.1, side: T.BackSide })); globe.add(atmo);
   const pinsG = new T.Group(); globe.add(pinsG);
   globe.rotation.x = 0.35;
   const labelBox = document.createElement("div"); labelBox.className = "pins"; stage.appendChild(labelBox);
@@ -726,7 +731,7 @@ function initThree(stage) {
       const head = new T.Mesh(new T.SphereGeometry(0.045, 12, 10), new T.MeshBasicMaterial({ color: new T.Color(colOf(e.cc)) })); head.position.copy(p.clone().add(n.clone().multiplyScalar(h))); pinsG.add(head);
       return { e, head, n }; });
     labelBox.innerHTML = pins.map(({ e }) => `<span class="pin">${flag(e.cc)}<b>${esc(CC[e.cc].name)}</b><em>${e.pct.toFixed(0)}%</em></span>`).join("");
-    pinEls = [...labelBox.children];
+    pinEls = [...labelBox.children]; pins.forEach((p, i) => { if (p.e.pct < 5 && pinEls[i]) pinEls[i].dataset.small = '1'; });
   }
   let tx = 0, ty = 0, rx = 0, ry = 0, raf = 0, t0 = performance.now(), hov = null; const ray = new T.Raycaster(), mouse = new T.Vector2(-9, -9);
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -745,7 +750,7 @@ function initThree(stage) {
         const sh = new T.Shape(); sh.absarc(0, 0, R, s0, s1, true); sh.absarc(0, 0, r, s1, s0, false);
         const depth = 0.18 + (s.v / total) * 0.9;
         const geo = new T.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 3, curveSegments: 64 });
-        const mat = new T.MeshStandardMaterial({ color: new T.Color(s.color), roughness: 0.28, metalness: 0.3, emissive: new T.Color(s.color), emissiveIntensity: 0.12 });
+        const mat = new T.MeshStandardMaterial({ color: new T.Color(s.color), roughness: 0.5, metalness: 0.08, emissive: new T.Color(s.color), emissiveIntensity: 0.1 });
         const mesh = new T.Mesh(geo, mat); mesh.rotation.x = -Math.PI / 2; mesh.userData = { label: s.label, v: s.v }; group.add(mesh);
       }
       a0 = a1;
@@ -768,7 +773,7 @@ function initThree(stage) {
     const placed = []; // biggest countries first; a label that would overlap one already shown waits its turn
     pins.forEach((p, i) => { const el = pinEls[i]; if (!el) return; p.head.getWorldPosition(v3); const nWorld = p.n.clone().applyQuaternion(globe.quaternion); const front = nWorld.dot(camDir) < -0.15; v3.project(cam);
       const px = ((v3.x + 1) / 2) * w, py = ((1 - v3.y) / 2) * hh, ew = el.offsetWidth || 90;
-      const show = front && py > top && !placed.some((q) => Math.abs(q.x - px) < (q.w + ew) / 2 + 4 && Math.abs(q.y - py) < 28);
+      const show = front && py > top && !el.dataset.small && !placed.some((q) => Math.abs(q.x - px) < (q.w + ew) / 2 + 4 && Math.abs(q.y - py) < 28);
       if (show) placed.push({ x: px, y: py, w: ew });
       el.style.opacity = show ? "1" : "0"; el.style.transform = `translate(${px}px, ${py}px) translate(-50%, -120%)`; });
     raf = requestAnimationFrame(frame);
@@ -1019,6 +1024,7 @@ document.addEventListener("click", (e) => { const b = e.target.closest("#legend 
 function showBucket(name) {
   const box = $("#bucket"); if (!box) return;
   document.querySelectorAll("#legend [data-bucket]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.bucket === name)));
+  document.querySelectorAll("#capsules [data-cap]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cap === name)));
   const t = ((S && S.targets) || DEFAULT_TARGETS).find((x) => x.bucket === name) || { w: 0, buy: "" };
   const color = bcol(name);
   let body;
@@ -1037,7 +1043,9 @@ function showBucket(name) {
   box.style.setProperty("--c", color);
   box.innerHTML = `<div class="bh"><div><div class="eyebrow">Bucket</div><h2>${bucketFlags(name)}${esc(name)}</h2></div><button class="x" type="button" aria-label="Close details">×</button></div>${body}`;
   box.hidden = false;
-  box.querySelector(".x").onclick = () => { box.hidden = true; document.querySelectorAll("#legend [data-bucket]").forEach((b) => b.setAttribute("aria-pressed", "false")); };
+  const dlg = $("#bucketdlg"), reset = () => document.querySelectorAll("#legend [data-bucket], #capsules [data-cap]").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  if (dlg) { if (!dlg.open) dlg.showModal(); dlg.onclose = reset; dlg.onclick = (e) => { if (e.target === dlg) dlg.close(); }; }
+  box.querySelector(".x").onclick = () => { if (dlg && dlg.open) dlg.close(); else { box.hidden = true; reset(); } };
 }
 
 /* ---------- how buy prices are tracked ---------- */
@@ -1062,7 +1070,7 @@ function allocChart(buckets) {
   return `<div class="dumb" role="table" aria-label="Allocation now versus target">
     <div class="dkey"><span><i class="dk-now"></i>Now</span><span><i class="dk-tgt"></i>Target</span></div>
     ${buckets.map((b) => { const d = b.pct - b.w, st = b.w === 0 ? (b.pct > 0.5 ? "over" : "ok") : Math.abs(d) <= 5 ? "ok" : d > 0 ? "over" : "under";
-      const pill = st === "ok" ? `<span class="chip good">✓ on target</span>` : st === "over" ? `<span class="chip wait">▲ ${Math.abs(d).toFixed(0)} pts over</span>` : `<span class="chip neutral">▼ ${Math.abs(d).toFixed(0)} pts under</span>`;
+      const pill = st === "ok" ? `<span class="chip good">${ic("check")}On target</span>` : st === "over" ? `<span class="chip wait">${ic("up")}${Math.abs(d).toFixed(0)} pts over</span>` : `<span class="chip neutral">${ic("down")}${Math.abs(d).toFixed(0)} pts under</span>`;
       const lo = Math.min(b.pct, b.w), hi = Math.max(b.pct, b.w);
       return `<div class="drow" role="row" title="${esc(b.bucket)}: now ${b.pct.toFixed(1)}% (${usd(b.value)}), target ${b.w}%">
         <span class="dlab" role="cell"><span class="sw" style="background:${bcol(b.bucket)}"></span>${bucketFlags(b.bucket)}${esc(b.bucket)}</span>
@@ -1086,6 +1094,13 @@ const ICON = {
   target: '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="1.8"/>',
   scroll: '<path d="M6 3h10a3 3 0 013 3v13a2 2 0 01-2 2H8a3 3 0 01-3-3V5"/><path d="M9 8h7M9 12h7M9 16h4" stroke="var(--surface)" stroke-width="1.6"/>',
 };
+const UI_IC = {
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>', lock: '<rect x="5" y="10.5" width="14" height="10" rx="3"/><path d="M8.5 10.5V8a3.5 3.5 0 017 0v2.5"/>',
+  refresh: '<path d="M20 12a8 8 0 11-2.3-5.6M20 4v5h-5"/>', bulb: '<path d="M9 18h6M10 21h4M12 3a6 6 0 00-3.5 10.9c.6.4 1 1.1 1 1.8V16h5v-.3c0-.7.4-1.4 1-1.8A6 6 0 0012 3z"/>',
+  up: '<path d="M12 19V5M6 11l6-6 6 6"/>', down: '<path d="M12 5v14M6 13l6 6 6-6"/>', rupee: '<path d="M7 5h10M7 9.5h10M7 5h3.5a4.5 4.5 0 010 9H7l7.5 6"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>', alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/>', x: '<path d="M6 6l12 12M18 6L6 18"/>',
+};
+const ic = (k) => `<span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24">${UI_IC[k]}</svg></span>`;
 const svg = (k) => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">${ICON[k]}</svg>`;
 function buyMonths() { const s = new Set(); if (S) for (const h of S.holdings) for (const l of h.lots) s.add(l.d.slice(0, 7)); return [...s].sort(); }
 function streak() {
@@ -1139,22 +1154,22 @@ function renderPlayer() {
   if (steps) steps.hidden = true;
   const p = player(), got = p.ach.filter((a) => a.got).length, pct = p.mis.length ? (100 * p.done) / p.mis.length : 0;
   el.hidden = false;
-  el.innerHTML = `<div class="pc-lvl" aria-label="Level ${p.lvl}"><span>LV</span><b>${p.lvl}</b></div>
-    <div class="pc-main"><div class="pc-top"><b>${esc(p.rank)}</b><span class="note">${p.nextR ? `${p.nextR[0] - p.months} more investing months to ${esc(p.nextR[1])}` : "Top rank"}</span></div>
+  el.innerHTML = `<div class="pc-lvl" role="img" aria-label="Level ${p.lvl}"><i class="medal" aria-hidden="true"></i><span aria-hidden="true">Level</span><b aria-hidden="true">${p.lvl}</b></div>
+    <div class="pc-main"><div class="pc-top"><b>${esc(p.rank)}</b><span class="note">${p.nextR ? `${p.nextR[0] - p.months} more investing month${p.nextR[0] - p.months === 1 ? "" : "s"} to ${esc(p.nextR[1])}` : "Top rank"}</span></div>
       <div class="xp" role="progressbar" aria-valuemin="0" aria-valuemax="${p.mis.length}" aria-valuenow="${p.done}" aria-label="This month's missions"><i style="width:${pct}%"></i><span>${p.done}/${p.mis.length} missions this month</span></div>
-      <div class="pc-stats"><span>${svg("star")}<b class="num">${lakh(p.val)}</b> sleeve</span><span>${svg("flame")}<b class="num">${p.streak}</b> month streak</span><span>${svg("shield")}<b class="num">${got}/${p.ach.length}</b> badges</span></div></div>`;
+      <div class="pc-stats"><span>${svg("star")}<b class="num">${lakh(p.val)}</b> abroad</span><span>${svg("flame")}<b class="num">${p.streak}</b> month streak</span><span>${svg("shield")}<b class="num">${got}/${p.ach.length}</b> badges</span></div></div>`;
 }
 function questCard(month) {
   const byId = Object.fromEntries(missions().map((m) => [m.id, m])), list = orders();
   const xs = list.map((o) => byId[o.mid]).filter(Boolean), tot = xs.reduce((a, m) => a + m.xp, 0), got = xs.filter((m) => m.done).reduce((a, m) => a + m.xp, 0);
   return `<div class="card b7 reveal"><div class="fields" style="justify-content:space-between;align-items:center"><div><div class="eyebrow">Your quest for ${month}</div><h2>Do these, in this order</h2></div><span class="chip ${got === tot ? "good" : "neutral"}">${got}/${tot} XP</span></div>
-    <ol class="orders">${list.map((o) => { const m = byId[o.mid]; return `<li class="${m && m.done ? "done" : ""}"><span class="chip ${o.tone}">${esc(o.tag)}</span><div><b>${o.title}</b><br><span class="muted">${o.body}</span></div>${m ? `<span class="xpb">${m.done ? "✓ " : ""}+${m.xp} XP</span>` : "<span></span>"}</li>`; }).join("")}</ol>
+    <ol class="orders">${list.map((o) => { const m = byId[o.mid]; return `<li class="${m && m.done ? "done" : ""}"><span class="chip ${o.tone}">${esc(o.tag)}</span><div><b>${o.title}</b><br><span class="muted">${o.body}</span></div>${m ? `<span class="xpb">${m.done ? "Earned " : ""}+${m.xp} XP</span>` : "<span></span>"}</li>`; }).join("")}</ol>
     <p class="note">Tasks tick themselves when your uploads show they're done.</p></div>`;
 }
 function missionsCard() {
   const mis = missions(); if (!mis.length) return "";
   return `<div class="card"><div class="fields" style="justify-content:space-between;align-items:center"><div><div class="eyebrow">${new Date(TODAY + "T00:00:00Z").toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" })}</div><h2>Missions</h2></div><span class="chip ${mis.every((m) => m.done) ? "good" : "neutral"}">${mis.filter((m) => m.done).length}/${mis.length} complete</span></div>
-    <ul class="missions">${mis.map((m) => `<li class="${m.done ? "done" : ""}"><span class="mk" aria-hidden="true">${m.done ? "✓" : ""}</span><span>${m.title}</span><span class="xpb">+${m.xp} XP</span></li>`).join("")}</ul>
+    <ul class="missions">${mis.map((m) => `<li class="${m.done ? "done" : ""}"><span class="mk" aria-hidden="true">${m.done ? ic("check") : ""}</span><span>${m.title}</span><span class="xpb">+${m.xp} XP</span></li>`).join("")}</ul>
     <p class="note">Missions tick themselves when your uploads show they're done.</p></div>`;
 }
 function badgesCard() {
@@ -1172,16 +1187,14 @@ const MI = {
   pulse: '<svg viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>',
   tag: '<svg viewBox="0 0 24 24"><path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>',
 };
-/* original 3D-style icons: gradient-lit SVG with a specular highlight and soft contact shadow */
+/* small 3D objects drawn in flat tones: a lit top face, a darker side and a soft contact shadow (no gradients) */
 function icon3d(kind) {
-  const id = "g" + kind, shadow = '<ellipse cx="32" cy="58" rx="18" ry="4" fill="rgba(0,0,0,.28)"/>';
-  const hl = (x, y, rx, ry) => `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#fff" opacity=".45"/>`;
-  const defs = (a, b, c) => `<defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset=".55" stop-color="${b}"/><stop offset="1" stop-color="${c}"/></linearGradient></defs>`;
+  const shadow = '<ellipse cx="32" cy="57" rx="19" ry="4" fill="rgba(14,15,12,.16)"/>';
   const body = {
-    coins: defs("#fff2b0", "#e8c547", "#a7790a") + shadow + [44, 36, 28].map((y) => `<ellipse cx="32" cy="${y + 6}" rx="20" ry="7" fill="#8a6206"/><rect x="12" y="${y}" width="40" height="6" fill="url(#${id})"/><ellipse cx="32" cy="${y}" rx="20" ry="7" fill="url(#${id})" stroke="#a7790a" stroke-width="1"/>`).join("") + hl(26, 26, 8, 2.5),
-    globe: defs("#c8f5d8", "#3fbf73", "#0f5a33") + shadow + `<circle cx="32" cy="30" r="22" fill="url(#${id})"/><path d="M10 30h44M32 8c9 7 9 37 0 44M32 8c-9 7-9 37 0 44" fill="none" stroke="#06331c" stroke-width="2.2" opacity=".7"/>` + hl(24, 18, 9, 4),
-    chart: defs("#d6e4ff", "#4d7cf5", "#1d3e9e") + shadow + [[14, 34, 22], [27, 24, 32], [40, 14, 42]].map(([x, y, h]) => `<rect x="${x}" y="${y}" width="11" height="${h}" rx="3" fill="url(#${id})"/><rect x="${x}" y="${y}" width="4" height="${h}" rx="2" fill="#fff" opacity=".25"/>`).join(""),
-    shield: defs("#ffe0e6", "#e8405e", "#8a1530") + shadow + `<path d="M32 6l20 7v14c0 13-9 22-20 26-11-4-20-13-20-26V13z" fill="url(#${id})"/><path d="M23 30l6 6 12-12" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>` + hl(25, 15, 7, 3),
+    coins: shadow + [44, 35, 26].map((y) => `<path d="M12 ${y}v6a20 7 0 0040 0v-6z" fill="#7fcf55"/><ellipse cx="32" cy="${y}" rx="20" ry="7" fill="#9fe870"/><ellipse cx="32" cy="${y}" rx="13" ry="4" fill="none" stroke="#6fbf43" stroke-width="2"/>`).join(""),
+    globe: shadow + `<circle cx="32" cy="30" r="22" fill="#0a8bcc"/><path d="M32 8a22 22 0 010 44 16 22 0 010-44z" fill="#087bb4"/><path d="M19 16c6 2 7 8 3 11s-1 9 4 10M44 14c-4 5-1 9 4 10M40 40c3-3 8-3 10-1" fill="none" stroke="#9fe870" stroke-width="4" stroke-linecap="round"/>`,
+    chart: shadow + [[12, 34, 20], [26, 24, 30], [40, 14, 40]].map(([x, y, h]) => `<path d="M${x} ${y}h11v${h}H${x}z" fill="#38c8ff"/><path d="M${x + 11} ${y}l4-3v${h}l-4 3z" fill="#0a8bcc"/><path d="M${x} ${y}l4-3h11l-4 3z" fill="#9be3ff"/>`).join(""),
+    shield: shadow + `<path d="M32 6l20 7v14c0 13-9 22-20 26-11-4-20-13-20-26V13z" fill="#9fe870"/><path d="M32 6l20 7v14c0 13-9 22-20 26z" fill="#7fcf55"/><path d="M23 30l6 6 12-12" fill="none" stroke="#0e0f0c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`,
   }[kind];
   return `<svg class="k3d" viewBox="0 0 64 64" aria-hidden="true">${body}</svg>`;
 }
@@ -1206,50 +1219,49 @@ function renderFresh() {
   const mkt = (cc, name, arr, tz, hh, mm) => { if (!arr.length) return ""; const newest = arr[arr.length - 1], older = arr.filter((d) => d < newest).length, closeAt = localToUtc(newest, tz, hh, mm);
     return `<div class="fr"><span class="fr-f">${flag(cc)}</span><span><small>${name} prices</small><b>Close of ${new Date(newest + "T00:00:00Z").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" })}</b><em>closed ${ist(closeAt)} IST${older ? ` · ${older} older` : ""}</em></span></div>`; };
   el.hidden = false;
-  el.innerHTML = `<div class="fr"><span class="fr-ic" aria-hidden="true">⟳</span><span><small>Last refreshed</small><b>${esc(ref)}</b><em>${nx ? "next " + ist(nx) + " IST" : ""} · <button type="button" class="linkbtn" id="fr-now">refresh now</button></em></span></div>
+  el.innerHTML = `<div class="fr"><span class="fr-ic" aria-hidden="true"><svg viewBox="0 0 24 24">${UI_IC.refresh}</svg></span><span><small>Last refreshed</small><b>${esc(ref)}</b><em>${nx ? "next " + ist(nx) + " IST" : ""} · <button type="button" class="linkbtn" id="fr-now">refresh now</button></em></span></div>
     ${mkt("US", "US", us, "America/New_York", 16, 0)}${mkt("GB", "London", ls, "Europe/London", 16, 30)}
-    <div class="fr"><span class="fr-ic" aria-hidden="true">₹</span><span><small>Rupee rate</small><b>₹${S.settings.fx} per $</b><em>INDmoney, ${fmtDate(S.settings.fxAt)}</em></span></div>
+    <div class="fr"><span class="fr-ic" aria-hidden="true"><svg viewBox="0 0 24 24">${UI_IC.rupee}</svg></span><span><small>Rupee rate</small><b>₹${S.settings.fx} per $</b><em>INDmoney, ${fmtDate(S.settings.fxAt)}</em></span></div>
     <p class="fr-tip">To match INDmoney exactly, compare after the morning refresh and before London opens at ${ist(lonOpen, { weekday: undefined, day: undefined, month: undefined })} IST on weekdays, or any time at the weekend. Both markets are closed then, so both show the same closing prices.</p>`;
   const fb = $("#fr-now"); if (fb) fb.onclick = () => refreshNowClick(fb);
 }
 function renderHeader() {
   const meta = $("#meta"), big = $("#bigval"), sub = $("#bigsub"), caps = $("#capsules"), tilt = $("#tiltcard"), ins = $("#insight");
   if (!meta) return;
-  const today = new Date(TODAY + "T00:00:00Z").toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+  const today = new Date(TODAY + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+  if (tilt) tilt.innerHTML = "";
+  renderNetWorth();
   if (!hasData()) {
-    meta.innerHTML = `<div class="mchip"><span class="ic">${MI.cal}</span><span><small>Date</small><b>${today}</b></span></div>`;
-    big.textContent = "₹0"; sub.textContent = "Upload your INDmoney reports to begin";
-    caps.innerHTML = `<div class="cap-cta"><span>.</span><button class="btn primary" data-go="upload">Upload reports</button></div>`;
-    tilt.innerHTML = `<div class="eyebrow">How it works</div><p>Upload your Transactions and Holdings reports. You get a monthly buy list, every purchase's 12.5% tax date, and a warning before you'd pay more tax than you need to.</p>`;
-    ins.hidden = true; return;
+    meta.innerHTML = `<span class="mchip"><span class="ic">${MI.cal}</span><b>${today}</b></span>`;
+    big.textContent = "—"; sub.innerHTML = `<span>Upload your INDmoney reports to see this</span>`;
+    caps.innerHTML = `<p class="note">Your US, Japan and London funds appear here, split into buckets, once your INDmoney Transactions and Holdings reports are uploaded.</p><div><button class="btn" type="button" data-go="upload">Upload INDmoney reports</button></div>`;
+    ins.hidden = true; $("#fresh").hidden = true; return;
   }
   const rows = holdingRows(S, TODAY), fx = S.settings.fx, val = rows.reduce((a, r) => a + r.value, 0), cost = rows.reduce((a, r) => a + r.cost, 0), g = val - cost;
-  const hc = health(S, TODAY), bad = hc.filter((h) => !h.ok).length, p = oldestPrice();
-  meta.innerHTML = `<div class="mchip"><span class="ic">${MI.cal}</span><span><small>Date</small><b>${today}</b></span></div>
-    <div class="mchip"><span class="ic">${MI.pulse}</span><span><small>Status</small><b>${bad ? bad + " to fix" : "Stable"}</b></span></div>
-    <div class="mchip"><span class="ic">${MI.tag}</span><span><small>Holdings</small><b>${rows.length}</b></span></div>`;
+  const hc = health(S, TODAY), bad = hc.filter((h) => !h.ok).length;
+  meta.innerHTML = `<span class="mchip"><span class="ic">${MI.cal}</span><b>${today}</b></span>
+    <span class="mchip"><span class="ic">${MI.pulse}</span><b>${bad ? `${bad} check${bad > 1 ? "s" : ""} to fix` : "All data checks pass"}</b></span>`;
   big.textContent = usd(val);
-  sub.innerHTML = `<span>Invested <b>${usd(cost)}</b></span><span class="${cls(g)}">${g >= 0 ? "Gain" : "Loss"} <b>${sgn(g)}${usd(Math.abs(g))} · ${pctf(cost ? g / cost : 0)}</b></span>${CUR === "INR" ? `<span>at ₹${fx}/$</span>` : ""}`;
-  renderFresh(); renderNetWorth();
+  sub.innerHTML = `<span>Invested <b>${usd(cost)}</b></span><span class="${cls(g)}">${g >= 0 ? "Gain" : "Loss"} <b>${sgn(g)}${usd(Math.abs(g))} (${pctf(cost ? g / cost : 0)})</b></span>`;
+  $("#ab-sub").textContent = `${rows.length} holdings · ${CUR === "INR" ? `at ₹${fx} per $` : "US, Japan and London funds"}`;
+  renderFresh();
   const b = bucketView(S).filter((x) => x.value > 0.005);
-  caps.innerHTML = b.map((x) => `<div class="cap" style="--g:${Math.max(1, Math.round(x.pct))};--c:${bcol(x.bucket)}"><span>${bucketFlags(x.bucket)}${esc(x.bucket)} · ${x.pct.toFixed(0)}%</span><button type="button" data-cap="${esc(x.bucket)}" aria-label="${esc(x.bucket)}: ${usd(x.value)}, ${x.pct.toFixed(0)} percent. Show details"><em>${usd(x.value)}</em></button></div>`).join("")
-    + `<div class="cap-cta"><span aria-hidden="true">.</span><button class="btn primary" data-go="upload">Upload reports <span aria-hidden="true">→</span></button></div>`;
-  caps.querySelectorAll("[data-cap]").forEach((bt) => (bt.onclick = () => { showBucket(bt.dataset.cap); $("#stage").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" }); }));
-  tilt.innerHTML = `<div class="row"><span class="eyebrow">Gain so far</span><span class="pillv"><i></i>${pctf(cost ? g / cost : 0)}</span></div><div class="row"><span class="num">${sgn(g)}${usd(Math.abs(g))}</span></div><span class="note">On ${usd(cost)} put in · ${rows.length} holdings</span>`;
-  // Claude's take: computed locally from your data, then ask anything
+  caps.innerHTML = b.map((x) => `<div class="cap"><button type="button" data-cap="${esc(x.bucket)}" aria-pressed="false" aria-label="${esc(x.bucket)}: ${usd(x.value)}, ${x.pct.toFixed(0)} percent. Show details"><span class="sw" style="background:${bcol(x.bucket)}"></span><span class="cn">${bucketFlags(x.bucket)}${esc(x.bucket)}</span><span class="cv">${usd(x.value)}</span><span class="cp">${x.pct.toFixed(0)}%</span></button></div>`).join("");
+  caps.querySelectorAll("[data-cap]").forEach((bt) => (bt.onclick = () => showBucket(bt.dataset.cap)));
+  // the AI take: computed locally from your data, then ask anything
   const sp = monthlySplit(S), gaps = bucketView(S).filter((x) => x.w > 0).map((x) => ({ ...x, gap: x.pct - x.w })).sort((a, c) => a.gap - c.gap);
-  const under = gaps[0], over = gaps[gaps.length - 1], nx = lotRows(S, TODAY).find((l) => l.left > 0), put = sp.rows.find((r) => r.bucket === under.bucket);
+  const under = gaps[0], over = gaps[gaps.length - 1], nx = lotRows(S, TODAY).find((l) => l.left > 0), put = under && sp.rows.find((r) => r.bucket === under.bucket);
   const lines = [
-    `${under.bucket} is ${Math.abs(under.gap).toFixed(0)} points under target${put ? `, so it gets ${usd(put.reb)} of ${monthStatus().short}'s money` : ""}.`,
-    over.gap > 5 ? `${over.bucket} is ${over.gap.toFixed(0)} points over, so it gets less until the gap closes.` : "",
+    under ? `${under.bucket} is ${Math.abs(under.gap).toFixed(0)} points under target${put ? `, so it gets ${usd(put.reb)} of ${monthStatus().short}'s money` : ""}.` : "",
+    over && over.gap > 5 ? `${over.bucket} is ${over.gap.toFixed(0)} points over, so it gets less until the gap closes.` : "",
     nx ? `Next 12.5% date: ${tk(nx.sym)} on ${fmtDate(nx.ltd)}.` : "",
     bad ? `${bad} data check${bad > 1 ? "s need" : " needs"} an upload.` : "",
   ].filter(Boolean);
   ins.hidden = false;
-  ins.innerHTML = `<div class="ihead"><b><svg viewBox="0 0 24 24"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>AI take</b><span class="note">${today}</span></div>
+  ins.innerHTML = `<div class="ihead"><b><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.6L18 9l-4.2 1.4L12 15l-1.8-4.6L6 9l4.2-1.4z"/></svg>AI take</b><span class="note">${today}</span></div>
     <p>${lines.map(esc).join(" ")}</p>
     <div class="ans" id="ins-a" hidden></div>
-    <form class="ask" id="ins-form"><label class="sr" for="ins-q">Ask about your portfolio</label><input id="ins-q" placeholder="${sampleFn ? "Ask anything about your portfolio" : "Open in Claude to ask questions"}" ${sampleFn ? "" : "disabled"} autocomplete="off"><button class="btn primary send" type="submit" aria-label="Ask" ${sampleFn ? "" : "disabled"}><svg viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-6z"/></svg></button></form>`;
+    <form class="ask" id="ins-form"><label class="sr" for="ins-q">Ask about your portfolio</label><input id="ins-q" placeholder="${sampleFn ? "Ask anything about your portfolio" : "AI helper is off"}" ${sampleFn ? "" : "disabled"} autocomplete="off"><button class="btn primary send" type="submit" aria-label="Ask" ${sampleFn ? "" : "disabled"}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button></form>`;
   $("#ins-form").onsubmit = (e) => { e.preventDefault(); const q = $("#ins-q").value.trim(); if (q) ask(q, $("#ins-a")); };
 }
 
@@ -1290,7 +1302,8 @@ function countryExposure() {
 function countriesCard(compact) {
   const ex = countryExposure(); if (!ex.length) return "";
   return `<div class="card glass ${compact ? "b5" : "b12"} reveal"><div><h2>Where your money is</h2><p class="note">By the country each holding's companies are based in. The copper miners fund is counted under Canada, where most of its miners are listed.</p></div>
-    <div class="ctry ${compact ? "compact" : ""}">${ex.map((e) => `<div class="ct" style="--w:${Math.max(2, e.pct).toFixed(1)}%">${flag(e.cc)}<span><b>${esc((CC[e.cc] || { name: e.cc }).name)}</b><span class="note">${usd(e.v)}</span></span><span class="num">${e.pct.toFixed(0)}%</span><i></i></div>`).join("")}</div></div>`;
+    <div class="ctry ${compact ? "compact" : ""}">${(compact ? ex.slice(0, 5) : ex).map((e) => `<div class="ct" style="--w:${Math.max(2, e.pct).toFixed(1)}%">${flag(e.cc)}<span><b>${esc((CC[e.cc] || { name: e.cc }).name)}</b><span class="note">${usd(e.v)}</span></span><span class="num">${e.pct.toFixed(0)}%</span><i></i></div>`).join("")}</div>
+    ${compact && ex.length > 5 ? `<p class="note">Also ${ex.slice(5).map((e) => `${esc((CC[e.cc] || { name: e.cc }).name)} ${e.pct.toFixed(0)}%`).join(", ")}.</p>` : ""}</div>`;
 }
 
 /* NSE symbols for listed holdings (used by the weekly price refresh); unknown ones are looked up by the refresh itself */
@@ -1722,7 +1735,7 @@ function ltCell(h, t) {
   if (!t.rule.months) return `<span class="chip neutral">Slab rate</span><span class="nm">debt fund: no long-term rate</span>`;
   if (!h.lots) return `<span class="muted">${h.acct !== "Groww" ? "purchase dates not in any report" : "needs order history"}</span>`;
   const tot = t.lt + t.st + t.unk, f = (n) => (+n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
-  if (t.st <= 1e-6 && t.unk <= 1e-6) return `<span class="chip good">✓ Long-term</span><span class="nm">12.5% on gains if sold</span>`;
+  if (t.st <= 1e-6 && t.unk <= 1e-6) return `<span class="chip good">${ic("check")}Long-term</span><span class="nm">12.5% on gains if sold</span>`;
   if (t.lt <= 1e-6 && t.unk <= 1e-6) return `<span class="chip act">Short-term</span><span class="nm">${stRate(t.rule)} if sold now${t.next ? ` · long-term from ${fmtDate(t.next)}` : ""}</span>`;
   return `${t.lt > 1e-6 ? `<span class="chip good">${f(t.lt)} of ${f(tot)} long-term</span>` : ""}${t.next ? `<span class="nm">more turn long-term on ${fmtDate(t.next)}</span>` : ""}${t.unk > 1e-6 ? `<span class="nm" title="Units not in the order history: IPO, bonus, demerger, transfer or a purchase outside Groww">${f(t.unk)} units: purchase date unknown</span>` : ""}`;
 }
@@ -1757,7 +1770,7 @@ function inTaxCard(t) {
       <div><small>Booked this year (Groww orders)</small><b class="num">${t.real.has ? `${sgn(t.real.lt + t.real.st)}${inr(Math.abs(t.real.lt + t.real.st))}` : "—"}</b><em>${t.real.has ? `long-term ${sgn(t.real.lt)}${inr(Math.abs(t.real.lt))} · short-term ${sgn(t.real.st)}${inr(Math.abs(t.real.st))}` : "upload order histories"}</em></div>
       <div><small>Tax-free long-term room left</small><b class="num">${inr(left)}</b><em>of ₹1,25,000 this year</em></div>
     </div>
-    ${harvest > 500 ? `<p class="in-tip-line">💡 You could book about <b>${inr(harvest)}</b> of long-term gains tax-free before 31 March by selling those units and buying them back the same day${t.gainers.length ? ` (mainly ${t.gainers.map((g) => esc(g.name)).join(", ")})` : ""}. That raises your buy price, so future tax is lower.</p>` : ""}
+    ${harvest > 500 ? `<p class="in-tip-line">${ic("bulb")}<span>You could book about <b>${inr(harvest)}</b> of long-term gains tax-free before 31 March by selling those units and buying them back the same day${t.gainers.length ? ` (mainly ${t.gainers.map((g) => esc(g.name)).join(", ")})` : ""}. That raises your buy price, so future tax is lower.</span></p>` : ""}
     ${t.upcoming.length ? `<h3 style="margin-top:12px">Next to turn long-term</h3><ul class="in-legend">${t.upcoming.map((u) => `<li><span class="sw" style="background:var(--accent)"></span><b>${esc(u.name)}</b><span class="num">${fmtDate(u.from)}</span><em>${u.g != null ? `${sgn(u.g)}${inr(Math.abs(u.g))}` : ""}</em></li>`).join("")}</ul>` : ""}
     <p class="note">Purchase dates come from your Groww order histories. Units without a date (IPO allotments, bonuses, demergers, funds bought outside Groww) aren't counted here. Gold, silver and international funds of funds need 24 months; debt funds are always taxed at your slab. Estimates only; your CA files the real numbers.</p></div>`;
 }
@@ -1814,7 +1827,7 @@ function bondCard(H, I) {
     <div class="bond-bars" role="img" aria-label="${months.map((m) => `${longMonth(m.ym)}: ${inr(m.int + m.prin)}`).join("; ")}">${months.map((m) => `<div class="bb" title="${longMonth(m.ym)}: ${inr(m.int)} interest${m.prin ? ` + ${inr(m.prin)} principal` : ""}"><span class="bv${m.prin ? " big" : ""}">${m.int + m.prin ? k(m.int + m.prin) : ""}</span><div class="bcol"><i class="bp" style="height:${(100 * m.prin) / mx}%"></i><i class="bi" style="height:${Math.max(m.int ? 3 : 0, (100 * m.int) / mx)}%"></i></div><span class="bm">${new Date(m.ym + "-01T00:00:00Z").toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" })}</span></div>`).join("")}</div>
     <p class="note"><span class="sw-i"></span> interest (after TDS) &nbsp; <span class="sw-p"></span> principal returned</p>
     ${back.length ? `<h3 style="margin-top:12px">Principal coming back</h3><ul class="in-legend">${back.map((f) => `<li><span class="sw" style="background:var(--accent-2)"></span><b>${esc(f.n)}</b><span class="num">${inr(f.prin)}</span><em class="bdate">${fmtDate(f.d)}</em></li>`).join("")}</ul>` : ""}
-    ${next ? `<p class="in-tip-line">💡 ${inr(next.prin)} from ${esc(next.n)} lands in your bank on <b>${fmtDate(next.d)}</b>. It doesn't reinvest by itself, so decide beforehand where it goes; otherwise it sits idle in savings.</p>` : ""}
+    ${next ? `<p class="in-tip-line">${ic("bulb")}<span>${inr(next.prin)} from ${esc(next.n)} lands in your bank on <b>${fmtDate(next.d)}</b>. It doesn't reinvest by itself, so decide beforehand where it goes; otherwise it sits idle in savings.</span></p>` : ""}
     <p class="note">Interest from bonds is taxed every year at your slab rate (as "income from other sources"), whether or not you sell. The 10% TDS shows in your Form 26AS / AIS and counts towards your tax when you file. ${groww.length ? `${groww.map((h) => esc(h.name)).join(" and ")} ${groww.length > 1 ? "aren't" : "isn't"} included yet: upload ${groww.every((h) => h.via === "IndiaBonds") ? "the IndiaBonds Cashflow report" : "its platform's interest report"}. ` : ""}${iB.length ? "Yields for IndiaBonds bonds are worked out from the price you paid and their scheduled payouts. " : ""}Upload fresh Wint and IndiaBonds reports every month or two to keep this current.</p></div>`;
 }
 /* ---------- holding details sheet (tap a row) ---------- */
@@ -1846,8 +1859,8 @@ function holdingDetail(h, I) {
   const where = h.via ? `Bought on ${h.via} · held in your ${h.acct} demat` : h.acct === "MF folios (CAMS/KFin)" ? "Held directly with the fund house" : `Held in ${h.acct}`;
   const ltG = lots.filter((l) => l.d && l.p != null && rule.months && addMonths(l.d, rule.months) <= TODAY).reduce((s, l) => s + (px - l.p) * l.q, 0);
   const stL = lots.filter((l) => l.d && l.p != null && rule.months && addMonths(l.d, rule.months) > TODAY), stG = stL.reduce((s, l) => s + (px - l.p) * l.q, 0);
-  const lotSt0 = (l) => (h.type === "bond" ? "" : !rule.months ? `<span class="chip neutral">Slab rate</span>` : !l.d ? `<span class="chip neutral">Date unknown</span>` : addMonths(l.d, rule.months) <= TODAY ? `<span class="chip good">✓ Long-term</span>` : `<span class="chip act">Short-term</span><span class="nm">long-term from ${fmtDate(addMonths(l.d, rule.months))}</span>`);
-  const lotSt = (l) => lotSt0(l) + (h.elss && l.d ? (addMonths(l.d, 36) > TODAY ? `<span class="chip neutral">🔒 locked until ${fmtDate(addMonths(l.d, 36))}</span>` : `<span class="nm">lock-in over</span>`) : "");
+  const lotSt0 = (l) => (h.type === "bond" ? "" : !rule.months ? `<span class="chip neutral">Slab rate</span>` : !l.d ? `<span class="chip neutral">Date unknown</span>` : addMonths(l.d, rule.months) <= TODAY ? `<span class="chip good">${ic("check")}Long-term</span>` : `<span class="chip act">Short-term</span><span class="nm">long-term from ${fmtDate(addMonths(l.d, rule.months))}</span>`);
+  const lotSt = (l) => lotSt0(l) + (h.elss && l.d ? (addMonths(l.d, 36) > TODAY ? `<span class="chip neutral">${ic("lock")}Locked until ${fmtDate(addMonths(l.d, 36))}</span>` : `<span class="nm">lock-in over</span>`) : "");
   let bondHtml = "";
   if (h.type === "bond") {
     const b = h.bond || {}, mat = bondMat(h), F = bondFlowsFor(h, I), nx = F.fut[0], mo = mat ? Math.max(0, Math.round((new Date(mat) - new Date(TODAY)) / 2629800000)) : null;
@@ -1888,7 +1901,7 @@ function holdingDetail(h, I) {
     ${h.divs ? `<section class="hdm-card"><h3>Dividends received</h3><ul class="hdm-pay">${h.divs.slice().reverse().map((x) => `<li><span>${fmtDate(x.d)}</span><span class="num">${r2(x.amt)}</span><em>${x.q && x.dps ? `${x.q} × ₹${(+x.dps).toFixed(2)}` : ""}</em></li>`).join("")}</ul><p class="note">Dividends are added to your income and taxed at your slab rate. TDS is deducted only above ₹10,000 a year from one company.</p></section>` : ""}
     <section class="hdm-card"><h3>Tax if you sell today</h3>
       ${h.type !== "bond" && rule.months && lots.length ? `<div class="hdm-two hdm-tax"><div><small>Long-term units</small><b class="num">${q(t.lt || 0)}</b><span class="nm ${cls(ltG)}">gain ${sgn(ltG)}${inr(Math.abs(ltG))} · 12.5%</span></div><div><small>Short-term units</small><b class="num">${q(t.st || 0)}</b><span class="nm ${cls(stG)}">gain ${sgn(stG)}${inr(Math.abs(stG))} · ${stRate(rule)}</span></div></div>
-        ${t.next ? `<p class="hdm-hint">⏳ Next units turn long-term on <b>${fmtDate(t.next)}</b>.</p>` : ""}${t.unk > 1e-6 ? `<p class="hdm-hint">${q(t.unk)} ${Math.abs(t.unk - 1) < 1e-6 ? "unit has" : "units have"} no purchase date in the reports you've uploaded${h.type === "mf" ? (h.elss ? " (likely bought in a year whose ELSS statement isn't uploaded yet)" : " (bought outside Groww, or before your order history starts)") : " (IPO, bonus, demerger, transfer or bought outside Groww)"}, so they aren't counted above.</p>` : ""}` : ""}
+        ${t.next ? `<p class="hdm-hint">${ic("clock")}<span>Next units turn long-term on <b>${fmtDate(t.next)}</b>.</span></p>` : ""}${t.unk > 1e-6 ? `<p class="hdm-hint">${q(t.unk)} ${Math.abs(t.unk - 1) < 1e-6 ? "unit has" : "units have"} no purchase date in the reports you've uploaded${h.type === "mf" ? (h.elss ? " (likely bought in a year whose ELSS statement isn't uploaded yet)" : " (bought outside Groww, or before your order history starts)") : " (IPO, bonus, demerger, transfer or bought outside Groww)"}, so they aren't counted above.</p>` : ""}` : ""}
       <p class="note">${taxExplain(h, rule)}</p></section>
     ${lots.length ? `<section class="hdm-card"><div class="hdm-two"><h3>Breakdown</h3><span class="nm r">Avg price (invested)</span></div><ul class="hdm-lots">${lots.map((l) => { const lg = l.p != null ? (px - l.p) * l.q : null; return `<li><div><b>${q(l.q)} ${h.type === "mf" ? "units" : "qty"}</b><span class="nm">${l.d ? fmtDate(l.d) : "purchase date unknown"}${l.tag ? ` · ${esc(l.tag)}` : ""}${l.d ? ` · held ${Math.round((new Date(TODAY) - new Date(l.d)) / 86400000)} days` : ""}</span>${lotSt(l)}</div><div class="r"><b class="num">${l.p != null ? r2(l.p) : "—"}</b><span class="nm">${l.p != null ? `(${r2(l.p * l.q)})` : ""}</span>${lg != null && h.type !== "bond" ? `<span class="nm ${cls(lg)}">${sgn(lg)}${inr(Math.abs(lg))}</span>` : ""}</div></li>`; }).join("")}</ul>
       ${(h.type === "stock" || h.type === "etf" || h.type === "invit") && h.acct === "Groww" ? `<p class="note">From your Groww order history (oldest units are sold first). Dividends aren't included.</p>` : ""}</section>` : `<section class="hdm-card"><h3>Breakdown</h3><p class="muted">${h.acct === "Zerodha" ? "Zerodha's holdings report has the average price but not each purchase, so the purchase dates aren't known yet." : "No purchase-by-purchase history for this one in your reports yet."}</p></section>`}
@@ -1958,14 +1971,52 @@ function renderIndia() {
   wireIndiaChart(el.querySelector(".in-hero"), hist);
 }
 /* net worth across India + global, shown on the main page */
+let totCounted = false;
 function renderNetWorth() {
-  const el = $("#networth"); if (!el) return;
-  const I = S && S.india; if (!I || !hasData()) { el.hidden = true; return; }
-  const g = holdingRows(S, TODAY).reduce((a, r) => a + r.value, 0) * fxNow(), it = indHoldings(I).reduce((a, h) => a + indCur(h, I), 0), tot = it + g;
-  el.hidden = false;
-  el.innerHTML = `<div class="nw-main"><small>All investments</small><b class="num">${nwMoney(tot)}</b></div>
-    <button type="button" class="nw" data-go="india"><span>${flag("IN")}</span><span><small>India · ${((100 * it) / tot).toFixed(0)}%</small><b>${nwMoney(it)}</b><em>${I.src && (I.src.grSt || I.src.grMF) ? "statement + broker reports" : "as of " + fmtDate(I.asOf)}</em></span></button>
-    <button type="button" class="nw" data-go="holdings"><span>${flag("WORLD")}</span><span><small>US & Japan · ${((100 * g) / tot).toFixed(0)}%</small><b>${nwMoney(g)}</b><em>prices refreshed daily</em></span></button>`;
+  const el = $("#networth"), isum = $("#india-sum"); if (!el) return;
+  const I = S && S.india, has = hasData();
+  const rows = has ? holdingRows(S, TODAY) : [], gv = rows.reduce((a, r) => a + r.value, 0), gc = rows.reduce((a, r) => a + r.cost, 0);
+  const g = gv * fxNow(), H = I ? indHoldings(I) : [], it = H.reduce((a, h) => a + indCur(h, I), 0), tot = it + g;
+  const up = `<button class="btn primary" type="button" data-go="upload"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"/></svg>Upload reports</button>`;
+  if (!tot) {
+    el.innerHTML = `<div class="tot-head"><h2>All investments</h2></div><div class="tot-v num">${nwMoney(0)}</div>
+      <p class="tot-ch">Upload your CDSL or NSDL statement (CAS) for India and your INDmoney reports for the US and Japan. Every number here comes from those files; nothing is typed in.</p>
+      <div class="tot-act">${up}</div>`;
+    if (isum) isum.hidden = true; return;
+  }
+  const hist = (I && I.history) || [], last = hist[hist.length - 1], prev = hist[hist.length - 2], ich = last && prev ? last.v - prev.v : null;
+  const mName = (m) => new Date(m + "-01T00:00:00Z").toLocaleDateString("en-GB", { month: "long", timeZone: "UTC" });
+  const gg = gv - gc, ip = (100 * it) / tot, gp = 100 - ip;
+  const inAt = I ? [I.asOf, I.pricedAt].filter(Boolean).sort().slice(-1)[0] : null, usAt = has ? oldestPrice() : null, dshort = (d) => new Date(d + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  const asOf = [inAt ? `India prices ${dshort(inAt)}` : "", usAt ? `US close ${dshort(usAt)}` : ""].filter(Boolean).join(" · ");
+  const chg = [
+    ich != null ? `<span class="${cls(ich)}">India <b>${sgn(ich)}${indMoney(Math.abs(ich))} (${pctf(prev.v ? ich / prev.v : 0)})</b> in ${mName(last.m)}</span>` : "",
+    has ? `<span class="${cls(gg)}">Abroad <b>${sgn(gg)}${usd(Math.abs(gg))} (${pctf(gc ? gg / gc : 0)})</b> since your first buy</span>` : "",
+  ].filter(Boolean).join("");
+  el.innerHTML = `<div class="tot-head"><h2>All investments</h2>${asOf ? `<span class="tot-asof">${asOf}</span>` : ""}</div>
+    <div class="tot-v num" aria-label="Total ${nwMoney(tot)}"><span data-count="${CUR === "INR" ? tot : tot / fxNow()}" data-fmt="nw" aria-hidden="true">${nwMoney(tot)}</span></div>
+    ${chg ? `<p class="tot-ch">${chg}</p>` : ""}
+    <div class="split" role="img" aria-label="India ${ip.toFixed(0)} percent, abroad ${gp.toFixed(0)} percent">${it ? `<i style="width:${ip}%;background:var(--t-a)"></i>` : ""}${g ? `<i style="width:${gp}%;background:var(--t-b)"></i>` : ""}</div>
+    <div class="split-rows">
+      <button type="button" class="split-row" data-go="india"><span class="sw" style="background:var(--t-a)"></span><span class="k">India</span><span class="pc">${ip.toFixed(0)}%</span><span class="v num">${nwMoney(it)}</span><span class="go">${I ? `${H.length} holdings` : "Upload your CAS"}</span></button>
+      <button type="button" class="split-row" data-go="holdings"><span class="sw" style="background:var(--t-b)"></span><span class="k">Abroad</span><span class="pc">${gp.toFixed(0)}%</span><span class="v num">${nwMoney(g)}</span><span class="go">${has ? `${rows.length} holdings` : "Upload INDmoney reports"}</span></button>
+    </div>
+    <div class="tot-act">${up}<button class="btn" type="button" data-go="plan">This month's plan</button></div>`;
+  if (!totCounted) { totCounted = true; countUp(el); }
+  if (!isum) return;
+  if (!I) { isum.hidden = true; return; }
+  const mixV = {}; for (const h of H) mixV[h.cls] = (mixV[h.cls] || 0) + indCur(h, I);
+  const mix = IND_ORDER.filter((k) => mixV[k] > 0).map((k) => ({ k, v: mixV[k], p: (100 * mixV[k]) / it }));
+  const accV = {}; for (const h of H) { accV[h.acct] = accV[h.acct] || { v: 0, n: 0 }; accV[h.acct].v += indCur(h, I); accV[h.acct].n++; }
+  isum.hidden = false;
+  isum.innerHTML = `<div class="is-head"><div><h2>${flag("IN")}India</h2><div class="is-v num">${indMoney(it)}</div>
+      ${ich != null ? `<p class="is-ch">${mName(last.m)}: <b class="${cls(ich)}">${sgn(ich)}${indMoney(Math.abs(ich))} (${pctf(prev.v ? ich / prev.v : 0)})</b>, including money you added</p>` : ""}</div>
+      <button class="btn" type="button" data-go="india">All Indian holdings</button></div>
+    ${indiaChart(hist)}
+    <div class="in-mix" role="img" aria-label="${mix.map((x) => `${x.k} ${x.p.toFixed(0)}%`).join(", ")}">${mix.map((x) => `<i style="width:${x.p}%;background:var(${IND_COL[x.k]})" title="${esc(x.k)} ${x.p.toFixed(1)}%"></i>`).join("")}</div>
+    <div class="is-cols"><div><h3>What it's made of</h3><ul class="in-legend">${mix.map((x) => `<li><span class="sw" style="background:var(${IND_COL[x.k]})"></span><b>${esc(x.k)}</b><span class="num">${indMoney(x.v)}</span><em>${x.p.toFixed(1)}%</em></li>`).join("")}</ul></div>
+    <div><h3>Where it's held</h3><ul class="in-legend">${Object.entries(accV).sort((a, b) => b[1].v - a[1].v).map(([a, o]) => `<li><span class="sw" style="background:var(--control)"></span><b>${esc(a)}</b><span class="num">${indMoney(o.v)}</span><em>${o.n}</em></li>`).join("")}</ul></div></div>`;
+  wireIndiaChart(isum, hist);
 }
 
 /* ---------- boot ---------- */

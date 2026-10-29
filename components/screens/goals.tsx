@@ -204,6 +204,7 @@ export function GoalsScreen() {
         wash="#5fe37a1f"
         title={goal ? `${s(goal.amt)} by ${goal.year}` : "Pick a goal and a year"}
         big={false}
+        art="goals"
         aside={
           <div className="grid gap-4 rounded-[22px] bg-card p-5 shadow-[inset_0_0_0_1px_var(--color-line),var(--shadow-card)]">
             <Chips label="Goal" items={GOAL_AMOUNTS} value={goal?.amt} onPick={(amt) => setGoal({ amt })} render={s} />

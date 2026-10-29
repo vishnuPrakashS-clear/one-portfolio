@@ -103,17 +103,23 @@ export function Hero({
             {children}
           </motion.div>
         )}
+        {/* with both, the aside (e.g. the goal chips) sits under the text and the 3D scene keeps the right column */}
+        {aside && art && (
+          <motion.div variants={slideInFromLeft(0.4)} className="mt-1">
+            {aside}
+          </motion.div>
+        )}
       </div>
-      {aside ? (
-        <motion.div variants={slideInFromRight(0.35)} className="max-lg:order-3">
-          {aside}
-        </motion.div>
-      ) : art ? (
+      {art ? (
         <motion.div
           variants={slideInFromRight(0.2)}
           className="mx-auto w-full max-w-[560px] max-lg:order-1 max-lg:max-w-[460px] max-sm:-mx-2 max-sm:-my-2 max-sm:max-w-none"
         >
           <HeroArt kind={art} />
+        </motion.div>
+      ) : aside ? (
+        <motion.div variants={slideInFromRight(0.35)} className="max-lg:order-3">
+          {aside}
         </motion.div>
       ) : null}
     </motion.section>

@@ -244,7 +244,7 @@ function build(kind: ArtKind, M: Model, S: Portfolio | null, real: boolean, s: (
         r && goal
           ? {
               kicker: `${s(goal.amt)} by ${goal.year}`,
-              value: `${Math.min(999, Math.round((100 * r.v[1]) / goal.amt))}% likely`,
+              value: `${Math.min(999, Math.round((100 * r.v[1]) / goal.amt))}% of goal`,
               sub: r.v[1] >= goal.amt ? "On track" : `About ${s(r.v[1])}`,
               color: r.v[1] >= goal.amt ? "#86efac" : "#fcd34d",
             }

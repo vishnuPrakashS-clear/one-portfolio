@@ -1,18 +1,78 @@
 # One Portfolio
 
-A private, multi-user dashboard for investments in **India, the US and Japan**: Indian shares, mutual funds, ETFs, bonds and InvITs (from CDSL/NSDL statements and Groww, Zerodha, Wint Wealth and IndiaBonds reports) and a US/London sleeve bought through INDmoney.
+**Your money as a solar system.** A private, multi-user investment tracker for India, the US and Japan. Upload your
+statements — CDSL/NSDL CAS, Groww, Zerodha, Wint Wealth, IndiaBonds, INDmoney — and see everything you own in one place:
+the **sun** is your total, each **planet** is a category (Mutual funds, Stocks, Bonds, Abroad), and each **moon** is a
+holding, sized by value and coloured green or red by gain.
 
-You never type numbers in: everything comes from uploaded reports (Excel, CSV or PDF). The app works out holdings, buy prices, purchase dates, long-term and short-term tax status, bond payouts and the monthly ₹10,000 buy plan.
+You never type numbers in. The app reads holdings, buy prices, purchase dates and your monthly SIP from the statements,
+and answers the questions people actually have:
 
-Everything runs on free tiers:
+- **How much do I have, and is it growing?** Worth vs. what you put in, month by month for the last 12 months, per category.
+- **Where will this SIP take me?** A cautious / likely / strong range for 5, 10, 15 and 20 years, next to your own XIRR.
+- **Will I reach my goal?** Tap a goal amount and year; it says _on track_, _close_ or _not yet_, and how much more a month would close the gap.
+- **What about tax?** Long-term dates, tax if sold today, and when to sell-and-rebuy to use the yearly exemption.
 
-| Part | Service (free tier) | What it does |
-|---|---|---|
-| Website | **GitHub Pages** | serves `index.html` and `src/` (static files, no build step) |
-| Login | **Supabase Auth** | email + password; anyone with the link can create an account (capped at 100 accounts) |
-| Data | **Supabase Postgres** | one JSON document per person in `public.portfolio`; row-level security lets each signed-in person read, change or delete only their own row; every change keeps the previous version in `public.portfolio_history` (newest 30 per person) |
-| Daily prices | **Supabase Edge Function + pg_cron** | `refresh-prices` runs 07:10 IST Tuesday–Saturday for every person's portfolio (each symbol fetched once): US/London closes, Indian share prices and fund NAVs, the INDmoney ₹/$ rate and the copper value check. "Refresh now" in the app refreshes only your own |
-| AI helper (optional) | **Supabase Edge Function + Google Gemini free API** | reads screenshots and image-only PDFs, answers questions; off until a key is added; 40 requests per person per day |
+A game layer (levels, XP, monthly missions, achievements, a buying streak) rewards steady investing.
+
+> Planning aid, not SEBI-registered advice. Projections are estimates, not promises; tax figures are estimates for your CA to confirm.
+
+## Tech stack
+
+|            |                                                                                                                 |
+| ---------- | --------------------------------------------------------------------------------------------------------------- |
+| Framework  | [Next.js 16](https://nextjs.org) (App Router, static export) · React 19 · TypeScript (strict)                   |
+| Styling    | [Tailwind CSS v4](https://tailwindcss.com) (CSS-first `@theme` tokens)                                          |
+| Motion     | [Framer Motion](https://motion.dev) — scroll-in variants, count-ups, reduced-motion aware                       |
+| 3D         | [React Three Fiber](https://r3f.docs.pmnd.rs) · drei · postprocessing (bloom, vignette) · custom GLSL shaders   |
+| Data       | [Supabase](https://supabase.com) — Auth, Postgres with row-level security, Edge Functions, pg_cron              |
+| Statements | pdf.js and SheetJS, loaded on demand; files are read in the browser                                             |
+| Quality    | ESLint (Next + React Compiler rules) · Prettier with the Tailwind plugin · Vitest · GitHub Actions · Dependabot |
+| Hosting    | GitHub Pages                                                                                                    |
+
+## Project structure
+
+```
+app/                    one folder per route: / funds stocks bonds abroad goals plan tax checklist ask upload
+  fonts/                Sora and Inter, self-hosted (SIL Open Font License)
+  globals.css           design tokens (@theme), glass surface, buttons, chips, charts
+components/
+  main/                 navbar, footer, status row, dialogs, the 3D space background
+    space/              scene.tsx (sun, planets, moons, stars, camera) and shaders.ts
+  screens/              one component per screen
+  sub/                  cards, charts, chips, count-up, holding sheet, game layer
+  providers/            portfolio data (load, save, lock) and UI state
+  auth/                 sign-in, sign-up, password reset, PIN lock
+lib/
+  core/                 statement readers (CAS, broker sheets, INDmoney), Indian tax rules, XIRR
+  model.ts              monthly growth series, SIP detection, projections, goal check
+  game.ts               missions, achievements, streak, level
+  supabase.ts           cloud load/save, refresh now, AI helper
+  upload.ts             reads uploaded files and routes them to the right reader
+constants/  config/  types/
+supabase/
+  migrations/           tables, row-level security, sign-up cap, history, schedule
+  sql/                  database functions the price refresh uses
+  functions/            refresh-prices (daily), price-history (month-end prices), ai (optional)
+tests/                  unit tests on synthetic data
+```
+
+## Getting started
+
+```bash
+npx -y npm@11.6.2 install   # npm 11 (npm 10 trips over a peer-dependency resolution)
+npm run dev                 # http://localhost:3000/one-portfolio/
+```
+
+| Script           | Does                                   |
+| ---------------- | -------------------------------------- |
+| `npm run dev`    | local dev server                       |
+| `npm run build`  | static export into `out/`              |
+| `npm start`      | serves `out/` locally                  |
+| `npm run check`  | types, lint and tests (what CI runs)   |
+| `npm run format` | Prettier, with Tailwind classes sorted |
+
+Copy `.env.example` to `.env.local` to point at your own Supabase project.
 
 ## How it fits together
 
@@ -21,50 +81,49 @@ Browser (GitHub Pages)  ──sign in──▶  Supabase Auth
         │                                  │ access token
         └──read / save your row──▶  Postgres (row-level security: only your own row)
                                            ▲
-   pg_cron 01:40 UTC ──▶ Edge Function refresh-prices ──▶ Yahoo Finance · mfapi.in · INDmoney · screener.in
+   pg_cron 07:10 IST Tue–Sat ──▶ refresh-prices ──▶ Yahoo Finance · mfapi.in · INDmoney · screener.in
+   pg_cron nightly           ──▶ price-history  ──▶ month-end prices for the growth charts
 ```
 
-## Privacy between people
+Everything runs on free tiers:
 
-Everyone signs in with their own email and password. The database itself enforces that a signed-in person can only read, change or delete the row whose `user_id` is theirs; the public key in the page can read nothing on its own. The person running the Supabase project can see all rows in the dashboard, so only invite people who are comfortable with that. Anyone can delete their own data from **Upload → Security → Delete all my data**.
+| Part                 | Free tier                              | What it does                                                                                                                                             |
+| -------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Website              | GitHub Pages                           | the static export, rebuilt by CI on every push to `main`                                                                                                 |
+| Login                | Supabase Auth                          | email + password for anyone with the link (capped at 100 accounts)                                                                                       |
+| Data                 | Supabase Postgres                      | one JSON document per person; every change keeps the previous version (newest 30)                                                                        |
+| Daily prices         | Edge Function + pg_cron                | US/London closes, Indian share prices and fund NAVs, the ₹/$ rate; each symbol fetched once for everyone, with a per-portfolio limit on new code lookups |
+| Price history        | Edge Function + pg_cron                | month-end prices for each holding, so growth charts show real history                                                                                    |
+| AI helper (optional) | Edge Function + Google Gemini free API | reads screenshots and image-only PDFs, answers questions; off until a key is added                                                                       |
 
-## Files
+## Privacy
 
-```
-index.html                         page markup and script order
-src/styles.css                     all styles (design tokens at the top; light and dark themes)
-src/fonts/                         Inter and Figtree, self-hosted (SIL Open Font License, see LICENSE-*.txt)
-src/core.js                        report parsing, holdings, tax rules, monthly split
-src/app.js                         screens: overview, India, holdings, plan, tax, calendar, upload
-src/cloud.js                       Supabase: sign-in screen, load/save, "refresh now", AI helper
-src/vendor/                        supabase-js 2.118.0 and topojson-client 3.1.0 (pinned copies)
-supabase/migrations/               tables, row-level security, sign-up allow-list, history, schedule
-supabase/sql/price_refresh.sql     the two database functions the price refresh uses
-supabase/functions/refresh-prices  the daily price refresh
-supabase/functions/ai              the optional AI helper
-.github/workflows/pages.yml        publishes the site on every push to main
-PRODUCT.md                         who the app is for and what it must keep doing
-DESIGN.md                          the visual system: colours, type, spacing, components, 3D and game layer
-.impeccable/surfaces/              the design direction the current look was built from
-```
+- Each person signs in with their own account. **Row-level security** lets a signed-in person read, change or delete only their own row; the publishable key in the page can read nothing by itself.
+- Statements are opened in the browser. A CAS password is used only to open the file there and is never saved or sent.
+- The app never stores or shows PAN, address, client IDs, folio or account numbers.
+- The person running the Supabase project can see all rows in its dashboard, so only invite people who are comfortable with that.
+- Anyone can delete their own data from **Upload → Security → Delete all my data**.
 
-## Setup (already done for the owner's project)
+See [SECURITY.md](SECURITY.md) to report a problem.
+
+## Setting up your own copy
 
 1. **Database**: run `supabase/migrations/0001_one_portfolio.sql` and `supabase/sql/price_refresh.sql` in the Supabase SQL editor.
-2. **Functions**: deploy `supabase/functions/refresh-prices` and `supabase/functions/ai` with the JWT check off. Both check the caller themselves: a signed-in person can only refresh their own row, and refreshing everyone needs the job key the schedule sends (`public.job_keys`).
-3. **Auth settings** (Supabase dashboard → Authentication):
-   - **URL Configuration** → **Site URL** = your GitHub Pages address, e.g. `https://<user>.github.io/<repo>/`.
-   - **Sign In / Providers → Email** → turn **off "Confirm email"**, so new people can sign in straight after creating an account. (Supabase's free built-in email only delivers to the project's own team; add your own SMTP under Emails → SMTP Settings if you want confirmation and password-reset emails for everyone.)
-4. **Website**: push to `main`; the workflow publishes to GitHub Pages (Settings → Pages → Source: GitHub Actions).
-5. **Optional AI helper**: create a free key at Google AI Studio, then Supabase dashboard → Edge Functions → Secrets → add `GEMINI_API_KEY`. Google may use free-tier requests to improve its models, so leave it off if you'd rather not send screenshots there.
+2. **Functions**: deploy `supabase/functions/*` with the JWT check off — each function checks the caller itself (a signed-in person refreshes only their own row; refreshing everyone needs the job key in `public.job_keys` that only the schedule sends).
+3. **Auth**: set the Site URL to your Pages address, and turn off "Confirm email" (Supabase's built-in email only reaches the project's own team unless you add SMTP).
+4. **Website**: Settings → Pages → Source: GitHub Actions, then push to `main`.
+5. **AI helper (optional)**: add a free Google AI Studio key as the `GEMINI_API_KEY` function secret. Free-tier requests may be used by Google to improve its models, so leave it off if you'd rather not send screenshots there.
 
-The publishable key in `src/cloud.js` is safe to commit: it only identifies the project. What anyone can read or change is decided by row-level security in the database, and the anonymous role can read nothing.
+**Free-tier notes:** a Supabase project pauses after about a week without activity (the daily refresh keeps it awake; restoring loses nothing). Each portfolio is roughly 150 KB plus history, far inside the free 500 MB.
 
-## Free-tier notes
+## Contributing
 
-- A free Supabase project pauses after about a week without activity; the daily refresh keeps it active. If it ever pauses, restore it from the dashboard. Nothing is lost.
-- Supabase's built-in email sender only delivers to the project's team members and a few emails an hour. Other people can't receive password-reset emails unless you add an SMTP provider; the owner can reset a password from the Supabase dashboard (Authentication → Users).
-- Each person's data is about 150 KB plus up to 30 saved versions, so the free 500 MB database holds well over the 100-account cap.
-- GitHub Pages is free for **public** repositories. The repo holds only code; your portfolio data stays in Supabase behind your login.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Design and product notes live in [DESIGN.md](DESIGN.md) and [PRODUCT.md](PRODUCT.md).
 
-Planning aid, not SEBI-registered advice. Tax figures are estimates.
+## Credits
+
+Layout, motion patterns and project structure inspired by [sanidhyy/space-portfolio](https://github.com/sanidhyy/space-portfolio) (MIT).
+
+## License
+
+[MIT](LICENSE)

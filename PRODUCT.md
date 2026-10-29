@@ -28,17 +28,17 @@ It is built from the user's own statements (CDSL/NSDL CAS, Groww, Zerodha, Wint 
 
 ## Capabilities and Constraints
 
-- Sections: this month (overview and monthly plan), India, Upload, global holdings, monthly plan, sell and tax, growth plan, yearly checklist, ask (AI helper).
+- Screens: Home (the solar system, total, growth over 12 months, goal check, game layer), Mutual funds, Stocks, Bonds and Abroad (each with worth vs. put in over 12 months, the monthly SIP read from purchases, and a 5–20 year projection as a cautious / likely / strong range), Goals (tap-only goal check: will the current SIP get there, and what extra a month would), Plan, Tax, Checklist, Ask (AI helper), Upload.
 - Per-holding detail sheet: every purchase lot, returns, tax, bond maturity and payouts.
 - A game layer that stays a main feature: levels, XP, quests, badges and streaks that reward investing steadily and following the plan.
 - Accounts: email and password sign-up for anyone with the link (capped at 100), optional PIN lock, sign out, delete all my data. Data is private per account.
-- Everything must stay on free tiers (GitHub Pages, Supabase free). Static site: plain HTML, CSS and JavaScript, no build step.
+- Everything must stay on free tiers (GitHub Pages, Supabase free). Next.js static export: no server of its own.
 - Never store or show PAN, address, client IDs or folio/account numbers.
 
 ## Brand Commitments
 
 - Name: One Portfolio.
-- The user asked for a vibrant 3D interface: the 3D look stays throughout (an interactive 3D allocation chart and globe, depth on cards).
+- The user asked for a vibrant 3D interface: the portfolio is a solar system (sun = total, planets = categories, moons = holdings) behind every screen.
 - The game layer (levels, XP, quests, badges, streaks) stays fully.
 
 ## Evidence on Hand
@@ -48,7 +48,7 @@ It is built from the user's own statements (CDSL/NSDL CAS, Groww, Zerodha, Wint 
 
 ## Product Principles
 
-1. Nothing typed by hand: every number traces back to an uploaded statement or a public price.
+1. Nothing typed by hand: every number traces back to an uploaded statement or a public price. Goals are set by tapping chips.
 2. The total and its change come first; detail is one tap away, never in the way.
 3. Short by default, explained on demand: plain-language help is always reachable for new investors.
 4. Private by construction: each person sees only their own data.
@@ -56,4 +56,4 @@ It is built from the user's own statements (CDSL/NSDL CAS, Groww, Zerodha, Wint 
 
 ## Accessibility & Inclusion
 
-Works one-handed on a phone; every control reachable by keyboard; amounts readable in both themes; motion respects reduced-motion settings.
+Works one-handed on a phone; every control reachable by keyboard; text on dark glass keeps strong contrast over the 3D scene; gains and losses never rely on colour alone; motion respects reduced-motion settings; a static sky replaces the scene when WebGL isn't available.

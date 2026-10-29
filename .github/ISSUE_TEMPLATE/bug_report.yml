@@ -1,0 +1,33 @@
+name: Bug report
+description: Something shows the wrong figure, breaks, or looks wrong
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. **Please don't attach real statements or screenshots with your PAN, address, client ID, folio or account numbers.** Describe the problem, or blank those parts out first.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you saw, and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen
+      placeholder: |
+        1. Open the Funds screen
+        2. Upload a CDSL statement
+        3. ...
+  - type: dropdown
+    id: screen
+    attributes:
+      label: Screen
+      options: [Home, Mutual funds, Stocks, Bonds, Abroad, Goals, Plan, Tax, Checklist, Ask, Upload, Sign-in, Other]
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: e.g. Android, Chrome 141

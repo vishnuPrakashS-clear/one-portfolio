@@ -9,20 +9,38 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const UA = { "User-Agent": "Mozilla/5.0 (One Portfolio price refresh)", Accept: "application/json,text/html;q=0.9,*/*;q=0.8" };
 const MIN_GAP_MS = 3 * 60 * 60 * 1000; // a row refreshed in the last 3 hours is skipped
+// new code lookups (searches) allowed per portfolio per run, so a portfolio with hundreds of unknown names stays inside the free tier's limits;
+// a name that wasn't found waits MISS_DAYS before it's searched again, and the rest are picked up on later runs
+const LOOKUPS_PER_ROW = 40, MISS_DAYS = 7;
+let lookups = 0;
+const canLookUp = () => lookups++ < LOOKUPS_PER_ROW;
 const KEEP_VERSIONS = 30;
 // NSE codes for ISINs the name searches get wrong
 const NSE_BY_ISIN: Record<string, string> = { INE018A01030: "LT", INE736A01011: "CDSL" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" } });
 
+// one retry after a short wait when a source says it's busy (429 / 5xx); free APIs throttle long runs.
+// Timeouts aren't retried, so a slow source can't push a run past the function's time limit.
 async function get(url: string, ms = 12000): Promise<Response | null> {
-  try { const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(ms) }); return r.ok ? r : null; } catch { return null; }
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let r: Response;
+    try { r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(ms) }); } catch { return null; }
+    if (r.ok) return r;
+    if (r.status !== 429 && r.status < 500) return null;
+    if (attempt === 0) await new Promise((res) => setTimeout(res, 1500));
+  }
+  return null;
 }
 function ymdIn(tz: string, unix: number) {
   return new Intl.DateTimeFormat("en-CA", { timeZone: tz || "UTC", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(unix * 1000));
 }
 // last completed daily close from Yahoo's chart API
 const memo = new Map<string, Promise<unknown>>();
-const once = <T>(k: string, f: () => Promise<T>): Promise<T> => { if (!memo.has(k)) memo.set(k, f()); return memo.get(k) as Promise<T>; };
+// shares each lookup within a run; a failed one (null) isn't kept, so the next portfolio tries again
+const once = <T>(k: string, f: () => Promise<T>): Promise<T> => {
+  if (!memo.has(k)) memo.set(k, f().then((v) => { if (v == null) memo.delete(k); return v; }));
+  return memo.get(k) as Promise<T>;
+};
 async function yahoo(sym: string) { return once("y:" + sym, () => yahoo0(sym)); }
 async function yahoo0(sym: string) {
   const r = await get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=10d&interval=1d`);
@@ -85,9 +103,10 @@ async function pool<T, R>(items: T[], n: number, fn: (x: T) => Promise<R>): Prom
 }
 
 type Sb = ReturnType<typeof createClient>;
-type Watch = { key: string; kind: string; name: string; isin?: string; nse?: string; mfcode?: number };
+type Watch = { key: string; kind: string; name: string; isin?: string; nse?: string; mfcode?: number; miss?: string };
 // refresh one user's row; returns a summary
 async function refreshRow(sb: Sb, rowId: string, dry: boolean) {
+  lookups = 0; // each portfolio gets its own lookup budget, so one large portfolio can't use up another's
   const { data: input, error } = await sb.rpc("price_refresh_input_row", { pid: rowId });
   if (error || !input) return { row: rowId, ok: false, error: error?.message || "no row" };
   const last = input.refreshed_at ? Date.parse(input.refreshed_at) : 0;
@@ -113,15 +132,25 @@ async function refreshRow(sb: Sb, rowId: string, dry: boolean) {
       let nse = (w.isin && NSE_BY_ISIN[w.isin]) || w.nse || null;
       if (nse && nse !== w.nse) india_watch[w.key] = { nse };
       let y = nse ? await yahoo(nse + ".NS") : null;
-      if (!y || y.currency.toUpperCase() !== "INR") { const n2 = await nseFind(w.name, w.isin); if (n2 && n2 !== nse) { nse = n2; india_watch[w.key] = { nse }; y = await yahoo(nse + ".NS"); } }
-      if (y && y.currency.toUpperCase() === "INR") v = { p: y.price, at: y.at }; else why[w.name] = nse ? `no NSE price for ${nse}` : "no NSE code found";
+      const ok = () => !!y && y.currency.toUpperCase() === "INR";
+      if (!ok() && !fresh(w.miss || null, MISS_DAYS)) {
+        if (!canLookUp()) why[w.name] = "lookup left for the next run";
+        else { const n2 = await nseFind(w.name, w.isin); if (n2 && n2 !== nse) { nse = n2; india_watch[w.key] = { nse, miss: "" }; y = await yahoo(nse + ".NS"); } if (!ok()) india_watch[w.key] = { ...(india_watch[w.key] || {}), miss: input.today }; }
+      }
+      if (ok()) v = { p: y!.price, at: y!.at }; else why[w.name] = why[w.name] || (nse ? `no NSE price for ${nse}` : "no NSE code found");
     } else {
       let code = w.mfcode || null;
-      if (!code) { const f = await mfFind(w.name, w.isin || null); if (f) { code = f.code; india_watch[w.key] = { mfcode: f.code, isin: w.isin ? null : f.isin }; v = { p: f.nav.p, at: f.nav.at }; } }
-      if (code && !v) { const n = await mfNav(code); if (n && n.p > 0 && fresh(n.at)) v = { p: n.p, at: n.at }; }
-      // a stored fund code with no recent NAV (scheme merged or renamed): look the fund up again
-      if (code && !v) { const f = await mfFind(w.name, w.isin || null); if (f && f.code !== code) { code = f.code; india_watch[w.key] = { mfcode: f.code }; v = { p: f.nav.p, at: f.nav.at }; } }
-      if (!v) why[w.name] = code ? `fund code ${code} has no recent NAV` : "fund not found";
+      if (code) { const n = await mfNav(code); if (n && n.p > 0 && fresh(n.at)) v = { p: n.p, at: n.at }; }
+      // no code yet, or a stored code with no recent NAV (scheme merged or renamed): look the fund up (within this run's budget)
+      if (!v && !fresh(w.miss || null, MISS_DAYS)) {
+        if (!canLookUp()) why[w.name] = "lookup left for the next run";
+        else {
+          const f = await mfFind(w.name, w.isin || null);
+          if (f && f.code !== code) { code = f.code; india_watch[w.key] = { mfcode: f.code, isin: w.isin ? null : f.isin, miss: "" }; v = { p: f.nav.p, at: f.nav.at }; }
+          else india_watch[w.key] = { ...(india_watch[w.key] || {}), miss: input.today };
+        }
+      }
+      if (!v) why[w.name] = why[w.name] || (code ? `fund code ${code} has no recent NAV` : "fund not found");
     }
     if (!v || !fresh(v.at)) { skipped.push(w.name); return; }
     const prev = oldPx[w.key]?.p; if (prev && Math.abs(v.p - prev) / prev > 0.4) { skipped.push(`${w.name} (moved >40%)`); return; }
@@ -144,6 +173,7 @@ async function refreshRow(sb: Sb, rowId: string, dry: boolean) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return json({ ok: true });
+  memo.clear(); // prices are shared within one run only; a warm instance must not reuse yesterday's quotes
   const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
   const url = new URL(req.url), dry = url.searchParams.get("dry") === "1";
   // a signed-in person pressing "refresh now" refreshes only their own row; the daily schedule refreshes everyone
@@ -159,7 +189,11 @@ Deno.serve(async (req) => {
   if (!k || req.headers.get("x-job-key") !== k.secret) return json({ ok: false, error: "Sign in to refresh your prices." }, 401);
   const { data: rows, error } = await sb.from("portfolio").select("id").not("user_id", "is", null);
   if (error) return json({ ok: false, error: error.message }, 500);
+  // smaller portfolios first, so one very large portfolio can't use up the free sources' patience for everyone else
+  const { data: sizes } = await sb.rpc("portfolio_watch_sizes");
+  const n = new Map<string, number>((sizes || []).map((x: { id: string; n: number }) => [x.id, x.n]));
+  const order = (rows || []).map((r) => r.id).sort((a, b) => (n.get(a) ?? 0) - (n.get(b) ?? 0));
   const results = [];
-  for (const r of rows || []) results.push(await refreshRow(sb, r.id, dry)); // one at a time; prices are shared via memo
+  for (const id of order) results.push(await refreshRow(sb, id, dry)); // one at a time; prices are shared via memo
   return json({ ok: results.every((x) => x.ok), rows: results.length, results });
 });

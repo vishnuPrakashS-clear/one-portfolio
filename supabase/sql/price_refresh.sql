@@ -72,7 +72,7 @@ begin
   if jsonb_typeof(p->'india_watch') = 'object' and jsonb_typeof(d#>'{india,watch}') = 'array' then
     for w in select * from jsonb_array_elements(d#>'{india,watch}') loop
       wu := p->'india_watch'->(w->>'key');
-      if wu is not null then w := w || jsonb_strip_nulls(jsonb_build_object('nse', wu->'nse', 'mfcode', wu->'mfcode', 'isin', wu->'isin')); end if;
+      if wu is not null then w := w || jsonb_strip_nulls(jsonb_build_object('nse', wu->'nse', 'mfcode', wu->'mfcode', 'isin', wu->'isin', 'miss', wu->'miss')); end if;
       nw := nw || jsonb_build_array(w);
     end loop;
     d := jsonb_set(d, '{india,watch}', nw);
@@ -117,3 +117,12 @@ begin
 end $$;
 revoke all on function public.apply_price_history(text, jsonb) from public, anon, authenticated;
 grant execute on function public.apply_price_history(text, jsonb) to service_role;
+
+-- how many Indian names each portfolio asks to price, so the daily refresh can do smaller portfolios first
+create or replace function public.portfolio_watch_sizes() returns table (id text, n int)
+language sql stable set search_path = public as $$
+  select p.id, coalesce(jsonb_array_length(case when jsonb_typeof(p.data#>'{india,watch}') = 'array' then p.data#>'{india,watch}' end), 0)
+  from public.portfolio p where p.user_id is not null
+$$;
+revoke all on function public.portfolio_watch_sizes() from public, anon, authenticated;
+grant execute on function public.portfolio_watch_sizes() to service_role;

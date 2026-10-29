@@ -20,15 +20,13 @@ export function GameLayer() {
       <Card className="grid-cols-[auto_minmax(0,1fr)] items-center gap-[18px] md:col-span-2 xl:col-span-1">
         <div className="group relative size-[78px] [perspective:500px]" aria-hidden>
           <motion.i
-            className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,#22d3ee,#a78bfa,#f472b6,#fbbf24,#22d3ee)] shadow-[0_0_30px_-6px_#a78bfa,inset_0_0_0_6px_rgb(255_255_255/0.25)]"
+            className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,#c4f25a,#5fe37a,#22d3ee,#a78bfa,#c4f25a)] shadow-[0_14px_26px_-12px_rgb(95_227_122/0.5)]"
             style={{ rotateX: 16, rotateY: -20 }}
             whileHover={{ rotateY: 340 }}
             transition={{ duration: 1.2, ease: [0.2, 0.8, 0.2, 1] }}
           />
-          <i className="absolute inset-[9px] rounded-full bg-[radial-gradient(circle_at_35%_30%,#2b1d63,#100a26)]" />
-          <b className="absolute inset-0 grid place-items-center font-display text-[30px] font-extrabold text-white [text-shadow:0_0_12px_#a78bfa]">
-            {p.lvl}
-          </b>
+          <i className="absolute inset-[9px] rounded-full bg-[radial-gradient(circle_at_35%_30%,#2a302c,#151917)]" />
+          <b className="absolute inset-0 grid place-items-center font-display text-[30px] font-extrabold text-lime">{p.lvl}</b>
         </div>
         <div className="grid min-w-0 gap-2">
           <span className="kicker">Level {p.lvl}</span>
@@ -40,7 +38,7 @@ export function GameLayer() {
             · {p.streak}-month streak
           </p>
           <div
-            className="relative h-7 overflow-hidden rounded-full bg-white/7"
+            className="relative h-7 overflow-hidden rounded-full bg-tint"
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={p.mis.length}
@@ -48,13 +46,13 @@ export function GameLayer() {
             aria-label="Missions this month"
           >
             <motion.i
-              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-act-a to-act-b shadow-[0_0_14px_var(--color-act-a)]"
+              className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-lime to-lime-2"
               initial={{ width: 0 }}
               whileInView={{ width: `${pct}%` }}
               viewport={{ once: true }}
               transition={{ duration: 1 }}
             />
-            <span className="relative block px-3 text-[12.5px] leading-7 font-semibold text-white [text-shadow:0_1px_4px_rgb(0_0_0/0.6)]">
+            <span className="relative block px-3 text-[12.5px] leading-7 font-semibold text-ink">
               {p.done}/{p.mis.length} missions this month
             </span>
           </div>
@@ -66,19 +64,19 @@ export function GameLayer() {
           {p.mis.map((m) => (
             <li
               key={m.id}
-              className="grid grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/7 py-2.5 text-[14px] last:border-0"
+              className="grid grid-cols-[26px_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule py-2.5 text-[14px] last:border-0"
             >
               <span
                 className={cn(
                   "grid size-[26px] place-items-center rounded-full text-gain-ink",
-                  m.done ? "bg-gain/15 shadow-[0_0_12px_-2px_var(--color-gain)]" : "shadow-[inset_0_0_0_2px_rgb(255_255_255/0.24)]",
+                  m.done ? "bg-gain-wash" : "shadow-[inset_0_0_0_2px_var(--color-line)]",
                 )}
                 aria-hidden
               >
                 {m.done && <Icon name="check" className="size-[15px]" strokeWidth={2.6} />}
               </span>
               <span className={m.done ? "text-muted" : ""}>{m.title}</span>
-              <span className="num rounded-full bg-[#a78bfa29] px-2.5 py-1.5 text-[12px] leading-none font-bold whitespace-nowrap text-[#e9d5ff]">
+              <span className="num rounded-full bg-[rgb(196_242_90/0.14)] px-2.5 py-1.5 text-[12px] leading-none font-bold whitespace-nowrap text-lime">
                 +{m.xp} XP
               </span>
             </li>
@@ -99,8 +97,8 @@ export function GameLayer() {
                 className={cn(
                   "grid size-[52px] place-items-center rounded-full",
                   a.got
-                    ? "bg-[radial-gradient(circle_at_35%_30%,#fde68a,#fbbf24_55%,#b45309)] text-[#08051a] shadow-[0_5px_0_#92400e,0_0_20px_-4px_#fbbf24]"
-                    : "bg-white/4 text-muted shadow-[inset_0_0_0_2px_rgb(255_255_255/0.12)]",
+                    ? "bg-[radial-gradient(circle_at_35%_30%,#fde68a,#fbbf24_55%,#b45309)] text-[#5a2d00] shadow-[0_4px_0_#d97706,0_12px_20px_-8px_rgb(217_119_6/0.6)]"
+                    : "bg-tint text-muted shadow-[inset_0_0_0_2px_var(--color-line)]",
                 )}
               >
                 <BadgeIcon name={a.k} className="size-[22px]" />

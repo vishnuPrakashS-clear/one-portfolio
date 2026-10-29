@@ -45,32 +45,25 @@ export function ProjectionCard({ c, title = "Where this could be" }: { c: Catego
           const v = cat.rates.map((r) => fv(c.value, c.sip, r, y)),
             put = c.value + c.sip * 12 * y;
           return (
-            <div
-              key={y}
-              className="grid gap-0.5 rounded-[14px] bg-white/[0.045] px-4 py-3.5 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)]"
-            >
+            <div key={y} className="grid gap-0.5 rounded-[14px] bg-tint px-4 py-3.5">
               <span className="text-[12.5px] text-muted">In {y} years</span>
-              <b className="num font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-white max-sm:text-[20px]">
+              <b className="num font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink max-sm:text-[20px]">
                 {s(v[1])}
               </b>
               <span className="num text-[13px] text-body">
                 {s(v[0])} – {s(v[2])}
               </span>
-              <span className="relative mt-1.5 mb-0.5 h-2 overflow-hidden rounded-full bg-white/6" aria-hidden>
-                <i
-                  className="absolute inset-y-0 left-0 rounded-full"
-                  style={{ width: `${(100 * v[0]) / top}%`, background: `${cat.hex}88` }}
-                />
+              <span className="relative mt-1.5 mb-0.5 h-2 overflow-hidden rounded-full bg-tint" aria-hidden>
+                <i className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(100 * v[0]) / top}%`, background: cat.hex2 }} />
                 <i
                   className="absolute inset-y-0 rounded-full"
                   style={{
                     left: `${(100 * v[0]) / top}%`,
                     width: `${(100 * (v[2] - v[0])) / top}%`,
-                    background: `linear-gradient(90deg, ${cat.hex}, #fff8)`,
-                    boxShadow: `0 0 10px ${cat.hex}`,
+                    background: `linear-gradient(90deg, ${cat.hex}, ${cat.hex2})`,
                   }}
                 />
-                <i className="absolute bottom-0 left-0 h-[3px] rounded-full bg-white/30" style={{ width: `${(100 * put) / top}%` }} />
+                <i className="absolute bottom-0 left-0 h-[3px] rounded-full bg-ink/40" style={{ width: `${(100 * put) / top}%` }} />
               </span>
               <span className="text-[12px] text-muted">you put in {s(put)}</span>
             </div>
@@ -97,24 +90,21 @@ export function HoldingsList({ c, limit }: { c: CategoryModel; limit?: number })
             <button
               type="button"
               onClick={() => openItem(c.id, it.id)}
-              className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-3.5 gap-y-1.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/6 focus-visible:outline-offset-[-2px]"
+              className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-3.5 gap-y-1.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-tint focus-visible:outline-offset-[-2px]"
             >
               <span className="grid min-w-0 gap-px">
                 <b className="truncate text-[14.5px] font-semibold">{it.name}</b>
                 <span className="truncate text-[12.5px] text-muted">{it.sub}</span>
               </span>
               <span className="num text-right font-display text-[15px] font-semibold">{m(it.value)}</span>
-              <span className="h-[5px] self-center overflow-hidden rounded-full bg-white/6">
-                <i
-                  className="block h-full rounded-full"
-                  style={{ width: `${(100 * it.value) / max}%`, background: hex, boxShadow: `0 0 8px ${hex}` }}
-                />
+              <span className="h-[5px] self-center overflow-hidden rounded-full bg-tint">
+                <i className="block h-full rounded-full" style={{ width: `${(100 * it.value) / max}%`, background: hex }} />
               </span>
               <span
                 className={cn(
                   "num text-right text-[12.5px] whitespace-nowrap text-muted",
                   g != null && "font-semibold",
-                  g != null && (g >= 0 ? "text-gain" : "text-loss"),
+                  g != null && (g >= 0 ? "text-gain-ink" : "text-loss-ink"),
                 )}
               >
                 {g == null ? "buy price not uploaded" : `${g >= 0 ? "+" : "−"}${s(Math.abs(g))} · ${pct1(gp)}`}
@@ -178,10 +168,10 @@ export function Movers({ c }: { c: CategoryModel }) {
       <button
         type="button"
         onClick={() => openItem(c.id as CatId, r.x.id)}
-        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left text-[14px] hover:bg-white/6"
+        className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-2.5 py-2 text-left text-[14px] hover:bg-tint"
       >
         <span className="truncate">{r.x.name}</span>
-        <b className={cn("num font-semibold", r.p >= 0 ? "text-gain" : "text-loss")}>{pct1(r.p)}</b>
+        <b className={cn("num font-semibold", r.p >= 0 ? "text-gain-ink" : "text-loss-ink")}>{pct1(r.p)}</b>
       </button>
     </li>
   );

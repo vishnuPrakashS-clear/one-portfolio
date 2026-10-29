@@ -80,7 +80,7 @@ Question: ${question}`;
   };
   return (
     <>
-      <Hero badge="Ask" title="Ask about your money" big={false} compact>
+      <Hero badge="Ask" title="Ask about your money" big={false} art="ask">
         <p className="max-w-[60ch] text-[16.5px] text-body">Answers use your holdings, monthly investing, goal and tax dates.</p>
       </Hero>
       <Card>
@@ -119,7 +119,7 @@ Question: ${question}`;
             </button>
           </div>
         </form>
-        {a && <p className="rounded-[14px] bg-white/5 px-[18px] py-4 leading-relaxed whitespace-pre-wrap">{a}</p>}
+        {a && <p className="rounded-[14px] bg-tint px-[18px] py-4 leading-relaxed whitespace-pre-wrap">{a}</p>}
         {!ai && <p className="note">Asking needs the optional AI helper: a free Gemini key saved as a Supabase secret (see the README).</p>}
       </Card>
     </>

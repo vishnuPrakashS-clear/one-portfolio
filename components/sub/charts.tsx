@@ -121,7 +121,7 @@ function Tip({
   const left = `clamp(70px, ${(100 * f.X(sel)) / f.W}%, calc(100% - 70px))`;
   return (
     <div
-      className="pointer-events-none absolute top-1.5 z-10 grid -translate-x-1/2 gap-1 rounded-xl bg-[rgb(8_5_24/0.95)] px-3 py-2.5 text-[12.5px] whitespace-nowrap shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12),0_14px_30px_-12px_#000]"
+      className="pointer-events-none absolute top-1.5 z-10 grid -translate-x-1/2 gap-1 rounded-xl bg-card px-3 py-2.5 text-[12.5px] whitespace-nowrap shadow-[inset_0_0_0_1px_var(--color-line),0_14px_30px_-12px_rgb(0_0_0/0.7)]"
       style={{ left }}
     >
       <b className="mb-0.5 text-[12px] font-medium text-muted">{monthLong(month)}</b>
@@ -143,14 +143,14 @@ export function TipRow({
   strong?: boolean;
 }) {
   return (
-    <span className={`flex items-center gap-2 text-body tabular-nums ${strong ? "mt-0.5 border-t border-white/12 pt-1" : ""}`}>
+    <span className={`flex items-center gap-2 text-body tabular-nums ${strong ? "mt-0.5 border-t border-line pt-1" : ""}`}>
       {dashed ? (
-        <i className="h-0 w-4 border-t-2 border-dashed border-white/75" />
+        <i className="h-0 w-4 border-t-2 border-dashed border-ink/55" />
       ) : color ? (
         <i className="size-2.5 rounded-[3px]" style={{ background: color }} />
       ) : null}
       {label}
-      <b className="ml-auto pl-3 font-semibold text-white">{value}</b>
+      <b className="ml-auto pl-3 font-semibold text-ink">{value}</b>
     </span>
   );
 }
@@ -193,8 +193,8 @@ export function StackChart({
         <defs>
           {tops.map((t, k) => (
             <linearGradient key={k} id={`${uid}g${k}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" stopColor={t.l.color} stopOpacity={0.9} />
-              <stop offset="1" stopColor={t.l.color} stopOpacity={0.25} />
+              <stop offset="0" stopColor={t.l.color} stopOpacity={0.5} />
+              <stop offset="1" stopColor={t.l.color} stopOpacity={0.14} />
             </linearGradient>
           ))}
         </defs>
@@ -228,7 +228,7 @@ export function StackChart({
   );
 }
 
-/** one category: value (glowing area) against the money put in (dashed) */
+/** one category: value (soft area) against the money put in (dashed) */
 export function LineChart({
   months,
   values,
@@ -255,22 +255,15 @@ export function LineChart({
       <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
         <defs>
           <linearGradient id={`${uid}a`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={color} stopOpacity={0.45} />
+            <stop offset="0" stopColor={color} stopOpacity={0.24} />
             <stop offset="1" stopColor={color} stopOpacity={0} />
           </linearGradient>
-          <filter id={`${uid}f`} x="-10%" y="-30%" width="120%" height="160%">
-            <feGaussianBlur stdDeviation="4" result="b" />
-            <feMerge>
-              <feMergeNode in="b" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
         </defs>
         <Axes f={f} months={months} fmt={fmt} />
         <g className="draw">
           <path d={`${path(values, f.X, f.Y)}L${f.X(n - 1)},${f.Y(0)}L${f.X(0)},${f.Y(0)}Z`} fill={`url(#${uid}a)`} />
           <path d={path(invested, f.X, f.Y)} className="inv" />
-          <path d={path(values, f.X, f.Y)} fill="none" stroke={color} strokeWidth={3} filter={`url(#${uid}f)`} strokeLinejoin="round" />
+          <path d={path(values, f.X, f.Y)} fill="none" stroke={color} strokeWidth={3} strokeLinejoin="round" />
         </g>
         <circle
           cx={f.X(n - 1)}
@@ -337,16 +330,9 @@ export function GoalChart({
     >
       <defs>
         <linearGradient id={`${uid}b`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#34d399" stopOpacity={0.35} />
-          <stop offset="1" stopColor="#22d3ee" stopOpacity={0.12} />
+          <stop offset="0" stopColor="#10b981" stopOpacity={0.26} />
+          <stop offset="1" stopColor="#06b6d4" stopOpacity={0.06} />
         </linearGradient>
-        <filter id={`${uid}f`} x="-10%" y="-30%" width="120%" height="160%">
-          <feGaussianBlur stdDeviation="4" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
       </defs>
       {[0, 0.25, 0.5, 0.75, 1].map((k) => (
         <g key={k}>
@@ -362,24 +348,16 @@ export function GoalChart({
           fill={`url(#${uid}b)`}
         />
         <path d={path(put, X, Y)} className="inv" />
-        <path d={path(series[1], X, Y)} fill="none" stroke="#34d399" strokeWidth={3} filter={`url(#${uid}f)`} />
+        <path d={path(series[1], X, Y)} fill="none" stroke="#5fe37a" strokeWidth={3} />
       </g>
-      <line x1={pl} x2={W - pr} y1={Y(goal)} y2={Y(goal)} stroke="#fff" strokeWidth={1.5} strokeDasharray="2 6" strokeLinecap="round" />
-      <text x={W - pr} y={Y(goal) - 8} textAnchor="end" className="font-display" fontSize={13} fontWeight={700} fill="#fff">
+      <line x1={pl} x2={W - pr} y1={Y(goal)} y2={Y(goal)} stroke="#f3f6f1" strokeWidth={1.5} strokeDasharray="2 6" strokeLinecap="round" />
+      <text x={W - pr} y={Y(goal) - 8} textAnchor="end" className="font-display" fontSize={13} fontWeight={700} fill="#f3f6f1">
         Goal {fmt(goal)}
       </text>
       {cross > 0 && (
         <>
-          <circle
-            cx={X(cross)}
-            cy={Y(series[1][cross])}
-            r={7}
-            fill="#34d399"
-            stroke="#08051a"
-            strokeWidth={3}
-            style={{ filter: "drop-shadow(0 0 8px #34d399)" }}
-          />
-          <text x={X(cross)} y={Y(series[1][cross]) + 24} textAnchor="middle" fontSize={12} fontWeight={600} fill="#6ee7b7">
+          <circle cx={X(cross)} cy={Y(series[1][cross])} r={7} fill="#5fe37a" stroke="#1b1f1d" strokeWidth={3} />
+          <text x={X(cross)} y={Y(series[1][cross]) + 24} textAnchor="middle" fontSize={12} fontWeight={600} fill="#86efac">
             reached {startYear + Math.floor((cross / pts) * yrs + (startMonth - 1) / 12)}
           </text>
         </>
@@ -404,7 +382,7 @@ export function Legend({ items }: { items: { name: string; color?: string; dashe
       {items.map((i) => (
         <span key={i.name} className="inline-flex items-center gap-2">
           {i.dashed ? (
-            <i className="h-0 w-4 border-t-2 border-dashed border-white/75" />
+            <i className="h-0 w-4 border-t-2 border-dashed border-ink/55" />
           ) : (
             <i className="size-2.5 rounded-[3px]" style={{ background: i.color }} />
           )}

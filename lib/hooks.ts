@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore, type RefObject } from "react";
 
 /** the current time, rounded to the minute and updated each minute (0 while pre-rendering) */
 export function useNow(): number {
@@ -48,18 +48,45 @@ export function useWebGL(): boolean | null {
   );
 }
 
-/** how far the page has scrolled, as 0–1 of 1.2 screens */
-export function useScrollProgress(): number {
+/** whether an element is on screen (true until measured), so animations can stop when it's scrolled away */
+export function useInView<T extends Element>(ref: RefObject<T | null>, margin = "80px"): boolean {
+  const [on, setOn] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setOn(e.isIntersecting), { rootMargin: margin });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref, margin]);
+  return on;
+}
+
+let scrolling = false,
+  scrollTimer: ReturnType<typeof setTimeout> | undefined;
+const scrollSubs = new Set<() => void>();
+function onScroll() {
+  if (!scrolling) {
+    scrolling = true;
+    scrollSubs.forEach((f) => f());
+  }
+  clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    scrolling = false;
+    scrollSubs.forEach((f) => f());
+  }, 160);
+}
+/** true while the page is being scrolled (and for 160 ms after), so heavy animation can pause and scrolling stays smooth */
+export function useScrolling(): boolean {
   return useSyncExternalStore(
     (cb) => {
-      addEventListener("scroll", cb, { passive: true });
-      addEventListener("resize", cb);
+      if (!scrollSubs.size) addEventListener("scroll", onScroll, { passive: true });
+      scrollSubs.add(cb);
       return () => {
-        removeEventListener("scroll", cb);
-        removeEventListener("resize", cb);
+        scrollSubs.delete(cb);
+        if (!scrollSubs.size) removeEventListener("scroll", onScroll);
       };
     },
-    () => Math.round(Math.min(1, scrollY / (innerHeight * 1.2)) * 100) / 100,
-    () => 0,
+    () => scrolling,
+    () => false,
   );
 }

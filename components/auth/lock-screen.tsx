@@ -35,7 +35,7 @@ export function LockScreen() {
       <form
         onSubmit={submit}
         autoComplete="off"
-        className="grid w-[min(400px,100%)] justify-items-center gap-3.5 rounded-[24px] px-7 py-8 text-center glass"
+        className="grid w-[min(400px,100%)] justify-items-center gap-3.5 rounded-[24px] px-7 py-8 text-center surface"
       >
         <div className="grid size-14 place-items-center rounded-[18px] bg-gradient-to-br from-act-a to-act-b text-on-act" aria-hidden>
           <Icon name="lock" className="size-7" />
@@ -59,7 +59,7 @@ export function LockScreen() {
           onChange={(e) => setPin(e.target.value)}
         />
         {err && (
-          <p className="text-[14px] text-loss" role="alert">
+          <p className="text-[14px] text-loss-ink" role="alert">
             {err}
           </p>
         )}

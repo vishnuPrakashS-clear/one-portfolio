@@ -35,7 +35,7 @@ export function Modal({
       onClose={onClose}
       onCancel={onClose}
       className={cn(
-        "m-auto w-full max-w-[min(460px,calc(100vw-32px))] rounded-[22px] bg-[#100a24] px-6 pt-7 pb-5 text-center text-ink shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12),0_40px_100px_-20px_#000]",
+        "m-auto w-full max-w-[min(460px,calc(100vw-32px))] rounded-[22px] bg-card px-6 pt-7 pb-5 text-center text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_40px_100px_-30px_rgb(0_0_0/0.7)]",
         className,
       )}
     >
@@ -72,7 +72,7 @@ export function ResultDialog() {
           {r.done.length > 0 && (
             <ul className="mb-3 grid gap-2 text-left">
               {r.done.map((x, i) => (
-                <li key={i} className="grid gap-0.5 rounded-[14px] bg-white/5 px-3.5 py-3">
+                <li key={i} className="grid gap-0.5 rounded-[14px] bg-tint px-3.5 py-3">
                   <b className="[overflow-wrap:anywhere]">{x.name}</b>
                   <span className="text-[13.5px] text-muted">{x.what}</span>
                 </li>
@@ -80,7 +80,7 @@ export function ResultDialog() {
             </ul>
           )}
           {r.errors.length > 0 && (
-            <p className="text-left text-[14px] text-loss">
+            <p className="text-left text-[14px] text-loss-ink">
               {r.errors.map((e, i) => (
                 <span key={i} className="block">
                   {e}
@@ -102,7 +102,7 @@ export function ResultDialog() {
                   router.push("/");
                 }}
               >
-                See my system
+                See my dashboard
               </button>
             )}
           </div>
@@ -181,7 +181,7 @@ export function Toasts() {
             initial={{ y: 12, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 8, opacity: 0 }}
-            className="rounded-2xl bg-[rgb(8_5_24/0.95)] px-[18px] py-3 text-[14.5px] font-semibold shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12),0_18px_30px_-12px_#000]"
+            className="rounded-2xl bg-tint-2 px-[18px] py-3 text-[14.5px] font-semibold text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_18px_30px_-12px_rgb(0_0_0/0.7)]"
           >
             {t.text}
           </motion.div>

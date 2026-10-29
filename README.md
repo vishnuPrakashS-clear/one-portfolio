@@ -1,9 +1,10 @@
 # One Portfolio
 
-**Your money as a solar system.** A private, multi-user investment tracker for India, the US and Japan. Upload your
-statements — CDSL/NSDL CAS, Groww, Zerodha, Wint Wealth, IndiaBonds, INDmoney — and see everything you own in one place:
-the **sun** is your total, each **planet** is a category (Mutual funds, Stocks, Bonds, Abroad), and each **moon** is a
-holding, sized by value and coloured green or red by gain.
+**All your money, in one clear picture.** A private, multi-user investment tracker for India, the US and Japan. Upload
+your statements (CDSL/NSDL CAS, Groww, Zerodha, Wint Wealth, IndiaBonds, INDmoney) and see everything you own on a clean
+dark dashboard. Every screen opens with a 3D scene of its own, drawn from your numbers: a dashboard on Home, 3D bars for
+mutual funds, a growth line for stocks, coin stacks of coming bond payouts, a globe for money abroad, a staircase to your
+goal and more.
 
 You never type numbers in. The app reads holdings, buy prices, purchase dates and your monthly SIP from the statements,
 and answers the questions people actually have:
@@ -19,26 +20,26 @@ A game layer (levels, XP, monthly missions, achievements, a buying streak) rewar
 
 ## Tech stack
 
-|            |                                                                                                                 |
-| ---------- | --------------------------------------------------------------------------------------------------------------- |
-| Framework  | [Next.js 16](https://nextjs.org) (App Router, static export) · React 19 · TypeScript (strict)                   |
-| Styling    | [Tailwind CSS v4](https://tailwindcss.com) (CSS-first `@theme` tokens)                                          |
-| Motion     | [Framer Motion](https://motion.dev) — scroll-in variants, count-ups, reduced-motion aware                       |
-| 3D         | [React Three Fiber](https://r3f.docs.pmnd.rs) · drei · postprocessing (bloom, vignette) · custom GLSL shaders   |
-| Data       | [Supabase](https://supabase.com) — Auth, Postgres with row-level security, Edge Functions, pg_cron              |
-| Statements | pdf.js and SheetJS, loaded on demand; files are read in the browser                                             |
-| Quality    | ESLint (Next + React Compiler rules) · Prettier with the Tailwind plugin · Vitest · GitHub Actions · Dependabot |
-| Hosting    | GitHub Pages                                                                                                    |
+|            |                                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ |
+| Framework  | [Next.js 16](https://nextjs.org) (App Router, static export) · React 19 · TypeScript (strict)                      |
+| Styling    | [Tailwind CSS v4](https://tailwindcss.com) (CSS-first `@theme` tokens)                                             |
+| Motion     | [Framer Motion](https://motion.dev) — scroll-in variants, count-ups, reduced-motion aware                          |
+| 3D         | [React Three Fiber](https://r3f.docs.pmnd.rs) · drei, with canvas textures of your numbers; paused while scrolling |
+| Data       | [Supabase](https://supabase.com) — Auth, Postgres with row-level security, Edge Functions, pg_cron                 |
+| Statements | pdf.js and SheetJS, loaded on demand; files are read in the browser                                                |
+| Quality    | ESLint (Next + React Compiler rules) · Prettier with the Tailwind plugin · Vitest · GitHub Actions · Dependabot    |
+| Hosting    | GitHub Pages                                                                                                       |
 
 ## Project structure
 
 ```
 app/                    one folder per route: / funds stocks bonds abroad goals plan tax checklist ask upload
   fonts/                Sora and Inter, self-hosted (SIL Open Font License)
-  globals.css           design tokens (@theme), glass surface, buttons, chips, charts
+  globals.css           design tokens (@theme), surfaces, buttons, chips, charts
 components/
-  main/                 navbar, footer, status row, dialogs, the 3D space background
-    space/              scene.tsx (sun, planets, moons, stars, camera) and shaders.ts
+  main/                 navbar, footer, status row, dialogs, page backdrop
+    art/                the 3D heroes: scenes.tsx (one scene per screen), textures.ts, hero-art.tsx (data + fallback)
   screens/              one component per screen
   sub/                  cards, charts, chips, count-up, holding sheet, game layer
   providers/            portfolio data (load, save, lock) and UI state

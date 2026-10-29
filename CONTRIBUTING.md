@@ -31,7 +31,7 @@ Then look at every screen you touched at a phone width (390 px) and a desktop wi
 | Folder                            | What lives there                                                      |
 | --------------------------------- | --------------------------------------------------------------------- |
 | `app/`                            | routes (one folder per screen), layout, global styles, fonts          |
-| `components/main/`                | app-wide pieces: navbar, footer, the 3D space background              |
+| `components/main/`                | app-wide pieces: navbar, footer, dialogs, the 3D heroes (`art/`)      |
 | `components/screens/`             | one component per screen                                              |
 | `components/sub/`                 | small reusable UI: cards, charts, chips, dialogs                      |
 | `components/providers/`           | portfolio data and UI state                                           |

@@ -5,7 +5,8 @@ import { useState, type FormEvent } from "react";
 import { usePortfolio, type LoginView } from "@/components/providers/portfolio-provider";
 import { cloudErr, sb } from "@/lib/supabase";
 import { Icon } from "@/components/sub/icon";
-import { riseIn } from "@/lib/motion";
+import { riseIn, slideInFromLeft } from "@/lib/motion";
+import { HeroArt } from "@/components/main/art/hero-art";
 
 const TITLE: Record<LoginView, string> = {
   signin: "Sign in to One Portfolio",
@@ -15,7 +16,7 @@ const TITLE: Record<LoginView, string> = {
   check: "Check your email",
 };
 const SUB: Record<Exclude<LoginView, "check">, string> = {
-  signin: "Your investments in India, the US and Japan as one solar system. Every number comes from your own statements.",
+  signin: "Your investments in India, the US and Japan in one place. Every number comes from your own statements.",
   signup: "Use your email and a new password. Everything you upload is private to your account.",
   forgot:
     "We'll email you a link to set a new password. If it doesn't arrive within a few minutes, ask the person who runs this app to reset it for you.",
@@ -103,17 +104,32 @@ export function LoginScreen() {
     }
   }
   return (
-    <div role="dialog" aria-modal aria-label="Sign in" className="fixed inset-0 z-50 grid place-items-center overflow-auto p-4">
+    <div
+      role="dialog"
+      aria-modal
+      aria-label="Sign in"
+      className="fixed inset-0 z-50 grid place-items-center gap-x-14 gap-y-2 overflow-auto p-4 lg:grid-cols-[minmax(0,520px)_420px] lg:justify-center"
+    >
+      <motion.div variants={slideInFromLeft(0.1)} initial="hidden" animate="visible" className="grid gap-3 max-lg:hidden">
+        <HeroArt kind="home" className="max-w-[480px]" />
+        <h2 className="font-display text-[40px] leading-[1.05] font-bold tracking-[-0.03em] text-ink">
+          All your money, <span className="gradient-text">in one clear picture</span>
+        </h2>
+        <p className="max-w-[46ch] text-[16px] text-body">
+          Upload your CDSL statement and broker reports. See mutual funds, stocks, bonds and money abroad, how they grew, and whether
+          you&apos;ll reach your goal.
+        </p>
+      </motion.div>
       <motion.form
         noValidate
         onSubmit={submit}
         variants={riseIn(0.1)}
         initial="hidden"
         animate="visible"
-        className="grid w-[min(420px,100%)] gap-3.5 rounded-[24px] px-7 pt-8 pb-7 glass"
+        className="grid w-[min(420px,100%)] gap-3.5 rounded-[24px] px-7 pt-8 pb-7 surface"
       >
         <div
-          className="grid size-14 place-items-center justify-self-center rounded-[18px] bg-gradient-to-br from-act-a to-act-b text-on-act shadow-[0_0_30px_-6px_var(--color-act-a)]"
+          className="grid size-14 place-items-center justify-self-center rounded-[18px] bg-gradient-to-br from-act-a to-act-b text-on-act shadow-[0_12px_24px_-10px_rgb(95_227_122/0.7)]"
           aria-hidden
         >
           <Icon name="orbit" className="size-8" strokeWidth={2} />
@@ -159,7 +175,7 @@ export function LoginScreen() {
               </label>
             )}
             {(err || (loginMsg && V !== "signin")) && (
-              <p className="text-[14px] text-loss" role="alert">
+              <p className="text-[14px] text-loss-ink" role="alert">
                 {err || loginMsg}
               </p>
             )}

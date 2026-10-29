@@ -4,10 +4,10 @@ import { motion } from "framer-motion";
 import type { CSSProperties, ReactNode } from "react";
 import { riseIn, slideInFromLeft, slideInFromRight, slideInFromTop } from "@/lib/motion";
 import { cn } from "@/lib/utils";
-import { Icon } from "./icon";
 import { pct1 } from "@/lib/format";
+import { HeroArt, type ArtKind } from "@/components/main/art/hero-art";
 
-/** a glass card that rises in as it scrolls into view */
+/** a white card that rises in as it scrolls into view */
 export function Card({
   children,
   className,
@@ -50,79 +50,73 @@ export function CardHead({ title, note, right }: { title: ReactNode; note?: Reac
   );
 }
 
-/** the page opening: a glowing welcome badge, the big figure or title, and a lead line (like the reference portfolio's hero) */
+/** the page opening: a soft tinted panel with the badge, the big figure or title and a lead line on the left,
+    and a glossy 3D illustration (or an aside such as the goal meter) on the right */
 export function Hero({
   badge,
   color,
+  wash,
   title,
   children,
   aside,
-  compact,
+  art,
   big = true,
 }: {
   badge: string;
   color?: string;
+  wash?: string;
   title: ReactNode;
   children?: ReactNode;
   aside?: ReactNode;
+  art?: ArtKind;
   compact?: boolean;
   big?: boolean;
 }) {
   return (
-    <motion.div
+    <motion.section
       initial="hidden"
       animate="visible"
-      className={cn(
-        "pointer-events-none grid items-end gap-x-8 gap-y-6 pb-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]",
-        compact
-          ? "min-h-[min(44vh,420px)] pt-[clamp(40px,16vh,160px)] lg:pt-[clamp(24px,7vh,80px)]"
-          : "min-h-[min(64vh,620px)] pt-[clamp(40px,22vh,220px)] lg:pt-[clamp(24px,8vh,90px)]",
-      )}
+      className="relative isolate grid items-center gap-x-6 gap-y-4 overflow-hidden rounded-[32px] px-9 py-9 surface max-sm:rounded-[24px] max-sm:px-5 max-sm:py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)]"
+      style={{ backgroundImage: `radial-gradient(90% 120% at 100% 30%, ${wash || "#c4f25a1a"}, transparent 62%)` }}
     >
-      <div className="grid content-end gap-4 [text-shadow:0_2px_24px_rgb(3_0_20/0.85)]">
-        <motion.div
+      <div className="grid content-center gap-4 max-lg:order-2">
+        <motion.span
           variants={slideInFromTop}
-          className="welcome-box pointer-events-auto w-fit border border-[#7042f88b] px-3 py-2 opacity-90"
-          style={color ? { borderColor: color + "99" } : undefined}
+          className="inline-flex w-fit items-center gap-2 rounded-full bg-card px-3 py-1.5 text-[13px] font-semibold text-body shadow-[inset_0_0_0_1px_var(--color-line)]"
         >
-          <Icon name="sparkles" className="mr-2.5 size-4" style={{ color: color || "#b49bff" }} />
-          <span className="welcome-text text-[13px] font-semibold">{badge}</span>
-        </motion.div>
+          <i className="size-2 rounded-full" style={{ background: color || "var(--color-act-a)" }} />
+          {badge}
+        </motion.span>
         <motion.h1
-          variants={slideInFromLeft(0.25)}
+          variants={slideInFromLeft(0.15)}
           className={cn(
-            "font-display font-bold text-white",
+            "font-display font-bold text-ink",
             big
-              ? "num text-[clamp(42px,7.4vw,86px)] leading-[0.98] tracking-[-0.04em]"
-              : "text-[clamp(32px,4.8vw,56px)] leading-[1.05] tracking-[-0.03em]",
+              ? "num text-[clamp(40px,6.4vw,76px)] leading-[0.98] tracking-[-0.04em]"
+              : "text-[clamp(30px,4.4vw,52px)] leading-[1.06] tracking-[-0.03em]",
           )}
-          style={
-            color
-              ? {
-                  backgroundImage: `linear-gradient(180deg,#fff 30%, ${color})`,
-                  WebkitBackgroundClip: "text",
-                  backgroundClip: "text",
-                  color: "transparent",
-                  textShadow: "none",
-                  filter: `drop-shadow(0 4px 30px ${color}55)`,
-                }
-              : undefined
-          }
         >
           {title}
         </motion.h1>
         {children && (
-          <motion.div variants={slideInFromLeft(0.45)} className="pointer-events-auto grid gap-4">
+          <motion.div variants={slideInFromLeft(0.3)} className="grid gap-4">
             {children}
           </motion.div>
         )}
       </div>
-      {aside && (
-        <motion.div variants={slideInFromRight(0.5)} className="pointer-events-auto">
+      {aside ? (
+        <motion.div variants={slideInFromRight(0.35)} className="max-lg:order-3">
           {aside}
         </motion.div>
-      )}
-    </motion.div>
+      ) : art ? (
+        <motion.div
+          variants={slideInFromRight(0.2)}
+          className="mx-auto w-full max-w-[560px] max-lg:order-1 max-lg:max-w-[460px] max-sm:-mx-2 max-sm:-my-2 max-sm:max-w-none"
+        >
+          <HeroArt kind={art} />
+        </motion.div>
+      ) : null}
+    </motion.section>
   );
 }
 
@@ -139,9 +133,9 @@ export function Pill({
 }) {
   const cls = cn(
     "pill",
-    tone === "pos" && "text-gain-ink shadow-[inset_0_0_0_1px_rgb(52_211_153/0.45)]",
-    tone === "neg" && "text-loss-ink shadow-[inset_0_0_0_1px_rgb(248_113_113/0.45)]",
-    onClick && "cursor-pointer text-ink hover:bg-white/12",
+    tone === "pos" && "bg-gain-wash text-gain-ink shadow-none",
+    tone === "neg" && "bg-loss-wash text-loss-ink shadow-none",
+    onClick && "cursor-pointer text-ink hover:bg-tint",
     className,
   );
   return onClick ? (
@@ -174,13 +168,13 @@ export function Chip({
 }
 export function Stat({ k, v, s, tone }: { k: string; v: ReactNode; s?: ReactNode; tone?: "pos" | "neg" | "" }) {
   return (
-    <div className="relative grid content-start gap-0.5 px-[18px] py-4 [&+&]:before:absolute [&+&]:before:inset-y-3.5 [&+&]:before:left-0 [&+&]:before:w-px [&+&]:before:bg-white/12">
+    <div className="relative grid content-start gap-0.5 px-[18px] py-4 [&+&]:before:absolute [&+&]:before:inset-y-3.5 [&+&]:before:left-0 [&+&]:before:w-px [&+&]:before:bg-line">
       <span className="text-[12.5px] text-muted">{k}</span>
       <b
         className={cn(
           "num font-display text-[22px] leading-tight font-bold tracking-[-0.015em] whitespace-nowrap",
-          tone === "pos" && "text-gain",
-          tone === "neg" && "text-loss",
+          tone === "pos" && "text-gain-ink",
+          tone === "neg" && "text-loss-ink",
         )}
       >
         {v}
@@ -191,7 +185,7 @@ export function Stat({ k, v, s, tone }: { k: string; v: ReactNode; s?: ReactNode
 }
 export function StatGrid({ children, cols = 4 }: { children: ReactNode; cols?: 2 | 4 }) {
   return (
-    <div className={cn("grid overflow-hidden rounded-[18px] glass", cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2")}>
+    <div className={cn("grid overflow-hidden rounded-[20px] surface", cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2")}>
       {children}
     </div>
   );

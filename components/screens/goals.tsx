@@ -17,32 +17,37 @@ import { cn } from "@/lib/utils";
 export const VERDICTS: {
   title: string;
   color: string;
+  wash: string;
   icon: IconName;
   text: (g: Goal, r: GoalResult, m: (v: number) => string, s: (v: number) => string) => string;
 }[] = [
   {
     title: "Not on track yet",
-    color: "#f87171",
+    color: "#fca5a5",
+    wash: "rgb(248 113 113 / 0.16)",
     icon: "alert",
     text: (g, r, m, s) =>
       `Even a strong market gets you to about ${s(r.v[2])}. Investing about ${m(Math.ceil(r.need / 500) * 500)} a month (now ${m(r.sip)}) reaches ${s(g.amt)} at the likely rate.`,
   },
   {
     title: "Only in a strong market",
-    color: "#fbbf24",
+    color: "#fcd34d",
+    wash: "rgb(251 191 36 / 0.15)",
     icon: "up",
     text: (g, r, m, s) =>
       `Likely about ${s(r.v[1])}. To reach ${s(g.amt)} at the likely rate, invest about ${m(Math.ceil(r.need / 500) * 500)} a month instead of ${m(r.sip)}.`,
   },
   {
     title: "On track at the likely rate",
-    color: "#34d399",
+    color: "#86efac",
+    wash: "rgb(74 222 128 / 0.15)",
     icon: "check",
     text: (g, r, _m, s) => `Likely about ${s(r.v[1])} by ${g.year}. A cautious market would leave you at ${s(r.v[0])}.`,
   },
   {
     title: "On track, even in a cautious market",
-    color: "#5eead4",
+    color: "#c4f25a",
+    wash: "rgb(196 242 90 / 0.15)",
     icon: "check",
     text: (g, r, _m, s) => `Cautious ${s(r.v[0])}, likely ${s(r.v[1])} by ${g.year}.`,
   },
@@ -79,12 +84,14 @@ function Chips<T extends number>({
               className={cn(
                 "num inline-grid min-h-11 min-w-16 cursor-pointer justify-items-center gap-px rounded-[14px] px-3.5 py-2 font-display text-[15px] leading-tight font-bold transition-colors",
                 on
-                  ? "bg-goal/22 text-white shadow-[inset_0_0_0_1.5px_var(--color-goal),0_0_20px_-6px_var(--color-goal)]"
-                  : "bg-white/6 text-ink shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)] hover:bg-white/11",
+                  ? "bg-gradient-to-r from-lime to-lime-2 text-on-lime shadow-[0_8px_18px_-10px_rgb(95_227_122/0.8)]"
+                  : "bg-card text-ink shadow-[inset_0_0_0_1px_var(--color-line)] hover:bg-tint",
               )}
             >
               {render(v)}
-              {sub?.(v) && <small className={cn("font-sans text-[11px] font-medium", on ? "text-gain-ink" : "text-muted")}>{sub(v)}</small>}
+              {sub?.(v) && (
+                <small className={cn("font-sans text-[11px] font-medium", on ? "text-on-lime/70" : "text-muted")}>{sub(v)}</small>
+              )}
             </motion.button>
           );
         })}
@@ -106,15 +113,15 @@ function Meter({ goal, r, total, s }: { goal: Goal; r: GoalResult; total: number
       role="img"
       aria-label={`By ${goal.year}: cautious ${s(r.v[0])}, likely ${s(r.v[1])}, strong ${s(r.v[2])}, against a goal of ${s(goal.amt)}; today ${s(total)}`}
     >
-      <div className="relative h-3 rounded-full bg-white/7">
+      <div className="relative h-3 rounded-full bg-tint-2">
         <motion.i
-          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-act-a to-act-b shadow-[0_0_12px_var(--color-act-a)]"
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-act-a to-act-b"
           initial={{ width: 0 }}
           animate={{ width: `${at(total)}%` }}
           transition={{ duration: 0.9 }}
         />
         <motion.span
-          className="absolute inset-y-0 rounded-full bg-gradient-to-r from-goal/35 to-goal/75 shadow-[0_0_14px_-2px_var(--color-goal)]"
+          className="absolute inset-y-0 rounded-full bg-gradient-to-r from-goal/30 to-goal/70"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1, left: `${at(r.v[0])}%`, width: `${at(r.v[2]) - at(r.v[0])}%` }}
           transition={{ duration: 0.9 }}
@@ -124,7 +131,7 @@ function Meter({ goal, r, total, s }: { goal: Goal; r: GoalResult; total: number
             key={k}
             className={cn(
               "absolute -top-[3px] h-[18px] -translate-x-1/2 rounded-sm not-italic",
-              k === "k1" ? "w-1 bg-white shadow-[0_0_8px_#fff]" : k === "now" ? "w-0" : "w-[3px] bg-white/60",
+              k === "k1" ? "w-1 bg-ink" : k === "now" ? "w-0" : "w-[3px] bg-ink/45",
             )}
             animate={{ left: `${at(v)}%` }}
           >
@@ -140,11 +147,8 @@ function Meter({ goal, r, total, s }: { goal: Goal; r: GoalResult; total: number
             </span>
           </motion.em>
         ))}
-        <motion.b
-          className="absolute -top-2 h-7 w-1 -translate-x-1/2 rounded-sm bg-white shadow-[0_0_10px_#fff]"
-          animate={{ left: `${at(goal.amt)}%` }}
-        >
-          <span className="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-lg bg-white/10 px-2 py-1 font-display text-[12.5px] font-bold whitespace-nowrap">
+        <motion.b className="absolute -top-2 h-7 w-1 -translate-x-1/2 rounded-sm bg-goal" animate={{ left: `${at(goal.amt)}%` }}>
+          <span className="absolute bottom-8 left-1/2 -translate-x-1/2 rounded-lg bg-gain-wash px-2 py-1 font-display text-[12.5px] font-bold whitespace-nowrap text-gain-ink">
             Goal {s(goal.amt)}
           </span>
         </motion.b>
@@ -170,7 +174,7 @@ export function GoalsScreen() {
     { m, s } = useMoney();
   if (!M.total) {
     return (
-      <Hero badge="Goal check" title="Upload a statement first" big={false} compact>
+      <Hero badge="Goal check" color={GOAL_COLOR} wash="#5fe37a1f" title="Upload a statement first" big={false} art="goals">
         <p className="max-w-[60ch] text-[16.5px] text-body">
           The goal check works out where your current investments and monthly investing lead, and whether that reaches your goal.
         </p>
@@ -197,11 +201,11 @@ export function GoalsScreen() {
       <Hero
         badge="Goal check"
         color={GOAL_COLOR}
+        wash="#5fe37a1f"
         title={goal ? `${s(goal.amt)} by ${goal.year}` : "Pick a goal and a year"}
         big={false}
-        compact
         aside={
-          <div className="grid gap-4 rounded-[22px] p-5 glass">
+          <div className="grid gap-4 rounded-[22px] bg-card p-5 shadow-[inset_0_0_0_1px_var(--color-line),var(--shadow-card)]">
             <Chips label="Goal" items={GOAL_AMOUNTS} value={goal?.amt} onPick={(amt) => setGoal({ amt })} render={s} />
             <Chips
               label={`Each month, on top of today's ${m(M.sip)}`}
@@ -230,13 +234,9 @@ export function GoalsScreen() {
         <>
           <Card
             className="grid-cols-[auto_minmax(0,1fr)] items-center gap-x-[18px] gap-y-4 max-sm:grid-cols-1"
-            style={{ boxShadow: `inset 0 0 0 1px ${vd.color}73, 0 0 60px -30px ${vd.color}` }}
+            style={{ backgroundImage: `linear-gradient(135deg, ${vd.wash}, transparent 70%)` }}
           >
-            <div
-              className="grid size-14 place-items-center rounded-[18px]"
-              style={{ color: vd.color, background: `${vd.color}29` }}
-              aria-hidden
-            >
+            <div className="grid size-14 place-items-center rounded-[18px]" style={{ color: vd.color, background: vd.wash }} aria-hidden>
               <Icon name={vd.icon} className="size-7" strokeWidth={2.2} />
             </div>
             <div>
@@ -283,10 +283,7 @@ export function GoalsScreen() {
                     return (
                       <tr key={id}>
                         <td className="whitespace-nowrap">
-                          <span
-                            className="mr-2.5 inline-block size-2.5 rounded-full align-[1px]"
-                            style={{ background: cat.hex, boxShadow: `0 0 8px ${cat.hex}` }}
-                          />
+                          <span className="mr-2.5 inline-block size-2.5 rounded-full align-[1px]" style={{ background: cat.hex }} />
                           {cat.name}
                         </td>
                         <td className="num text-right">{s(c.value)}</td>
@@ -301,7 +298,7 @@ export function GoalsScreen() {
                   {extra > 0 && (
                     <tr>
                       <td className="whitespace-nowrap">
-                        <span className="mr-2.5 inline-block size-2.5 rounded-full bg-white align-[1px]" />
+                        <span className="mr-2.5 inline-block size-2.5 rounded-full bg-goal align-[1px]" />
                         Extra you add
                       </td>
                       <td className="num text-right">—</td>

@@ -17,7 +17,7 @@ import type { SplitRow } from "@/lib/core/abroad";
 function FlipCard({ r, unitsHint }: { r: SplitRow; unitsHint: string }) {
   const { d } = useMoney(),
     [on, setOn] = useState(false),
-    c = BUCKET_COLOR[r.bucket] || "#a99fd0";
+    c = BUCKET_COLOR[r.bucket] || "#7c3aed";
   const face =
     "absolute inset-0 flex flex-col items-start gap-1.5 overflow-hidden rounded-[20px] p-4 text-left text-[13.5px] leading-snug [backface-visibility:hidden]";
   return (
@@ -32,7 +32,10 @@ function FlipCard({ r, unitsHint }: { r: SplitRow; unitsHint: string }) {
         animate={{ rotateY: on ? 180 : 0 }}
         transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
       >
-        <span className={`${face} pt-6 glass`} style={{ boxShadow: `inset 0 3px 0 ${c}, inset 0 0 0 1px rgb(255 255 255 / 0.1)` }}>
+        <span
+          className={`${face} pt-6 surface`}
+          style={{ boxShadow: `inset 0 3px 0 ${c}, inset 0 0 0 1px var(--color-line), var(--shadow-card)` }}
+        >
           <span className="kicker text-body">{r.bucket}</span>
           <span className="font-display text-[26px] leading-tight font-extrabold tracking-[-0.02em]">{tk(r.buy)}</span>
           <span className="num font-display text-[20px] font-bold">
@@ -41,11 +44,11 @@ function FlipCard({ r, unitsHint }: { r: SplitRow; unitsHint: string }) {
           <span className="text-body">
             {r.shares ? `≈ ${d(r.reb)} · enter 1 in Qty` : r.reb >= 1 ? unitsHint : r.whole ? r.skipWhy : "Nothing this month"}
           </span>
-          <span className="mt-auto rounded-full bg-white/10 px-2.5 py-1.5 text-[12.5px] leading-none font-semibold">
+          <span className="mt-auto rounded-full bg-tint-2 px-2.5 py-1.5 text-[12.5px] leading-none font-semibold">
             Now {r.nowPct.toFixed(0)}% · target {r.w}%
           </span>
         </span>
-        <span className={`${face} [transform:rotateY(180deg)] glass`}>
+        <span className={`${face} [transform:rotateY(180deg)] surface`}>
           <span className="kicker text-body">Why {tk(r.buy)}</span>
           <span>{BUY_WHY[r.buy] || ""}</span>
           <span className="note">{r.buy.startsWith("LSE~") ? "London-listed. Buy between 1 pm and 8:30 pm IST." : "US-listed."}</span>
@@ -60,7 +63,7 @@ export function PlanScreen() {
     { d } = useMoney();
   if (!S || !hasAbroad(S)) {
     return (
-      <Hero badge="Monthly plan" title="Your monthly plan abroad" big={false} compact>
+      <Hero badge="Monthly plan" title="Your monthly plan abroad" big={false} art="plan">
         <p className="max-w-[60ch] text-[16.5px] text-body">
           The plan splits your monthly INDmoney amount across US, Japan, London and copper funds, buying more of whatever is below target.
           Upload your INDmoney Transactions Report and Holdings Report to start. Your Indian monthly investing is on the Home screen.
@@ -87,7 +90,7 @@ export function PlanScreen() {
         badge={ms.done ? `${monthLong(ms.ym)} done · next: ${ms.label}` : `Monthly plan · ${ms.label}`}
         title={ms.done ? `${ms.label.split(" ")[0]}'s buys` : "This month's buys"}
         big={false}
-        compact
+        art="plan"
       >
         <p className="max-w-[56ch] text-[16.5px] text-body">
           Invest {inr(s.monthlyInr)} in INDmoney {ms.done ? "next month" : "this month"}. Tap a card to see why each fund gets what it gets.
@@ -116,7 +119,7 @@ export function PlanScreen() {
             ["Bank + brokerage", `~${s.feePct}%`, ""],
             ["You invest", d(sp.usd), ""],
           ].map(([k, v, n]) => (
-            <div key={k} className="grid gap-0.5 rounded-[14px] bg-white/5 px-4 py-3.5">
+            <div key={k} className="grid gap-0.5 rounded-[14px] bg-tint px-4 py-3.5">
               <span className="kicker">{k}</span>
               <b className="num font-display text-[20px]">{v}</b>
               {n && <span className="note">{n}</span>}

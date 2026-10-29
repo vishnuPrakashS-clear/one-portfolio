@@ -12,7 +12,7 @@ export const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "/one-portfolio";
 export const siteConfig: Metadata = {
   title: { default: "One Portfolio", template: "%s · One Portfolio" },
   description:
-    "Your Indian and global investments as a solar system: every number from your own statements, a goal check, and where your monthly investing leads.",
+    "Your Indian and global investments in one clear 3D dashboard: every number from your own statements, a goal check, and where your monthly investing leads.",
   applicationName: "One Portfolio",
   robots: { index: false, follow: false },
   icons: { icon: `${basePath}/icon.svg` },

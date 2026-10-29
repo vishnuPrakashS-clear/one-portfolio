@@ -38,10 +38,10 @@ function Dropzone({ onFiles }: { onFiles: (f: File[]) => void }) {
         "relative grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-5 gap-y-1.5 overflow-hidden rounded-[22px] bg-gradient-to-br from-act-a/10 to-act-b/12 p-7 transition focus-within:outline-2 focus-within:outline-offset-[3px] focus-within:outline-act-a max-sm:grid-cols-1 max-sm:p-[22px]",
         over
           ? "scale-[0.995] shadow-[inset_0_0_0_2px_var(--color-act-a),0_0_40px_-16px_var(--color-act-a)]"
-          : "shadow-[inset_0_0_0_2px_rgb(167_139_250/0.35)] hover:shadow-[inset_0_0_0_2px_var(--color-act-a)]",
+          : "shadow-[inset_0_0_0_2px_rgb(196_242_90/0.3)] hover:shadow-[inset_0_0_0_2px_var(--color-act-a)]",
       )}
     >
-      <span className="row-span-3 grid size-16 place-items-center rounded-2xl bg-white/6 text-stocks max-sm:row-span-1" aria-hidden>
+      <span className="row-span-3 grid size-16 place-items-center rounded-2xl bg-tint text-stocks max-sm:row-span-1" aria-hidden>
         <Icon name="upload" className="size-8" />
       </span>
       <b className="font-display text-[20px] font-extrabold">Drop your statements and reports here</b>
@@ -231,7 +231,7 @@ function PinDialog({ kind, onClose }: { kind: "set" | "change" | "off" | null; o
             {F({ id: "pin-new2", label: "Type it again", v: p2, set: setP2, ac: "new-password" })}
           </>
         )}
-        {err && <p className="text-left text-[14px] text-loss">{err}</p>}
+        {err && <p className="text-left text-[14px] text-loss-ink">{err}</p>}
         <p className="note">
           {needNew
             ? "Pick digits that aren't your card PIN or birthday. The PIN itself is never saved, only a scrambled check value."
@@ -369,7 +369,7 @@ export function UploadScreen() {
   const log = (S?.log || []).slice(-10).reverse();
   return (
     <>
-      <Hero badge="Upload" title="Add your statements" big={false} compact>
+      <Hero badge="Upload" title="Add your statements" big={false} art="upload">
         <p className="max-w-[60ch] text-[16.5px] text-body">
           Every number in One Portfolio comes from these files. Password-protected PDFs ask for their password, which is used only to open
           the file here.
@@ -502,8 +502,8 @@ export function UploadScreen() {
             </div>
           }
         />
-        <details className="border-t border-white/7 pt-3.5">
-          <summary className="cursor-pointer font-semibold text-loss">Delete all my data</summary>
+        <details className="border-t border-rule pt-3.5">
+          <summary className="cursor-pointer font-semibold text-loss-ink">Delete all my data</summary>
           <p className="note my-2">
             Removes your portfolio and its saved versions from the database for good. Your login stays, so you can start again by uploading
             reports.
@@ -530,7 +530,7 @@ export function UploadScreen() {
       {log.length > 0 && (
         <details className="card">
           <summary className="cursor-pointer font-semibold">Activity log</summary>
-          <pre className="mt-3 max-h-60 overflow-auto rounded-[14px] bg-white/5 p-3.5 font-mono text-[13px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap">
+          <pre className="mt-3 max-h-60 overflow-auto rounded-[14px] bg-tint p-3.5 font-mono text-[13px] leading-relaxed [overflow-wrap:anywhere] whitespace-pre-wrap">
             {log.map((l) => `${l.d}  ${l.text}`).join("\n")}
           </pre>
         </details>

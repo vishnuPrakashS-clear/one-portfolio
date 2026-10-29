@@ -18,6 +18,7 @@ import { GameLayer } from "@/components/sub/game-layer";
 import { Icon } from "@/components/sub/icon";
 import { useNow } from "@/lib/hooks";
 import { VERDICTS } from "./goals";
+import { CatOrb } from "@/components/main/art/hero-art";
 
 function HistNote() {
   const { model } = usePortfolio();
@@ -31,7 +32,7 @@ function HistNote() {
 }
 export { HistNote };
 
-/** play the last 12 months: planets and moons grow and shrink to each month-end value */
+/** play the last 12 months: the 3D shapes grow and shrink to each month-end value */
 function Replay() {
   const { model } = usePortfolio(),
     { month, setMonth } = useUi();
@@ -66,18 +67,18 @@ function Replay() {
     }, 700);
   };
   return (
-    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5 rounded-full py-3 pr-5 pl-3 glass">
+    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3.5 rounded-full py-2.5 pr-5 pl-2.5 surface">
       <button
         type="button"
         onClick={play}
         aria-label={playing ? "Stop the replay" : "Replay the last 12 months"}
-        className="grid size-11 cursor-pointer place-items-center rounded-full bg-gradient-to-br from-act-a to-act-b text-on-act shadow-[0_0_22px_-4px_var(--color-act-a)] active:scale-95"
+        className="grid size-11 cursor-pointer place-items-center rounded-full bg-gradient-to-br from-act-a to-act-b text-on-act shadow-[0_8px_18px_-8px_rgb(95_227_122/0.7)] active:scale-95"
       >
         <Icon name={playing ? "pause" : "play"} className="size-5" />
       </button>
       <div>
         <label htmlFor="mslider" className="mb-0.5 block text-[13px] text-muted">
-          Replay your system: <b className="text-ink">{shown >= n - 1 ? "today" : monthLong(model.months[shown])}</b>
+          Replay the last 12 months: <b className="text-ink">{shown >= n - 1 ? "today" : monthLong(model.months[shown])}</b>
         </label>
         <input
           id="mslider"
@@ -97,7 +98,7 @@ function Replay() {
   );
 }
 
-function Planets() {
+function CategoryTiles() {
   const { model } = usePortfolio(),
     { s } = useMoney();
   return (
@@ -109,27 +110,28 @@ function Planets() {
           <motion.div key={id} variants={riseIn()}>
             <Link
               href={cat.route}
-              className="group relative grid gap-1 overflow-hidden rounded-[18px] px-[18px] pt-4 pb-3.5 no-underline glass transition hover:-translate-y-[3px]"
-              style={{ ["--c" as string]: cat.hex }}
+              className="group relative grid gap-1 overflow-hidden rounded-[22px] px-[18px] pt-4 pb-4 no-underline surface transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)]"
+              style={{ backgroundImage: `linear-gradient(160deg, ${cat.wash}, transparent 70%)` }}
             >
-              <i className="absolute inset-y-0 left-0 w-[3px]" style={{ background: cat.hex, boxShadow: `0 0 14px ${cat.hex}` }} />
+              <CatOrb
+                id={id}
+                size={40}
+                className="absolute top-3.5 right-3.5 transition-transform group-hover:-translate-y-1 max-[420px]:scale-75"
+              />
               <span className="text-[13px] font-semibold" style={{ color: cat.hex }}>
                 {cat.name}
               </span>
-              <b className="num font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-white max-[420px]:text-[20px]">
+              <b className="num font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink max-[420px]:text-[20px]">
                 {s(c.value)}
               </b>
               <span className="num flex justify-between gap-2 text-[12.5px] text-muted">
                 <span>{((100 * c.value) / model.total).toFixed(0)}% of all</span>
                 {c.gainPct != null && (
-                  <span className={`font-semibold ${c.gainPct >= 0 ? "text-gain" : "text-loss"}`}>{pct1(c.gainPct)}</span>
+                  <span className={`font-semibold ${c.gainPct >= 0 ? "text-gain-ink" : "text-loss-ink"}`}>{pct1(c.gainPct)}</span>
                 )}
               </span>
-              <span className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/8">
-                <i
-                  className="block h-full rounded-full"
-                  style={{ width: `${(100 * c.value) / model.total}%`, background: cat.hex, boxShadow: `0 0 10px ${cat.hex}` }}
-                />
+              <span className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-tint-2">
+                <i className="block h-full rounded-full" style={{ width: `${(100 * c.value) / model.total}%`, background: cat.hex }} />
               </span>
             </Link>
           </motion.div>
@@ -225,13 +227,13 @@ function AiTake() {
       <CardHead
         title={
           <>
-            <Icon name="sparkles" className="size-[18px] text-stocks" />
+            <Icon name="sparkles" className="size-[18px] text-funds" />
             AI take
           </>
         }
       />
       <p className="text-[14.5px] text-body">{lines.join(" ")}</p>
-      {a && <p className="rounded-[14px] bg-white/5 px-4 py-3.5 text-[14.5px] whitespace-pre-wrap">{a}</p>}
+      {a && <p className="well px-4 py-3.5 text-[14.5px] whitespace-pre-wrap">{a}</p>}
       <form onSubmit={ask} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
         <label htmlFor="ins-q" className="sr-only">
           Ask about your portfolio
@@ -259,10 +261,10 @@ export function HomeScreen() {
   if (!model.total) {
     return (
       <>
-        <Hero badge="Your money as a solar system" title="Upload a statement to light up your system" big={false}>
+        <Hero badge="Everything you've invested, in one place" title="Upload a statement to see your money in 3D" big={false} art="home">
           <p className="max-w-[60ch] text-[16.5px] text-body">
-            Each planet is a kind of investment and each moon one of your holdings. Start with the CDSL or NSDL statement (CAS) that&apos;s
-            emailed to you every month: it lists every share, mutual fund and bond under your PAN. Nothing is typed in.
+            Each shape is a kind of investment, sized by how much is in it. Start with the CDSL or NSDL statement (CAS) that&apos;s emailed
+            to you every month: it lists every share, mutual fund and bond under your PAN. Nothing is typed in.
           </p>
           <div>
             <Link href="/upload" className="btn btn-primary">
@@ -298,7 +300,7 @@ export function HomeScreen() {
   const coverage = CAT_ORDER.reduce((a, id) => a + model.cats[id].covered, 0) / model.total;
   return (
     <>
-      <Hero badge={`All investments · ${longDate(TODAY())}`} title={<CountUp value={model.total} format={m} />}>
+      <Hero badge={`All investments · ${longDate(TODAY())}`} title={<CountUp value={model.total} format={m} />} art="home">
         <div className="flex max-w-[620px] flex-wrap gap-2">
           <GainPill gain={gain} pct={null} base={known} s={s} />
           <Pill>
@@ -311,7 +313,7 @@ export function HomeScreen() {
           <Replay />
         </div>
       </Hero>
-      <Planets />
+      <CategoryTiles />
       <Card>
         <CardHead
           title="How your money grew"
@@ -328,16 +330,13 @@ export function HomeScreen() {
         <HistNote />
       </Card>
       <div className="grid gap-5 md:grid-cols-2">
-        <Link
-          href="/goals"
-          className="card no-underline transition hover:-translate-y-[3px] hover:shadow-[inset_0_0_0_1px_rgb(52_211_153/0.55),0_20px_40px_-20px_var(--color-goal)]"
-        >
+        <Link href="/goals" className="card no-underline transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)]">
           <CardHead title={goal ? `Goal: ${s(goal.amt)} by ${goal.year}` : "Will you reach your goal?"} />
           {goal && r ? (
             <>
               <p
-                className="grid gap-1 rounded-[14px] bg-white/5 px-4 py-3.5"
-                style={{ boxShadow: `inset 3px 0 0 ${VERDICTS[r.level].color}` }}
+                className="grid gap-1 rounded-2xl px-4 py-3.5"
+                style={{ background: VERDICTS[r.level].wash, boxShadow: `inset 3px 0 0 ${VERDICTS[r.level].color}` }}
               >
                 <b className="font-display text-[17px] font-semibold" style={{ color: VERDICTS[r.level].color }}>
                   {VERDICTS[r.level].title}
@@ -348,13 +347,13 @@ export function HomeScreen() {
                 {(["Cautious", "Likely", "Strong"] as const).map((k, i) => (
                   <div
                     key={k}
-                    className={`grid gap-0.5 rounded-xl px-3 py-2.5 ${i === 1 ? "bg-goal/12 shadow-[inset_0_0_0_1px_rgb(52_211_153/0.4)]" : "bg-white/4"}`}
+                    className={`grid gap-0.5 rounded-xl px-3 py-2.5 ${i === 1 ? "bg-gain-wash shadow-[inset_0_0_0_1px_rgb(5_150_105/0.3)]" : "bg-tint"}`}
                   >
                     <span className="text-[12px] text-muted">
                       {k} by {goal.year}
                     </span>
                     <b
-                      className={`num font-display font-bold ${r.v[i] >= goal.amt ? "text-gain" : "text-ink"} ${i === 1 ? "text-[18px]" : "text-[15px]"}`}
+                      className={`num font-display font-bold ${r.v[i] >= goal.amt ? "text-gain-ink" : "text-ink"} ${i === 1 ? "text-[18px]" : "text-[15px]"}`}
                     >
                       {s(r.v[i])}
                     </b>
@@ -379,17 +378,14 @@ export function HomeScreen() {
             {CAT_ORDER.filter((id) => model.cats[id].items.length).map((id) => (
               <li
                 key={id}
-                className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/7 py-2.5 text-[14.5px]"
+                className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule py-2.5 text-[14.5px]"
               >
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{ background: CATEGORIES[id].hex, boxShadow: `0 0 8px ${CATEGORIES[id].hex}` }}
-                />
+                <span className="size-2.5 rounded-full" style={{ background: CATEGORIES[id].hex }} />
                 <span>{CATEGORIES[id].name}</span>
                 <b className="num font-display font-semibold">{model.cats[id].sip ? m(model.cats[id].sip) : "—"}</b>
               </li>
             ))}
-            <li className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-3 border-t border-white/12 pt-2.5 font-semibold">
+            <li className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-3 border-t border-line pt-2.5 font-semibold">
               <span />
               <span>Total</span>
               <b className="num font-display text-[17px]">{m(model.sip)}</b>

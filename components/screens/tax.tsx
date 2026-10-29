@@ -20,7 +20,7 @@ export function TaxScreen() {
     abroad = hasAbroad(S);
   if (!S || (!I && !abroad)) {
     return (
-      <Hero badge="Sell & tax" title="When to sell, and what it costs" big={false} compact>
+      <Hero badge="Sell & tax" title="When to sell, and what it costs" big={false} art="tax">
         <p className="max-w-[60ch] text-[16.5px] text-body">
           Upload your statements and order histories to see which holdings are long-term, the tax if you sold today, and the next tax-saving
           dates.
@@ -65,7 +65,7 @@ export function TaxScreen() {
   }
   return (
     <>
-      <Hero badge="Sell & tax" title="When to sell, and what it costs" big={false} compact>
+      <Hero badge="Sell & tax" title="When to sell, and what it costs" big={false} art="tax">
         <p className="max-w-[60ch] text-[16.5px] text-body">
           Indian shares and equity funds turn long-term after 12 months (12.5% above ₹1.25 lakh a year, 20% before). Foreign holdings need
           24 months. Each purchase has its own date.
@@ -134,7 +134,7 @@ export function TaxScreen() {
                             ))}
                           </span>
                         </td>
-                        <td data-label="Gain now" className={cn("num text-right", gain >= 0 ? "text-gain" : "text-loss")}>
+                        <td data-label="Gain now" className={cn("num text-right", gain >= 0 ? "text-gain-ink" : "text-loss-ink")}>
                           {sgn(gain)}
                           {d(Math.abs(gain))}
                         </td>
@@ -144,7 +144,7 @@ export function TaxScreen() {
                         <td data-label="Tax after date" className="num text-right">
                           {inr(tl)}
                         </td>
-                        <td data-label="You save" className="num text-right text-gain">
+                        <td data-label="You save" className="num text-right text-gain-ink">
                           {inr(tn - tl)}
                         </td>
                       </tr>
@@ -194,8 +194,8 @@ export function TaxScreen() {
                         <tr key={k}>
                           <td>{k}</td>
                           <td className="num text-right">{sales[k].n}</td>
-                          <td className={cn("num text-right", sales[k].st >= 0 ? "text-gain" : "text-loss")}>{d(sales[k].st)}</td>
-                          <td className={cn("num text-right", sales[k].lt >= 0 ? "text-gain" : "text-loss")}>{d(sales[k].lt)}</td>
+                          <td className={cn("num text-right", sales[k].st >= 0 ? "text-gain-ink" : "text-loss-ink")}>{d(sales[k].st)}</td>
+                          <td className={cn("num text-right", sales[k].lt >= 0 ? "text-gain-ink" : "text-loss-ink")}>{d(sales[k].lt)}</td>
                         </tr>
                       ))}
                   </tbody>

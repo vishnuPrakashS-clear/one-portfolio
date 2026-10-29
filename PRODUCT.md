@@ -28,7 +28,7 @@ It is built from the user's own statements (CDSL/NSDL CAS, Groww, Zerodha, Wint 
 
 ## Capabilities and Constraints
 
-- Screens: Home (the solar system, total, growth over 12 months, goal check, game layer), Mutual funds, Stocks, Bonds and Abroad (each with worth vs. put in over 12 months, the monthly SIP read from purchases, and a 5–20 year projection as a cautious / likely / strong range), Goals (tap-only goal check: will the current SIP get there, and what extra a month would), Plan, Tax, Checklist, Ask (AI helper), Upload.
+- Screens: Home (3D dashboard, total, growth over 12 months, goal check, game layer), Mutual funds, Stocks, Bonds and Abroad (each with worth vs. put in over 12 months, the monthly SIP read from purchases, and a 5–20 year projection as a cautious / likely / strong range), Goals (tap-only goal check: will the current SIP get there, and what extra a month would), Plan, Tax, Checklist, Ask (AI helper), Upload.
 - Per-holding detail sheet: every purchase lot, returns, tax, bond maturity and payouts.
 - A game layer that stays a main feature: levels, XP, quests, badges and streaks that reward investing steadily and following the plan.
 - Accounts: email and password sign-up for anyone with the link (capped at 100), optional PIN lock, sign out, delete all my data. Data is private per account.
@@ -38,7 +38,7 @@ It is built from the user's own statements (CDSL/NSDL CAS, Groww, Zerodha, Wint 
 ## Brand Commitments
 
 - Name: One Portfolio.
-- The user asked for a vibrant 3D interface: the portfolio is a solar system (sun = total, planets = categories, moons = holdings) behind every screen.
+- The user asked for a vibrant 3D interface: a dark dashboard with a lime gradient, and a WebGL scene of its own at the top of every screen, built from the user's numbers.
 - The game layer (levels, XP, quests, badges, streaks) stays fully.
 
 ## Evidence on Hand
@@ -56,4 +56,4 @@ It is built from the user's own statements (CDSL/NSDL CAS, Groww, Zerodha, Wint 
 
 ## Accessibility & Inclusion
 
-Works one-handed on a phone; every control reachable by keyboard; text on dark glass keeps strong contrast over the 3D scene; gains and losses never rely on colour alone; motion respects reduced-motion settings; a static sky replaces the scene when WebGL isn't available.
+Works one-handed on a phone; every control reachable by keyboard; text on solid dark cards keeps strong contrast; gains and losses never rely on colour alone; motion respects reduced-motion settings; a static sky replaces the scene when WebGL isn't available.

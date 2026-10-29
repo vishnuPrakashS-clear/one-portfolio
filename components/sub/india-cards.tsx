@@ -10,10 +10,14 @@ import { cn } from "@/lib/utils";
 
 function Fact({ k, v, s, tone }: { k: string; v: string; s: string; tone?: "pos" | "neg" | "" }) {
   return (
-    <div className="grid content-start gap-1 rounded-[14px] bg-white/5 px-4 py-3.5">
+    <div className="grid content-start gap-1 rounded-[14px] bg-tint px-4 py-3.5">
       <small className="text-[13px] text-muted">{k}</small>
       <b
-        className={cn("num font-display text-[20px] leading-tight font-bold", tone === "pos" && "text-gain", tone === "neg" && "text-loss")}
+        className={cn(
+          "num font-display text-[20px] leading-tight font-bold",
+          tone === "pos" && "text-gain-ink",
+          tone === "neg" && "text-loss-ink",
+        )}
       >
         {v}
       </b>
@@ -23,7 +27,7 @@ function Fact({ k, v, s, tone }: { k: string; v: string; s: string; tone?: "pos"
 }
 function Tip({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex max-w-none items-start gap-2.5 rounded-[14px] bg-[rgb(94_234_212/0.12)] px-3.5 py-3 text-[14px]">
+    <p className="flex max-w-none items-start gap-2.5 rounded-[14px] bg-[rgb(94_234_212/0.1)] px-3.5 py-3 text-[14px]">
       <Icon name="bulb" className="mt-0.5 size-[18px] text-[#5eead4]" />
       <span>{children}</span>
     </p>
@@ -70,7 +74,7 @@ export function BondCard({ H, I }: { H: IndHolding[]; I: IndiaState }) {
             <span className="num text-[11px] leading-none font-semibold whitespace-nowrap text-muted max-sm:invisible">
               {m.int + m.prin ? k(m.int + m.prin) : ""}
             </span>
-            <div className="flex h-[120px] w-full max-w-[34px] flex-col-reverse overflow-hidden rounded-t-lg rounded-b bg-white/7 max-sm:h-24">
+            <div className="flex h-[120px] w-full max-w-[34px] flex-col-reverse overflow-hidden rounded-t-lg rounded-b bg-tint max-sm:h-24">
               <i className="block w-full bg-bonds" style={{ height: `${(100 * m.prin) / mx}%` }} />
               <i className="block w-full bg-stocks" style={{ height: `${Math.max(m.int ? 3 : 0, (100 * m.int) / mx)}%` }} />
             </div>
@@ -178,7 +182,7 @@ export function IndiaTaxCard({ H, I }: { H: IndHolding[]; I: IndiaState }) {
                 <span className="size-2.5 rounded-[3px] bg-stocks" />
                 <b className="truncate font-medium">{u.name}</b>
                 <span className="num">{fmtDate(u.from)}</span>
-                <em className={cn("num text-right not-italic", u.g != null && u.g < 0 ? "text-loss" : "text-muted")}>
+                <em className={cn("num text-right not-italic", u.g != null && u.g < 0 ? "text-loss-ink" : "text-muted")}>
                   {u.g != null ? `${sgn(u.g)}${inr(Math.abs(u.g))}` : ""}
                 </em>
               </li>

@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 function Section({ title, children, right }: { title?: string; children: ReactNode; right?: ReactNode }) {
   return (
-    <section className="grid gap-3 rounded-[20px] bg-white/[0.045] p-[18px] shadow-[inset_0_0_0_1px_rgb(255_255_255/0.07)]">
+    <section className="grid gap-3 rounded-[20px] bg-card p-[18px] shadow-[inset_0_0_0_1px_var(--color-line)]">
       {title && (
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="font-display text-[16px] font-semibold">{title}</h3>
@@ -30,7 +30,7 @@ function Section({ title, children, right }: { title?: string; children: ReactNo
 }
 function DL({ rows }: { rows: [ReactNode, ReactNode, string?][] }) {
   return (
-    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 border-t border-white/7 pt-3">
+    <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2.5 border-t border-rule pt-3">
       {rows.map(([k, v, cls], i) => (
         <div key={i} className="contents">
           <dt className="text-[14px] whitespace-nowrap text-muted">{k}</dt>
@@ -122,7 +122,7 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
             [
               "Unrealised returns",
               g != null ? `${sgn(g)}${inr2(Math.abs(g))} (${pctf(h.cost ? g / h.cost : 0)})` : "—",
-              g != null ? (g >= 0 ? "text-gain" : "text-loss") : "",
+              g != null ? (g >= 0 ? "text-gain-ink" : "text-loss-ink") : "",
             ],
             [
               h.type === "mf" ? "NAV" : "Market price",
@@ -147,7 +147,7 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
                     ) : (
                       <Sub>needs purchase dates</Sub>
                     ),
-                    xr != null ? (xr >= 0 ? "text-gain" : "text-loss") : "",
+                    xr != null ? (xr >= 0 ? "text-gain-ink" : "text-loss-ink") : "",
                   ] as [ReactNode, ReactNode, string],
                 ]
               : []),
@@ -161,7 +161,7 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
                         {h.divs.length} payout{h.divs.length === 1 ? "" : "s"} · last {fmtDate(h.divs[h.divs.length - 1].d)}
                       </Sub>
                     </>,
-                    "text-gain",
+                    "text-gain-ink",
                   ] as [ReactNode, ReactNode, string],
                 ]
               : []),
@@ -242,7 +242,7 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
                     after {inr(h.bond?.tds || 0)} TDS · gross {inr(h.bond?.intG || 0)}
                   </Sub>
                 </>,
-                "text-gain",
+                "text-gain-ink",
               ],
               ...(F.fut[0]
                 ? [
@@ -302,18 +302,18 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
       <Section title="Tax if you sell today">
         {h.type !== "bond" && rule.months && lots.length > 0 && (
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-[14px] bg-white/5 px-3.5 py-3">
+            <div className="rounded-[14px] bg-tint px-3.5 py-3">
               <small className="block text-[13px] text-muted">Long-term units</small>
               <b className="num font-display text-[18px]">{qty(t.lt)}</b>
-              <Sub className={tone(ltG) === "pos" ? "text-gain" : tone(ltG) === "neg" ? "text-loss" : ""}>
+              <Sub className={tone(ltG) === "pos" ? "text-gain-ink" : tone(ltG) === "neg" ? "text-loss-ink" : ""}>
                 gain {sgn(ltG)}
                 {inr(Math.abs(ltG))} · 12.5%
               </Sub>
             </div>
-            <div className="rounded-[14px] bg-white/5 px-3.5 py-3">
+            <div className="rounded-[14px] bg-tint px-3.5 py-3">
               <small className="block text-[13px] text-muted">Short-term units</small>
               <b className="num font-display text-[18px]">{qty(t.st)}</b>
-              <Sub className={tone(stG) === "pos" ? "text-gain" : tone(stG) === "neg" ? "text-loss" : ""}>
+              <Sub className={tone(stG) === "pos" ? "text-gain-ink" : tone(stG) === "neg" ? "text-loss-ink" : ""}>
                 gain {sgn(stG)}
                 {inr(Math.abs(stG))} · {stRate(rule)}
               </Sub>
@@ -340,7 +340,7 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
             {lots.map((l, i) => {
               const lg = l.p != null ? (px - l.p) * l.q : null;
               return (
-                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2.5 border-t border-white/7 py-3 first:border-0">
+                <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2.5 border-t border-rule py-3 first:border-0">
                   <div className="grid content-start gap-1">
                     <b>
                       {qty(l.q)} {h.type === "mf" ? "units" : "qty"}
@@ -381,7 +381,7 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
                     <b className="num">{l.p != null ? inr2(l.p) : "—"}</b>
                     <Sub>{l.p != null ? `(${inr2(l.p * l.q)})` : ""}</Sub>
                     {lg != null && h.type !== "bond" && (
-                      <Sub className={lg >= 0 ? "text-gain" : "text-loss"}>
+                      <Sub className={lg >= 0 ? "text-gain-ink" : "text-loss-ink"}>
                         {sgn(lg)}
                         {inr(Math.abs(lg))}
                       </Sub>
@@ -413,7 +413,7 @@ function AbroadDetail({ S, sym }: { S: Portfolio; sym: string }) {
       <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
         <div
           className="grid size-12 place-items-center rounded-[14px] font-display text-[14px] font-extrabold text-on-act"
-          style={{ background: `linear-gradient(135deg, ${CATEGORIES.abroad.hex}, #a78bfa)` }}
+          style={{ background: `linear-gradient(135deg, ${CATEGORIES.abroad.hex}, #7c3aed)` }}
           aria-hidden
         >
           {tk(r.sym).slice(0, 4)}
@@ -440,7 +440,7 @@ function AbroadDetail({ S, sym }: { S: Portfolio; sym: string }) {
         </div>
         <DL
           rows={[
-            ["Gain", `${sgn(r.gain)}${d(Math.abs(r.gain))} (${pctf(r.pct)})`, r.gain >= 0 ? "text-gain" : "text-loss"],
+            ["Gain", `${sgn(r.gain)}${d(Math.abs(r.gain))} (${pctf(r.pct)})`, r.gain >= 0 ? "text-gain-ink" : "text-loss-ink"],
             [
               "Price",
               <>
@@ -464,7 +464,7 @@ function AbroadDetail({ S, sym }: { S: Portfolio; sym: string }) {
       <Section title="Each purchase">
         <ul className="grid">
           {r.lots.map((l, i) => (
-            <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2.5 border-t border-white/7 py-3 first:border-0">
+            <li key={i} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2.5 border-t border-rule py-3 first:border-0">
               <div className="grid gap-1">
                 <b>{l.q.toFixed(4)} units</b>
                 <Sub>
@@ -484,7 +484,7 @@ function AbroadDetail({ S, sym }: { S: Portfolio; sym: string }) {
               </div>
               <div className="grid content-start justify-items-end">
                 <b className="num">{d(l.p)}</b>
-                <Sub className={r.price - l.p >= 0 ? "text-gain" : "text-loss"}>
+                <Sub className={r.price - l.p >= 0 ? "text-gain-ink" : "text-loss-ink"}>
                   {sgn(r.price - l.p)}
                   {d(Math.abs((r.price - l.p) * l.q))}
                 </Sub>
@@ -501,7 +501,7 @@ function AbroadDetail({ S, sym }: { S: Portfolio; sym: string }) {
   );
 }
 
-/** the details sheet for one holding, opened from any list, moon or chart */
+/** the details sheet for one holding, opened from any list or chart */
 export function HoldingSheet() {
   const { S, model } = usePortfolio(),
     { picked, closeItem } = useUi();
@@ -524,9 +524,9 @@ export function HoldingSheet() {
         if (e.target === ref.current) closeItem();
       }}
       aria-label="Holding details"
-      className="m-auto max-h-[min(92vh,980px)] w-full max-w-[min(640px,calc(100vw-24px))] overflow-auto overscroll-contain rounded-[22px] bg-[#0d0822] p-0 text-ink shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12),0_40px_100px_-20px_#000] max-sm:m-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:max-w-none max-sm:rounded-none"
+      className="m-auto max-h-[min(92vh,980px)] w-full max-w-[min(640px,calc(100vw-24px))] overflow-auto overscroll-contain rounded-[22px] bg-page p-0 text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_40px_100px_-30px_rgb(0_0_0/0.7)] max-sm:m-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:max-w-none max-sm:rounded-none"
     >
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/12 bg-[#0d0822] px-4 py-3.5">
+      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-card px-4 py-3.5">
         <button type="button" className="btn min-w-10 px-3" onClick={closeItem} aria-label="Close">
           <Icon name="back" />
         </button>

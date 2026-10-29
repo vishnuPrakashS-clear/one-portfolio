@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
-/* One Portfolio: your money as a solar system. Deep-space background with drifting stars; content on dark glass so it always
-   reads. One colour per category, used the same way on planets, tabs, charts and dots. Gains green, losses red.
-   Sora for figures and headings, Inter for everything you read. Content max 1200px. */
+/* One Portfolio: dark, clean pages with a neon lime gradient and 3D dashboard illustrations, in the style of modern
+   gradient UI/UX landing pages. Charcoal page, slightly lighter solid cards (no blur, so scrolling stays smooth), light text
+   for easy reading. One colour per category, used the same way on tabs, charts and dots. Gains green, losses red, always
+   with a sign. Sora for figures and headings, Inter for everything you read. Content max 1200px. */
 
 @font-face {
   font-family: "Inter";
@@ -34,45 +35,59 @@
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --font-display: "Sora", "Inter", "Segoe UI", system-ui, sans-serif;
 
-  --color-space: #030014;
-  --color-deep: #0a0620;
-  --color-surface: #120c2c;
-  --color-raised: #1d1544;
-  --color-ink: #f6f4ff;
-  --color-body: #d9d3f2;
-  --color-muted: #a99fd0;
-  --color-line: rgb(255 255 255 / 0.12);
-  --color-rule: rgb(255 255 255 / 0.07);
+  /* surfaces */
+  --color-page: #121513;
+  --color-card: #1b1f1d;
+  --color-tint: #232825;
+  --color-tint-2: #2c322e;
+  --color-line: #2f3531;
+  --color-rule: #262b28;
+  /* text: ink 15:1, body 10:1, muted 5.6:1 on the card colour */
+  --color-ink: #f3f6f1;
+  --color-body: #c8d0c9;
+  --color-muted: #939d95;
 
-  --color-funds: #c084fc;
+  /* brand: the neon lime gradient */
+  --color-lime: #c4f25a;
+  --color-lime-2: #5fe37a;
+  --color-on-lime: #0d1a07;
+
+  /* categories: bright tones that read on the dark cards; the -lite tones are highlights */
+  --color-funds: #a78bfa;
+  --color-funds-lite: #ddd6fe;
   --color-stocks: #22d3ee;
+  --color-stocks-lite: #a5f3fc;
   --color-bonds: #fbbf24;
-  --color-abroad: #fb7185;
-  --color-goal: #34d399;
-  --color-gain: #34d399;
-  --color-gain-ink: #6ee7b7;
+  --color-bonds-lite: #fde68a;
+  --color-abroad: #f472b6;
+  --color-abroad-lite: #fbcfe8;
+  --color-goal: #5fe37a;
+  --color-goal-lite: #c4f25a;
+
+  --color-gain: #4ade80;
+  --color-gain-ink: #86efac;
+  --color-gain-wash: rgb(74 222 128 / 0.13);
   --color-loss: #f87171;
   --color-loss-ink: #fca5a5;
+  --color-loss-wash: rgb(248 113 113 / 0.14);
   --color-warn: #fbbf24;
-  --color-warn-ink: #fde68a;
-  --color-act-a: #22d3ee;
-  --color-act-b: #a78bfa;
-  --color-on-act: #08051a;
+  --color-warn-ink: #fcd34d;
+  --color-warn-wash: rgb(251 191 36 / 0.13);
 
-  --radius-card: 22px;
+  --color-act-a: #c4f25a;
+  --color-act-b: #5fe37a;
+  --color-on-act: #0d1a07;
+
+  --radius-card: 24px;
+  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 18px 40px -24px rgb(0 0 0 / 0.7);
+  --shadow-lift: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 50px -20px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(196 242 90 / 0.35);
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 
-  --animate-twinkle: twinkle 3.2s ease-in-out infinite;
   --animate-float: float 6s ease-in-out infinite;
   --animate-pulse-dot: pulse-dot 2.4s ease-in-out infinite;
-  @keyframes twinkle {
-    50% {
-      opacity: 0.35;
-    }
-  }
   @keyframes float {
     50% {
-      transform: translateY(-8px);
+      transform: translateY(-10px);
     }
   }
   @keyframes pulse-dot {
@@ -85,14 +100,14 @@
 
 @layer base {
   html {
-    background: var(--color-space);
+    background: var(--color-page);
     color-scheme: dark;
     -webkit-text-size-adjust: 100%;
-    scrollbar-color: rgb(255 255 255 / 0.2) transparent;
+    scrollbar-color: #3a413c transparent;
   }
   body {
     min-height: 100vh;
-    background: transparent;
+    background: var(--color-page);
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 15px;
@@ -106,8 +121,8 @@
     text-wrap: balance;
   }
   ::selection {
-    background: #a78bfa;
-    color: #08051a;
+    background: var(--color-lime);
+    color: var(--color-on-lime);
   }
   :focus-visible {
     outline: 2px solid var(--color-act-a);
@@ -148,43 +163,41 @@
   }
 }
 
-/* dark glass over the stars: the one surface for cards and panels */
-@utility glass {
-  background: rgb(14 9 34 / 0.72);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
-  backdrop-filter: blur(16px) saturate(140%);
+/* the one surface for cards and panels: solid white, a hairline and a soft shadow (no backdrop blur) */
+@utility surface {
+  background: var(--color-card);
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.1),
-    0 24px 60px -30px rgb(0 0 0 / 0.8);
+    inset 0 0 0 1px var(--color-line),
+    var(--shadow-card);
 }
 
 @layer components {
   .card {
-    @apply grid min-w-0 content-start gap-4 rounded-[var(--radius-card)] p-6 glass max-sm:rounded-[18px] max-sm:p-[18px];
+    @apply grid min-w-0 content-start gap-4 rounded-[var(--radius-card)] p-6 surface max-sm:rounded-[20px] max-sm:p-[18px];
   }
   .btn {
-    @apply inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-white/8 px-[18px] py-2 text-[14.5px] font-semibold text-ink no-underline shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)] transition hover:bg-white/14 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-card px-[18px] py-2 text-[14.5px] font-semibold text-ink no-underline shadow-[inset_0_0_0_1px_var(--color-line)] transition hover:bg-tint active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply bg-gradient-to-br from-act-a to-act-b text-on-act shadow-[0_0_24px_-8px_var(--color-act-a)] hover:bg-transparent hover:brightness-110;
+    @apply bg-gradient-to-r from-act-a to-act-b text-on-act shadow-[0_10px_24px_-10px_rgb(95_227_122/0.7)] hover:bg-transparent hover:brightness-110;
   }
   .btn-danger {
-    @apply bg-loss/15 text-loss-ink shadow-[inset_0_0_0_1px_rgb(248_113_113/0.4)];
+    @apply bg-loss-wash text-loss-ink shadow-[inset_0_0_0_1px_rgb(248_113_113/0.35)] hover:bg-loss-wash hover:brightness-110;
   }
   .chip {
-    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full bg-white/8 px-2.5 py-1.5 text-[12.5px] leading-none font-semibold whitespace-nowrap text-body;
+    @apply inline-flex shrink-0 items-center gap-1.5 rounded-full bg-tint px-2.5 py-1.5 text-[12.5px] leading-none font-semibold whitespace-nowrap text-body;
   }
   .chip-good {
-    @apply bg-gain/15 text-gain-ink;
+    @apply bg-gain-wash text-gain-ink;
   }
   .chip-wait {
-    @apply bg-warn/15 text-warn-ink;
+    @apply bg-warn-wash text-warn-ink;
   }
   .chip-act {
-    @apply bg-loss/15 text-loss-ink;
+    @apply bg-loss-wash text-loss-ink;
   }
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full bg-[rgb(8_5_24/0.66)] px-3.5 py-2 text-[13.5px] leading-tight font-semibold text-body tabular-nums shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)] backdrop-blur-sm;
+    @apply inline-flex items-center gap-1.5 rounded-full bg-card px-3.5 py-2 text-[13.5px] leading-tight font-semibold text-body tabular-nums shadow-[inset_0_0_0_1px_var(--color-line)];
   }
   .note {
     @apply text-[13.5px] leading-normal text-muted;
@@ -196,10 +209,14 @@
     font-variant-numeric: tabular-nums;
   }
   .gradient-text {
-    @apply bg-gradient-to-r from-funds via-stocks to-bonds bg-clip-text text-transparent;
+    @apply bg-gradient-to-r from-lime to-lime-2 bg-clip-text text-transparent;
   }
   .field-input {
-    @apply min-h-11 w-full rounded-xl border border-white/24 bg-white/6 px-3.5 py-2.5 text-ink placeholder:text-muted focus-visible:border-transparent;
+    @apply min-h-11 w-full rounded-xl border border-line bg-card px-3.5 py-2.5 text-ink placeholder:text-muted focus-visible:border-transparent;
+  }
+  /* a soft inner panel inside a card */
+  .well {
+    @apply rounded-2xl bg-tint;
   }
 }
 
@@ -246,7 +263,7 @@
   touch-action: pan-y;
 }
 .chart .grid {
-  stroke: rgb(255 255 255 / 0.07);
+  stroke: var(--color-rule);
 }
 .chart .axis {
   font: 500 11.5px var(--font-sans);
@@ -254,7 +271,7 @@
   font-variant-numeric: tabular-nums;
 }
 .chart .inv {
-  stroke: rgb(255 255 255 / 0.75);
+  stroke: rgb(243 246 241 / 0.6);
   stroke-width: 1.6;
   stroke-dasharray: 5 5;
   fill: none;
@@ -264,7 +281,7 @@
   cursor: crosshair;
 }
 .chart .cursor {
-  stroke: rgb(255 255 255 / 0.4);
+  stroke: rgb(243 246 241 / 0.3);
 }
 @media (max-width: 640px) {
   .chart .axis {
@@ -312,8 +329,8 @@
   border-radius: 50%;
   background: #fff;
   box-shadow:
-    0 0 0 4px rgb(255 255 255 / 0.18),
-    0 0 14px #fff;
+    0 0 0 4px rgb(196 242 90 / 0.25),
+    0 4px 10px rgb(0 0 0 / 0.5);
 }
 .replay-range::-moz-range-thumb {
   width: 20px;
@@ -322,33 +339,10 @@
   border-radius: 50%;
   background: #fff;
   box-shadow:
-    0 0 0 4px rgb(255 255 255 / 0.18),
-    0 0 14px #fff;
-}
-
-/* the welcome badge with a moving border, as in the reference portfolio */
-.welcome-box {
-  isolation: isolate;
-  overflow: hidden;
-  align-items: center;
-  backdrop-filter: blur(6px);
-  cursor: default;
-  display: inline-flex;
-  border-radius: 999px;
-  box-shadow: inset 0 -7px 11px #a48fff1f;
-}
-.welcome-text {
-  background:
-    linear-gradient(0deg, rgb(255 255 255 / 0.4), rgb(255 255 255 / 0.4)),
-    linear-gradient(90.01deg, #e59cff 0.01%, #ba9cff 50.01%, #9cb2ff 100%);
-  background-blend-mode: normal, screen;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+    0 0 0 4px rgb(196 242 90 / 0.25),
+    0 4px 10px rgb(0 0 0 / 0.5);
 }
 
 dialog::backdrop {
-  background: rgb(4 2 10 / 0.72);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  background: rgb(5 7 6 / 0.72);
 }

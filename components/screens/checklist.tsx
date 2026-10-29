@@ -25,7 +25,7 @@ export function ChecklistScreen() {
   const done = (id: string) => !!(auto[id] || mine[id]);
   return (
     <>
-      <Hero badge="Yearly checklist" title="The jobs that save tax each year" big={false} compact>
+      <Hero badge="Yearly checklist" title="The jobs that save tax each year" big={false} art="checklist">
         <p className="max-w-[60ch] text-[16.5px] text-body">Ticks fill themselves in where your uploads prove a job is done.</p>
       </Hero>
       <Card>
@@ -55,7 +55,7 @@ export function ChecklistScreen() {
                 key={n}
                 className={cn(
                   "rounded-[10px] px-1 py-2 text-center text-[12px] leading-none font-semibold",
-                  months.has(i) ? "bg-gain/15 text-gain-ink" : "text-muted shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)]",
+                  months.has(i) ? "bg-gain/15 text-gain-ink" : "text-muted shadow-[inset_0_0_0_1px_var(--color-line)]",
                 )}
               >
                 {n}
@@ -67,7 +67,7 @@ export function ChecklistScreen() {
           {[...new Set(CHECKLIST.map((c) => c.m))].map((m) => (
             <div
               key={m}
-              className="grid grid-cols-[96px_1fr] items-start gap-3.5 border-b border-white/7 py-3.5 last:border-0 max-sm:grid-cols-1 max-sm:gap-1.5"
+              className="grid grid-cols-[96px_1fr] items-start gap-3.5 border-b border-rule py-3.5 last:border-0 max-sm:grid-cols-1 max-sm:gap-1.5"
             >
               <div className="font-display text-[17px] font-extrabold">{MN[m]}</div>
               <div className="grid gap-2.5">

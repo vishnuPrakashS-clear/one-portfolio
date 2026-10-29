@@ -108,7 +108,7 @@ export function achievements(S: Portfolio | null, M: Model, today: ISODate = TOD
     },
     {
       k: "pick",
-      name: "Four planets",
+      name: "All four kinds",
       got: (["funds", "stocks", "bonds", "abroad"] as const).every((c) => M.cats[c].value > 0),
       how: "Own mutual funds, stocks, bonds and something abroad",
     },

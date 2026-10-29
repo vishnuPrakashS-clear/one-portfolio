@@ -66,7 +66,7 @@ function AbroadTable() {
               type="button"
               aria-pressed={f === k}
               onClick={() => setF(k)}
-              className={cn("btn min-h-9 px-3.5 text-[13.5px]", f === k && "bg-ink text-space hover:bg-ink")}
+              className={cn("btn min-h-9 px-3.5 text-[13.5px]", f === k && "bg-lime text-on-lime hover:bg-lime")}
             >
               {l}
               <b className="num opacity-70">{cnt[k]}</b>
@@ -89,7 +89,7 @@ function AbroadTable() {
             {rows
               .filter((r) => f === "all" || fk(r) === f)
               .map((r) => (
-                <tr key={r.sym} className="cursor-pointer hover:bg-white/5" onClick={() => openItem("abroad", r.sym)}>
+                <tr key={r.sym} className="cursor-pointer hover:bg-tint" onClick={() => openItem("abroad", r.sym)}>
                   <td className="stack-full">
                     <b className="font-semibold">{tk(r.sym)}</b>
                     <span className="block max-w-[30ch] text-[12.5px] text-muted max-sm:max-w-none">
@@ -103,7 +103,7 @@ function AbroadTable() {
                   <td data-label="Value" className="num text-right">
                     {d(r.value)}
                   </td>
-                  <td data-label="Gain" className={cn("num text-right", r.gain >= 0 ? "text-gain" : "text-loss")}>
+                  <td data-label="Gain" className={cn("num text-right", r.gain >= 0 ? "text-gain-ink" : "text-loss-ink")}>
                     {sgn(r.gain)}
                     {d(Math.abs(r.gain))}
                     <span className="block text-[12.5px] text-muted">{pctf(r.pct)}</span>
@@ -137,7 +137,7 @@ export function CategoryScreen({ id }: { id: CatId }) {
   if (!c.items.length) {
     return (
       <>
-        <Hero badge={cat.name} color={cat.hex} title={`No ${cat.name.toLowerCase()} yet`} big={false} compact>
+        <Hero badge={cat.name} color={cat.hex} wash={cat.wash} title={`No ${cat.name.toLowerCase()} yet`} big={false} art={id}>
           <p className="max-w-[60ch] text-[16.5px] text-body">{EMPTY[id]}</p>
           <div>
             <Link href="/upload" className="btn btn-primary">
@@ -161,7 +161,8 @@ export function CategoryScreen({ id }: { id: CatId }) {
       <Hero
         badge={`${cat.name} · ${c.items.length} holding${c.items.length === 1 ? "" : "s"}`}
         color={cat.hex}
-        compact
+        wash={cat.wash}
+        art={id}
         title={<CountUp value={c.value} format={m} />}
       >
         <div className="flex max-w-[640px] flex-wrap gap-2">
@@ -173,7 +174,7 @@ export function CategoryScreen({ id }: { id: CatId }) {
           )}
           <Pill>{c.sip ? `${m(c.sip)} a month` : "No regular monthly buying found"}</Pill>
           {id === "abroad" && (
-            <Link href="/plan" className="pill text-ink no-underline hover:bg-white/12">
+            <Link href="/plan" className="pill text-ink no-underline hover:bg-tint">
               This month&apos;s buys →
             </Link>
           )}
@@ -250,7 +251,7 @@ export function CategoryScreen({ id }: { id: CatId }) {
         <Card delay={0.05}>
           <CardHead
             title={`Your ${cat.name.toLowerCase()}`}
-            note="Largest first. Each one is a moon of this planet. Tap one for its purchases, returns and tax."
+            note="Largest first; the biggest circle the shape at the top (green above what you paid, red below). Tap one for its purchases, returns and tax."
           />
           <HoldingsList c={c} />
         </Card>

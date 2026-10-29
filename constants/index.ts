@@ -7,10 +7,12 @@ export interface Category {
   id: CatId;
   name: string;
   short: string;
-  /** the category colour on planets, tabs, charts and dots */
+  /** the category colour for tabs, chart lines, dots and coloured text (readable on white) */
   hex: string;
-  /** a second tone for planet bands and gradients */
+  /** the light tone: 3D shapes, fills and gradient highlights */
   hex2: string;
+  /** a faint tint (colour with alpha) for backgrounds behind the category */
+  wash: string;
   types?: IndType[];
   /** yearly return assumptions: cautious, likely, strong */
   rates: [number, number, number];
@@ -23,8 +25,9 @@ export const CATEGORIES: Record<CatId, Category> = {
     id: "funds",
     name: "Mutual funds",
     short: "Funds",
-    hex: "#c084fc",
-    hex2: "#7c3aed",
+    hex: "#a78bfa",
+    hex2: "#ddd6fe",
+    wash: "#a78bfa24",
     types: ["mf"],
     rates: [0.08, 0.11, 0.14],
     route: "/funds",
@@ -35,7 +38,8 @@ export const CATEGORIES: Record<CatId, Category> = {
     name: "Stocks",
     short: "Stocks",
     hex: "#22d3ee",
-    hex2: "#0e7490",
+    hex2: "#a5f3fc",
+    wash: "#22d3ee1f",
     types: ["stock", "etf", "invit"],
     rates: [0.07, 0.12, 0.16],
     route: "/stocks",
@@ -46,7 +50,8 @@ export const CATEGORIES: Record<CatId, Category> = {
     name: "Bonds",
     short: "Bonds",
     hex: "#fbbf24",
-    hex2: "#b45309",
+    hex2: "#fde68a",
+    wash: "#fbbf241f",
     types: ["bond"],
     rates: [0.065, 0.08, 0.095],
     route: "/bonds",
@@ -56,8 +61,9 @@ export const CATEGORIES: Record<CatId, Category> = {
     id: "abroad",
     name: "Abroad",
     short: "Abroad",
-    hex: "#fb7185",
-    hex2: "#be123c",
+    hex: "#f472b6",
+    hex2: "#fbcfe8",
+    wash: "#f472b61f",
     rates: [0.07, 0.11, 0.14],
     route: "/abroad",
     what: "US, Japan and London funds",
@@ -65,7 +71,8 @@ export const CATEGORIES: Record<CatId, Category> = {
 };
 export const CAT_ORDER: CatId[] = ["funds", "stocks", "bonds", "abroad"];
 export const RATE_NAMES = ["Cautious", "Likely", "Strong"] as const;
-export const GOAL_COLOR = "#34d399";
+export const GOAL_COLOR = "#5fe37a";
+export const GOAL_LITE = "#c4f25a";
 
 export interface NavItem {
   href: string;
@@ -95,20 +102,20 @@ export const EXTRA_MONTHLY = [0, 5000, 10000, 25000, 50000];
 export const PROJECTION_YEARS = [5, 10, 15, 20];
 
 export const IND_CLASS_COLOR: Record<string, string> = {
-  Equity: "#c084fc",
+  Equity: "#a78bfa",
   Hybrid: "#f472b6",
-  Debt: "#fbbf24",
-  "Gold & silver": "#facc15",
+  Debt: "#22d3ee",
+  "Gold & silver": "#fbbf24",
   International: "#fb7185",
   Other: "#94a3b8",
 };
 export const BUCKET_COLOR: Record<string, string> = {
-  "US core": "#38bdf8",
+  "US core": "#60a5fa",
   "US tech": "#2dd4bf",
-  Japan: "#fb7185",
+  Japan: "#f472b6",
   Copper: "#fb923c",
   Satellite: "#facc15",
-  Emerging: "#a99fd0",
+  Emerging: "#a78bfa",
 };
 export const TYPE_NAME: Record<string, string> = { stock: "Share", mf: "Mutual fund", etf: "ETF", bond: "Bond / NCD", invit: "InvIT" };
 

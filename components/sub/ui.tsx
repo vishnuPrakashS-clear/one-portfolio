@@ -157,7 +157,10 @@ export function Summary({
           <i className="size-2 rounded-full" style={{ background: color || "var(--color-lime-2)" }} />
           {badge}
         </motion.span>
-        <motion.h1 variants={slideInFromLeft(0.08)} className="num text-[clamp(28px,3.6vw,40px)] leading-none font-semibold tracking-[-0.02em] text-ink">
+        <motion.h1
+          variants={slideInFromLeft(0.08)}
+          className="num text-[clamp(28px,3.6vw,40px)] leading-none font-semibold tracking-[-0.02em] text-ink"
+        >
           {title}
         </motion.h1>
         {items && (

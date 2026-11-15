@@ -35,7 +35,7 @@ export function Modal({
       onClose={onClose}
       onCancel={onClose}
       className={cn(
-        "m-auto w-full max-w-[min(460px,calc(100vw-32px))] rounded-[22px] bg-card px-6 pt-7 pb-5 text-center text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_40px_100px_-30px_rgb(0_0_0/0.7)]",
+        "m-auto w-full max-w-[min(460px,calc(100vw-32px))] rounded-[22px] bg-card px-6 pt-7 pb-5 text-center text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_30px_80px_-30px_rgb(0_0_0/0.35)]",
         className,
       )}
     >
@@ -181,7 +181,7 @@ export function Toasts() {
             initial={{ y: 12, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 8, opacity: 0 }}
-            className="rounded-2xl bg-tint-2 px-[18px] py-3 text-[14.5px] font-semibold text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_18px_30px_-12px_rgb(0_0_0/0.7)]"
+            className="rounded-2xl bg-tint-2 px-[18px] py-3 text-[14.5px] font-semibold text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_12px_30px_-12px_rgb(0_0_0/0.3)]"
           >
             {t.text}
           </motion.div>

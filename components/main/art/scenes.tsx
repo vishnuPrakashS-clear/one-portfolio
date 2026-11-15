@@ -12,6 +12,7 @@ import { Canvas, useFrame } from "@react-three/fiber";
 import { Float, RoundedBox } from "@react-three/drei";
 import { useEffect, useMemo, useRef, type ReactNode } from "react";
 import * as THREE from "three";
+import { ART, setArtTheme, type ArtTheme } from "./palette";
 import {
   drawBubble,
   drawCard,
@@ -94,14 +95,14 @@ function useTex(spec: TexSpec) {
 const MATS = new Map<string, THREE.Material>();
 /** shared materials: dark device bodies, the podium, glossy colours, glowing accents and grid lines */
 function mat(kind: "body" | "podium" | "glossy" | "glow" | "wire" | "paper", color = "#000000"): THREE.Material {
-  const k = kind + color;
+  const k = ART.theme + kind + color;
   let m = MATS.get(k);
   if (!m) {
     m =
       kind === "body"
-        ? new THREE.MeshStandardMaterial({ color: "#0f1311", roughness: 0.38, metalness: 0.35 })
+        ? new THREE.MeshStandardMaterial({ color: ART.body, roughness: 0.38, metalness: ART.theme === "light" ? 0.15 : 0.35 })
         : kind === "podium"
-          ? new THREE.MeshStandardMaterial({ color: "#1d2320", roughness: 0.55, metalness: 0.2 })
+          ? new THREE.MeshStandardMaterial({ color: ART.podium, roughness: 0.55, metalness: 0.2 })
           : kind === "glossy"
             ? new THREE.MeshPhysicalMaterial({ color, roughness: 0.25, metalness: 0.1, clearcoat: 1, clearcoatRoughness: 0.15 })
             : kind === "glow"
@@ -256,7 +257,7 @@ function Bars({ values, label, coin, a }: { values: number[]; label: Label; coin
             material={
               i === n - 1
                 ? mat("glow", a[1])
-                : mat("glossy", "#" + new THREE.Color("#39413c").lerp(new THREE.Color(a[1]), 0.25 + (0.75 * i) / n).getHexString())
+                : mat("glossy", "#" + new THREE.Color(ART.neutral).lerp(new THREE.Color(a[1]), 0.25 + (0.75 * i) / n).getHexString())
             }
           />
         );
@@ -291,7 +292,7 @@ function Line({ values, tiles, a }: { values: number[]; tiles: Label[]; a: Acc }
     <>
       <mesh geometry={geo.tube} material={mat("glow", a[1])} />
       {geo.pts.map((p, i) => (
-        <mesh key={i} position={[p.x, (TOP + p.y) / 2, p.z - 0.05]} material={mat("glossy", "#46514b")}>
+        <mesh key={i} position={[p.x, (TOP + p.y) / 2, p.z - 0.05]} material={mat("glossy", ART.neutral2)}>
           <boxGeometry args={[0.03, p.y - TOP, 0.03]} />
         </mesh>
       ))}
@@ -441,11 +442,11 @@ function Stairs({ progress, label, a, animate }: { progress: number; label: Labe
             radius={0.04}
             smoothness={3}
             position={[-1.95 + i * 0.62, TOP + h / 2, 0.25]}
-            material={i < lit ? mat("glossy", i === lit - 1 ? a[1] : a[0]) : mat("glossy", "#2c3430")}
+            material={i < lit ? mat("glossy", i === lit - 1 ? a[1] : a[0]) : mat("glossy", ART.neutral)}
           />
         );
       })}
-      <mesh position={[-1.95 + (lit - 1) * 0.62, TOP + lit * 0.36 + 0.2, 0.45]} material={mat("glossy", "#f3f6f1")}>
+      <mesh position={[-1.95 + (lit - 1) * 0.62, TOP + lit * 0.36 + 0.2, 0.45]} material={mat("glossy", ART.bright)}>
         <sphereGeometry args={[0.2, 32, 24]} />
       </mesh>
       <mesh position={[fx, top + 0.6, 0.25]} material={mat("glossy", "#e5e7eb")}>
@@ -600,13 +601,13 @@ function Folder({ docs, a }: { docs: { ext: string; name: string; color: string 
   return (
     <>
       <group position={[0, -0.7, 0]}>
-        <RoundedBox args={[3.0, 2.0, 0.1]} radius={0.08} smoothness={3} position={[0, 0, -0.3]} material={mat("glossy", "#2c3430")} />
+        <RoundedBox args={[3.0, 2.0, 0.1]} radius={0.08} smoothness={3} position={[0, 0, -0.3]} material={mat("glossy", ART.neutral)} />
         <RoundedBox
           args={[1.1, 0.3, 0.1]}
           radius={0.06}
           smoothness={3}
           position={[-0.85, 1.05, -0.3]}
-          material={mat("glossy", "#2c3430")}
+          material={mat("glossy", ART.neutral)}
         />
         {docs.slice(0, 3).map((d, i) => (
           <Float key={i} speed={1.5 + i * 0.4} floatIntensity={1.2} rotationIntensity={0.3}>
@@ -664,7 +665,7 @@ function Gauge({ score, parts, label, a, animate }: { score: number | null; part
           </mesh>
         ))}
         <group ref={needle} rotation={[0, 0, Math.PI / 2]}>
-          <mesh position={[0, R * 0.48, 0.12]} material={mat("glossy", "#f3f6f1")}>
+          <mesh position={[0, R * 0.48, 0.12]} material={mat("glossy", ART.bright)}>
             <boxGeometry args={[0.07, R * 0.96, 0.06]} />
           </mesh>
         </group>
@@ -690,7 +691,8 @@ function Gauge({ score, parts, label, a, animate }: { score: number | null; part
   );
 }
 
-export default function Art({ data, animate }: { data: ArtData; animate: boolean }) {
+export default function Art({ data, animate, theme }: { data: ArtData; animate: boolean; theme: ArtTheme }) {
+  setArtTheme(theme); // before any material or texture of this canvas is made (the canvas is keyed by theme)
   const a = data.accent;
   return (
     <Canvas
@@ -699,7 +701,7 @@ export default function Art({ data, animate }: { data: ArtData; animate: boolean
       camera={{ position: [0, 0.1, 7.9], fov: 36 }}
       gl={{ antialias: true, alpha: true, powerPreference: "low-power" }}
     >
-      <ambientLight intensity={0.75} />
+      <ambientLight intensity={theme === "light" ? 1.05 : 0.75} />
       <directionalLight position={[3, 5, 6]} intensity={1.3} />
       <directionalLight position={[-4, 2, 3]} intensity={0.4} />
       <pointLight position={[0, 1, -2.5]} intensity={18} distance={9} color={a[1]} />

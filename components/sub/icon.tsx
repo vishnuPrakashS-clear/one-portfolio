@@ -3,6 +3,40 @@ import { cn } from "@/lib/utils";
 
 const PATHS = {
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" />
+    </>
+  ),
+  moon: <path d="M20 14.5A8 8 0 019.5 4a8 8 0 1010.5 10.5z" />,
+  chevron: <path d="M9 6l6 6-6 6" />,
+  home: <path d="M4 11l8-7 8 7v8.5a1.5 1.5 0 01-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 014 19.5z" />,
+  pie: (
+    <>
+      <path d="M12 3a9 9 0 109 9h-9z" />
+      <path d="M15 3.5A9 9 0 0120.5 9H15z" />
+    </>
+  ),
+  trend: <path d="M3 17l6-6 4 4 8-8M15 7h6v6" />,
+  layers: <path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5" />,
+  world: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18" />
+    </>
+  ),
+  flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
+  pulse: <path d="M3 12h4l3-7 4 14 3-7h4" />,
+  calendar: (
+    <>
+      <rect x="3.5" y="5" width="17" height="15.5" rx="2.5" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </>
+  ),
+  receipt: <path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" />,
+  list: <path d="M9 6h11M9 12h11M9 18h11M4.5 6l.8.8L7 5M4.5 12l.8.8L7 11M4.5 18l.8.8L7 17" />,
+  chat: <path d="M4 5h16v11H9l-5 4z" />,
   lock: (
     <>
       <rect x="5" y="10.5" width="14" height="10" rx="3" />

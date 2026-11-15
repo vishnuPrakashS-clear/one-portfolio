@@ -42,7 +42,7 @@ export function CardHead({ title, note, right }: { title: ReactNode; note?: Reac
   return (
     <div className="flex flex-wrap items-start justify-between gap-3">
       <div className="grid gap-1">
-        <h2 className="flex items-center gap-2.5 font-display text-[19px] leading-tight font-semibold tracking-[-0.01em]">{title}</h2>
+        <h2 className="flex items-center gap-2.5 text-[18px] leading-tight font-semibold tracking-[-0.01em]">{title}</h2>
         {note && <p className="note max-w-[70ch]">{note}</p>}
       </div>
       {right}
@@ -50,8 +50,8 @@ export function CardHead({ title, note, right }: { title: ReactNode; note?: Reac
   );
 }
 
-/** the page opening: a soft tinted panel with the badge, the big figure or title and a lead line on the left,
-    and a glossy 3D illustration (or an aside such as the goal meter) on the right */
+/** the page opening, broker-style: a plain card with a small label, the big figure or title, the key numbers under it,
+    and the screen's 3D scene on the right (above on phones) */
 export function Hero({
   badge,
   color,
@@ -79,53 +79,102 @@ export function Hero({
     <motion.section
       initial="hidden"
       animate="visible"
-      className="relative isolate grid items-center gap-x-6 gap-y-4 overflow-hidden rounded-[32px] px-9 py-9 surface max-sm:rounded-[24px] max-sm:px-5 max-sm:py-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,540px)]"
-      style={{ backgroundImage: `radial-gradient(90% 120% at 100% 30%, ${wash || "#c4f25a1a"}, transparent 62%)` }}
+      className="relative isolate grid items-center gap-x-8 gap-y-3 overflow-hidden rounded-[var(--radius-card)] px-8 py-7 surface max-sm:rounded-[14px] max-sm:px-4 max-sm:py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)]"
+      style={{
+        backgroundImage: `radial-gradient(85% 120% at 100% 30%, ${wash && wash !== "transparent" ? wash : "color-mix(in srgb, var(--color-lime-2) 9%, transparent)"}, transparent 62%)`,
+      }}
     >
-      <div className="grid content-center gap-4 max-lg:order-2">
-        <motion.span
-          variants={slideInFromTop}
-          className="inline-flex w-fit items-center gap-2 rounded-full bg-card px-3 py-1.5 text-[13px] font-semibold text-body shadow-[inset_0_0_0_1px_var(--color-line)]"
-        >
-          <i className="size-2 rounded-full" style={{ background: color || "var(--color-act-a)" }} />
+      <div className="grid min-w-0 content-center gap-3.5 max-lg:order-2">
+        <motion.span variants={slideInFromTop} className="inline-flex w-fit items-center gap-2 text-[13.5px] font-medium text-muted">
+          <i className="size-2 rounded-full" style={{ background: color || "var(--color-lime-2)" }} />
           {badge}
         </motion.span>
         <motion.h1
-          variants={slideInFromLeft(0.15)}
+          variants={slideInFromLeft(0.1)}
           className={cn(
-            "font-display font-bold text-ink",
+            "font-semibold text-ink",
             big
-              ? "num text-[clamp(40px,6.4vw,76px)] leading-[0.98] tracking-[-0.04em]"
-              : "text-[clamp(30px,4.4vw,52px)] leading-[1.06] tracking-[-0.03em]",
+              ? "num text-[clamp(38px,5.6vw,64px)] leading-[0.98] tracking-[-0.03em]"
+              : "text-[clamp(26px,3.6vw,42px)] leading-[1.1] tracking-[-0.02em]",
           )}
         >
           {title}
         </motion.h1>
         {children && (
-          <motion.div variants={slideInFromLeft(0.3)} className="grid gap-4">
+          <motion.div variants={slideInFromLeft(0.2)} className="grid gap-4">
             {children}
           </motion.div>
         )}
-        {/* with both, the aside (e.g. the goal chips) sits under the text and the 3D scene keeps the right column */}
         {aside && art && (
-          <motion.div variants={slideInFromLeft(0.4)} className="mt-1">
+          <motion.div variants={slideInFromLeft(0.3)} className="mt-1">
             {aside}
           </motion.div>
         )}
       </div>
       {art ? (
         <motion.div
-          variants={slideInFromRight(0.2)}
-          className="mx-auto w-full max-w-[560px] max-lg:order-1 max-lg:max-w-[460px] max-sm:-mx-2 max-sm:-my-2 max-sm:max-w-none"
+          variants={slideInFromRight(0.15)}
+          className="mx-auto w-full max-w-[580px] max-lg:order-1 max-lg:max-w-[460px] max-sm:-my-2 max-sm:max-w-[360px]"
         >
           <HeroArt kind={art} extra={artExtra} />
         </motion.div>
       ) : aside ? (
-        <motion.div variants={slideInFromRight(0.35)} className="max-lg:order-3">
+        <motion.div variants={slideInFromRight(0.25)} className="max-lg:order-3">
           {aside}
         </motion.div>
       ) : null}
     </motion.section>
+  );
+}
+
+/** the key numbers under a hero figure, like a broker's holdings summary: label over value, a hairline between */
+export function SummaryRow({ items }: { items: { k: string; v: ReactNode; s?: ReactNode; tone?: "pos" | "neg" | "" }[] }) {
+  return (
+    <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-line shadow-[inset_0_0_0_1px_var(--color-line)] sm:grid-cols-4">
+      {items.map((x) => (
+        <div key={x.k} className="grid content-start gap-0.5 bg-card px-4 py-3">
+          <dt className="text-[12.5px] text-muted">{x.k}</dt>
+          <dd
+            className={cn(
+              "num text-[17px] leading-tight font-semibold whitespace-nowrap text-ink",
+              x.tone === "pos" && "text-gain-ink",
+              x.tone === "neg" && "text-loss-ink",
+            )}
+          >
+            {x.v}
+          </dd>
+          {x.s && <dd className="text-[12px] text-muted">{x.s}</dd>}
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+/** one bar split by share, with a legend under it */
+export function SplitBar({ parts }: { parts: { name: string; value: number; color: string }[] }) {
+  const t = parts.reduce((a, p) => a + p.value, 0) || 1;
+  const shown = parts.filter((p) => p.value > 0);
+  return (
+    <div className="grid gap-2.5">
+      <div
+        className="flex h-2.5 gap-[2px] overflow-hidden rounded-full"
+        role="img"
+        aria-label={shown.map((p) => `${p.name} ${Math.round((100 * p.value) / t)}%`).join(", ")}
+      >
+        {shown.map((p) => (
+          <i key={p.name} className="block h-full" style={{ width: `${(100 * p.value) / t}%`, background: p.color }} />
+        ))}
+      </div>
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+        {shown.map((p) => (
+          <li key={p.name} className="inline-flex items-center gap-1.5">
+            <i className="size-2 rounded-full" style={{ background: p.color }} aria-hidden />
+            <span className="text-body">{p.name}</span>
+            <b className="num font-semibold text-ink">{Math.round((100 * p.value) / t)}%</b>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -181,7 +230,7 @@ export function Stat({ k, v, s, tone }: { k: string; v: ReactNode; s?: ReactNode
       <span className="text-[12.5px] text-muted">{k}</span>
       <b
         className={cn(
-          "num font-display text-[22px] leading-tight font-bold tracking-[-0.015em] whitespace-nowrap",
+          "num text-[19px] leading-tight font-semibold tracking-[-0.01em] whitespace-nowrap",
           tone === "pos" && "text-gain-ink",
           tone === "neg" && "text-loss-ink",
         )}
@@ -194,7 +243,9 @@ export function Stat({ k, v, s, tone }: { k: string; v: ReactNode; s?: ReactNode
 }
 export function StatGrid({ children, cols = 4 }: { children: ReactNode; cols?: 2 | 4 }) {
   return (
-    <div className={cn("grid overflow-hidden rounded-[20px] surface", cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2")}>
+    <div
+      className={cn("grid overflow-hidden rounded-[var(--radius-card)] surface", cols === 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2")}
+    >
       {children}
     </div>
   );
@@ -213,7 +264,7 @@ export function GainPill({ gain, pct, base, s }: { gain: number | null; pct: num
 export function Empty({ title, children, action }: { title: string; children: ReactNode; action?: ReactNode }) {
   return (
     <Card className="gap-3.5 p-8">
-      <h2 className="font-display text-[22px] font-semibold">{title}</h2>
+      <h2 className="text-[20px] font-semibold">{title}</h2>
       <div className="lead text-body">{children}</div>
       {action}
     </Card>

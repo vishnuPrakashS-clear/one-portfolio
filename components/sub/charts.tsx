@@ -121,7 +121,7 @@ function Tip({
   const left = `clamp(70px, ${(100 * f.X(sel)) / f.W}%, calc(100% - 70px))`;
   return (
     <div
-      className="pointer-events-none absolute top-1.5 z-10 grid -translate-x-1/2 gap-1 rounded-xl bg-card px-3 py-2.5 text-[12.5px] whitespace-nowrap shadow-[inset_0_0_0_1px_var(--color-line),0_14px_30px_-12px_rgb(0_0_0/0.7)]"
+      className="pointer-events-none absolute top-1.5 z-10 grid -translate-x-1/2 gap-1 rounded-xl bg-card px-3 py-2.5 text-[12.5px] whitespace-nowrap shadow-[inset_0_0_0_1px_var(--color-line),0_10px_24px_-12px_rgb(0_0_0/0.3)]"
       style={{ left }}
     >
       <b className="mb-0.5 text-[12px] font-medium text-muted">{monthLong(month)}</b>
@@ -348,16 +348,46 @@ export function GoalChart({
           fill={`url(#${uid}b)`}
         />
         <path d={path(put, X, Y)} className="inv" />
-        <path d={path(series[1], X, Y)} fill="none" stroke="#5fe37a" strokeWidth={3} />
+        <path d={path(series[1], X, Y)} fill="none" style={{ stroke: "var(--color-lime-2)" }} strokeWidth={3} />
       </g>
-      <line x1={pl} x2={W - pr} y1={Y(goal)} y2={Y(goal)} stroke="#f3f6f1" strokeWidth={1.5} strokeDasharray="2 6" strokeLinecap="round" />
-      <text x={W - pr} y={Y(goal) - 8} textAnchor="end" className="font-display" fontSize={13} fontWeight={700} fill="#f3f6f1">
+      <line
+        x1={pl}
+        x2={W - pr}
+        y1={Y(goal)}
+        y2={Y(goal)}
+        style={{ stroke: "var(--color-ink)" }}
+        strokeWidth={1.5}
+        strokeDasharray="2 6"
+        strokeLinecap="round"
+      />
+      <text
+        x={W - pr}
+        y={Y(goal) - 8}
+        textAnchor="end"
+        className="font-display"
+        fontSize={13}
+        fontWeight={700}
+        style={{ fill: "var(--color-ink)" }}
+      >
         Goal {fmt(goal)}
       </text>
       {cross > 0 && (
         <>
-          <circle cx={X(cross)} cy={Y(series[1][cross])} r={7} fill="#5fe37a" stroke="#1b1f1d" strokeWidth={3} />
-          <text x={X(cross)} y={Y(series[1][cross]) + 24} textAnchor="middle" fontSize={12} fontWeight={600} fill="#86efac">
+          <circle
+            cx={X(cross)}
+            cy={Y(series[1][cross])}
+            r={7}
+            style={{ fill: "var(--color-lime-2)", stroke: "var(--color-card)" }}
+            strokeWidth={3}
+          />
+          <text
+            x={X(cross)}
+            y={Y(series[1][cross]) + 24}
+            textAnchor="middle"
+            fontSize={12}
+            fontWeight={600}
+            style={{ fill: "var(--color-gain-ink)" }}
+          >
             reached {startYear + Math.floor((cross / pts) * yrs + (startMonth - 1) / 12)}
           </text>
         </>

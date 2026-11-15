@@ -20,12 +20,12 @@ export function GameLayer() {
       <Card className="grid-cols-[auto_minmax(0,1fr)] items-center gap-[18px] md:col-span-2 xl:col-span-1">
         <div className="group relative size-[78px] [perspective:500px]" aria-hidden>
           <motion.i
-            className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,#c4f25a,#5fe37a,#22d3ee,#a78bfa,#c4f25a)] shadow-[0_14px_26px_-12px_rgb(95_227_122/0.5)]"
+            className="absolute inset-0 rounded-full bg-[conic-gradient(from_210deg,#00b386,#0ea5e9,#8b6cf6,#00b386)]"
             style={{ rotateX: 16, rotateY: -20 }}
             whileHover={{ rotateY: 340 }}
             transition={{ duration: 1.2, ease: [0.2, 0.8, 0.2, 1] }}
           />
-          <i className="absolute inset-[9px] rounded-full bg-[radial-gradient(circle_at_35%_30%,#2a302c,#151917)]" />
+          <i className="absolute inset-[9px] rounded-full bg-card" />
           <b className="absolute inset-0 grid place-items-center font-display text-[30px] font-extrabold text-lime">{p.lvl}</b>
         </div>
         <div className="grid min-w-0 gap-2">
@@ -76,7 +76,7 @@ export function GameLayer() {
                 {m.done && <Icon name="check" className="size-[15px]" strokeWidth={2.6} />}
               </span>
               <span className={m.done ? "text-muted" : ""}>{m.title}</span>
-              <span className="num rounded-full bg-[rgb(196_242_90/0.14)] px-2.5 py-1.5 text-[12px] leading-none font-bold whitespace-nowrap text-lime">
+              <span className="num rounded-full bg-gain-wash px-2.5 py-1.5 text-[12px] leading-none font-bold whitespace-nowrap text-lime">
                 +{m.xp} XP
               </span>
             </li>

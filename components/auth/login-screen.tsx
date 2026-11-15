@@ -128,10 +128,7 @@ export function LoginScreen() {
         animate="visible"
         className="grid w-[min(420px,100%)] gap-3.5 rounded-[24px] px-7 pt-8 pb-7 surface"
       >
-        <div
-          className="grid size-14 place-items-center justify-self-center rounded-[18px] bg-gradient-to-br from-act-a to-act-b text-on-act shadow-[0_12px_24px_-10px_rgb(95_227_122/0.7)]"
-          aria-hidden
-        >
+        <div className="grid size-14 place-items-center justify-self-center rounded-[18px] bg-act-a text-on-act" aria-hidden>
           <Icon name="orbit" className="size-8" strokeWidth={2} />
         </div>
         <h1 className="text-center font-display text-[26px] leading-tight font-bold tracking-[-0.02em]">{TITLE[V]}</h1>

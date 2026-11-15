@@ -37,7 +37,7 @@ const BUCKET_COLOR: Record<Bucket, string> = {
   cash: "#94a3b8",
   other: "#64748b",
 };
-const SECTOR_COLORS = ["#c4f25a", "#5fe37a", "#22d3ee", "#a78bfa", "#f472b6", "#fbbf24", "#fb923c", "#60a5fa", "#2dd4bf", "#e879f9"];
+const SECTOR_COLORS = ["#0e9f6e", "#0ea5e9", "#8b6cf6", "#e9468f", "#f59e0b", "#fb7185", "#60a5fa", "#2dd4bf", "#a855f7", "#84cc16"];
 const LEVEL: Record<1 | 2 | 3, { label: string; tone: "act" | "wait" | "good" }> = {
   1: { label: "Do first", tone: "act" },
   2: { label: "Next", tone: "wait" },
@@ -45,7 +45,15 @@ const LEVEL: Record<1 | 2 | 3, { label: string; tone: "act" | "wait" | "good" }>
 };
 const pc = (x: number) => `${(x * 100).toFixed(x < 0.1 ? 1 : 0)}%`;
 const toneColor = (v: number | null) =>
-  v == null ? "#3a413c" : v >= 70 ? "#4ade80" : v >= 45 ? "#c4f25a" : v >= 25 ? "#fbbf24" : "#f87171";
+  v == null
+    ? "var(--color-tint-2)"
+    : v >= 70
+      ? "var(--color-gain)"
+      : v >= 45
+        ? "#84cc16"
+        : v >= 25
+          ? "var(--color-warn)"
+          : "var(--color-loss)";
 
 type Load = { data: MarketData | null; error: string | null; filling: boolean };
 
@@ -126,7 +134,7 @@ export function HealthScreen() {
     <>
       <Hero
         badge="Portfolio health"
-        color="#c4f25a"
+        color="var(--color-lime)"
         title={A?.score != null ? `${A.score} / 100` : "Checking…"}
         art="health"
         artExtra={extra}
@@ -248,8 +256,19 @@ function Actions({ A }: { A: Analysis }) {
                 <Chip tone={LEVEL[a.level].tone}>{LEVEL[a.level].label}</Chip>
                 {a.impact && <Chip tone="good">{a.impact}</Chip>}
               </div>
-              <b className="font-display text-[17px] leading-snug font-semibold text-ink">{a.title}</b>
-              <p className="text-[14.5px] leading-relaxed text-body">{a.body}</p>
+              <b className="text-[17px] leading-snug font-semibold text-ink">{a.title}</b>
+              {a.body.length > 160 ? (
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-[14.5px] leading-relaxed text-body">
+                    <span className="group-open:hidden">
+                      {a.body.slice(0, a.body.slice(0, 150).lastIndexOf(" "))}… <span className="font-semibold text-lime">more</span>
+                    </span>
+                  </summary>
+                  <p className="text-[14.5px] leading-relaxed text-body">{a.body}</p>
+                </details>
+              ) : (
+                <p className="text-[14.5px] leading-relaxed text-body">{a.body}</p>
+              )}
             </li>
           ))}
         </ol>
@@ -311,7 +330,7 @@ function Mix({ A, s }: { A: Analysis; s: (v: number) => string }) {
                 <b className="num text-[14px] text-ink">{pc(A.caps[c] / capT)}</b>
                 <Bar
                   v={A.caps[c] / capT}
-                  color={{ L: "#c4f25a", M: "#22d3ee", S: "#f472b6", F: "#a78bfa", "?": "#64748b" }[c]}
+                  color={{ L: "#0e9f6e", M: "#0ea5e9", S: "#e9468f", F: "#8b6cf6", "?": "#94a3b8" }[c]}
                   className="col-span-2"
                 />
               </div>
@@ -393,7 +412,8 @@ function OverlapCard({ A, m }: { A: Analysis; m: (v: number) => string }) {
         <CardHead title="Fund overlap" note="With fewer than two equity funds opened up, there's nothing to compare yet." />
       </Card>
     );
-  const heat = (p: number) => (p >= 40 ? "#f87171" : p >= 25 ? "#fbbf24" : p >= 10 ? "#3d453f" : "#262b28");
+  const heat = (p: number) =>
+    p >= 40 ? "var(--color-loss)" : p >= 25 ? "var(--color-warn)" : p >= 10 ? "var(--color-tint-2)" : "var(--color-tint)";
   return (
     <Card>
       <CardHead
@@ -427,7 +447,7 @@ function OverlapCard({ A, m }: { A: Analysis; m: (v: number) => string }) {
                     <td key={k} className="p-0">
                       <button
                         className={cn("num size-11 rounded-lg font-semibold", on && "ring-2 ring-lime")}
-                        style={{ background: heat(p), color: p >= 25 ? "#0d1a07" : "#c8d0c9" }}
+                        style={{ background: heat(p), color: p >= 25 ? "#fff" : "var(--color-body)" }}
                         onClick={() => setPick([i, k])}
                         aria-label={`${f.short} and ${A.funds[k].short}: ${Math.round(p)}% the same`}
                       >

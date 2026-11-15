@@ -72,7 +72,7 @@ function Replay() {
         type="button"
         onClick={play}
         aria-label={playing ? "Stop the replay" : "Replay the last 12 months"}
-        className="grid size-11 cursor-pointer place-items-center rounded-full bg-gradient-to-br from-act-a to-act-b text-on-act shadow-[0_8px_18px_-8px_rgb(95_227_122/0.7)] active:scale-95"
+        className="grid size-11 cursor-pointer place-items-center rounded-full bg-act-a text-on-act active:scale-95"
       >
         <Icon name={playing ? "pause" : "play"} className="size-5" />
       </button>
@@ -347,7 +347,7 @@ export function HomeScreen() {
                 {(["Cautious", "Likely", "Strong"] as const).map((k, i) => (
                   <div
                     key={k}
-                    className={`grid gap-0.5 rounded-xl px-3 py-2.5 ${i === 1 ? "bg-gain-wash shadow-[inset_0_0_0_1px_rgb(5_150_105/0.3)]" : "bg-tint"}`}
+                    className={`grid gap-0.5 rounded-xl px-3 py-2.5 ${i === 1 ? "bg-gain-wash shadow-[inset_0_0_0_1px_var(--color-gain)]" : "bg-tint"}`}
                   >
                     <span className="text-[12px] text-muted">
                       {k} by {goal.year}
@@ -396,7 +396,6 @@ export function HomeScreen() {
       <Link
         href="/health"
         className="card no-underline transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
-        style={{ backgroundImage: "radial-gradient(80% 140% at 100% 50%, rgb(196 242 90 / 0.12), transparent 60%)" }}
       >
         <div className="grid gap-1.5">
           <span className="kicker">Portfolio health</span>

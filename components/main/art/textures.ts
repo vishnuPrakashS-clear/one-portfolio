@@ -1,5 +1,6 @@
 /* Draws the dashboard screens and floating cards of the 3D hero onto canvases, so the WebGL scene shows your real numbers.
-   Each function returns a canvas; the scene turns it into a texture. Dark panels, light text, lime/category accents. */
+   Each function returns a canvas; the scene turns it into a texture. Panels and text follow the theme (palette.ts); category accents stay. */
+import { ART, tone } from "./palette";
 
 export type CardSpec =
   | { kind: "ring"; title: string; pct: number; text: string }
@@ -15,11 +16,24 @@ export interface DashData {
   cards: [CardSpec, CardSpec, CardSpec];
 }
 
-const BG = "#151917",
-  PANEL = "#1f2421",
-  INK = "#f3f6f1",
-  MUTED = "#98a29a",
-  LINE = "#2c332e";
+// the theme's colours, read when a texture is drawn
+const C = {
+  get BG() {
+    return ART.bg;
+  },
+  get PANEL() {
+    return ART.panel;
+  },
+  get INK() {
+    return ART.ink;
+  },
+  get MUTED() {
+    return ART.muted;
+  },
+  get LINE() {
+    return ART.line;
+  },
+};
 const F = (w: number, size: number, display = false) => `${w} ${size}px ${display ? "Sora, Inter" : "Inter"}, system-ui, sans-serif`;
 
 function make(w: number, h: number) {
@@ -48,7 +62,7 @@ function grad(g: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y
 function ring(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, wdt: number, pct: number, a: [string, string]) {
   g.lineCap = "round";
   g.lineWidth = wdt;
-  g.strokeStyle = LINE;
+  g.strokeStyle = C.LINE;
   g.beginPath();
   g.arc(cx, cy, r, 0, Math.PI * 2);
   g.stroke();
@@ -65,7 +79,7 @@ function barsAt(g: CanvasRenderingContext2D, x: number, y: number, w: number, h:
   vals.forEach((v, i) => {
     const bh = Math.max(4, (v / max) * h),
       bx = x + i * gap + (gap - bw) / 2;
-    g.fillStyle = i === n - 1 ? grad(g, 0, y + h - bh, 0, y + h, a) : "rgba(243,246,241,0.18)";
+    g.fillStyle = i === n - 1 ? grad(g, 0, y + h - bh, 0, y + h, a) : ART.faint;
     rr(g, bx, y + h - bh, bw, bh, Math.min(8, bw / 2));
     g.fill();
   });
@@ -77,7 +91,7 @@ export function drawScreen(d: DashData) {
     H = 640,
     { c, g } = make(W, H),
     a = d.accent;
-  g.fillStyle = BG;
+  g.fillStyle = C.BG;
   g.fillRect(0, 0, W, H);
   ["#f87171", "#fbbf24", a[1]].forEach((col, i) => {
     g.fillStyle = col;
@@ -85,18 +99,18 @@ export function drawScreen(d: DashData) {
     g.arc(44 + i * 26, 40, 8, 0, Math.PI * 2);
     g.fill();
   });
-  g.fillStyle = MUTED;
+  g.fillStyle = C.MUTED;
   g.font = F(600, 26);
   g.fillText(fit(g, d.screen.kicker, 560), 44, 112);
-  g.fillStyle = INK;
+  g.fillStyle = C.INK;
   g.font = F(700, 64, true);
   g.fillText(fit(g, d.screen.value, 600), 44, 186);
   // bars panel
   rr(g, 44, 230, 620, 370, 24);
-  g.fillStyle = PANEL;
+  g.fillStyle = C.PANEL;
   g.fill();
   barsAt(g, 72, 262, 564, 270, d.screen.bars, a);
-  g.fillStyle = MUTED;
+  g.fillStyle = C.MUTED;
   g.font = F(500, 20);
   const step = 564 / Math.max(1, d.screen.labels.length);
   d.screen.labels.forEach((l, i) => {
@@ -104,7 +118,7 @@ export function drawScreen(d: DashData) {
   });
   // split panel
   rr(g, 692, 230, 288, 370, 24);
-  g.fillStyle = PANEL;
+  g.fillStyle = C.PANEL;
   g.fill();
   const tot = d.screen.split.reduce((x, y) => x + y.v, 0) || 1;
   let ang = -Math.PI / 2;
@@ -121,13 +135,13 @@ export function drawScreen(d: DashData) {
   g.font = F(600, 21);
   d.screen.split.slice(0, 4).forEach((p, i) => {
     const y = 466 + i * 34;
-    g.fillStyle = p.color;
+    g.fillStyle = tone(p.color);
     g.beginPath();
     g.arc(726, y - 7, 8, 0, Math.PI * 2);
     g.fill();
-    g.fillStyle = INK;
+    g.fillStyle = C.INK;
     g.fillText(fit(g, p.name, 150), 744, y);
-    g.fillStyle = MUTED;
+    g.fillStyle = C.MUTED;
     g.textAlign = "right";
     g.fillText(`${Math.round((100 * p.v) / tot)}%`, 958, y);
     g.textAlign = "left";
@@ -141,10 +155,10 @@ export function drawPhone(d: DashData) {
     H = 800,
     { c, g } = make(W, H),
     a = d.accent;
-  g.fillStyle = BG;
+  g.fillStyle = C.BG;
   g.fillRect(0, 0, W, H);
   rr(g, 150, 28, 100, 16, 8);
-  g.fillStyle = LINE;
+  g.fillStyle = C.LINE;
   g.fill();
   g.fillStyle = grad(g, 150, 90, 250, 190, a);
   g.beginPath();
@@ -158,14 +172,14 @@ export function drawPhone(d: DashData) {
   g.ellipse(200, 182, 30, 18, 0, Math.PI, 0);
   g.fill();
   g.textAlign = "center";
-  g.fillStyle = MUTED;
+  g.fillStyle = C.MUTED;
   g.font = F(600, 26);
   g.fillText(fit(g, d.phone.kicker, 340), 200, 254);
-  g.fillStyle = INK;
+  g.fillStyle = C.INK;
   g.font = F(700, 46, true);
   g.fillText(fit(g, d.phone.value, 350), 200, 312);
   ring(g, 200, 470, 92, 24, d.phone.ring, a);
-  g.fillStyle = INK;
+  g.fillStyle = C.INK;
   g.font = F(700, 44, true);
   g.fillText(d.phone.ringText, 200, 486);
   rr(g, 60, 640, 280, 70, 35);
@@ -185,19 +199,19 @@ export function drawCard(s: CardSpec, a: [string, string]) {
   const W = 512,
     H = 340,
     { c, g } = make(W, H);
-  g.fillStyle = BG;
+  g.fillStyle = C.BG;
   g.fillRect(0, 0, W, H);
   if (s.kind === "calendar") {
     const [y, m] = s.ym.split("-").map(Number),
       first = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(),
       days = new Date(Date.UTC(y, m, 0)).getUTCDate();
-    g.fillStyle = INK;
+    g.fillStyle = C.INK;
     g.font = F(700, 30, true);
     g.textAlign = "center";
     g.fillText(MONTHS[m - 1], W / 2, 52);
     g.font = F(600, 19);
     "SMTWTFS".split("").forEach((ch, i) => {
-      g.fillStyle = MUTED;
+      g.fillStyle = C.MUTED;
       g.fillText(ch, 66 + i * 63, 94);
     });
     for (let dd = 1; dd <= days; dd++) {
@@ -210,24 +224,24 @@ export function drawCard(s: CardSpec, a: [string, string]) {
         g.arc(cx, cy - 7, 17, 0, Math.PI * 2);
         g.fill();
         g.fillStyle = "#0d1a07";
-      } else g.fillStyle = INK;
+      } else g.fillStyle = C.INK;
       g.fillText(String(dd), cx, cy);
     }
     g.textAlign = "left";
     return c;
   }
-  g.fillStyle = MUTED;
+  g.fillStyle = C.MUTED;
   g.font = F(600, 26);
   g.fillText(fit(g, s.title, 440), 36, 58);
   if (s.kind === "ring") {
     ring(g, 132, 196, 78, 22, s.pct, a);
-    g.fillStyle = INK;
+    g.fillStyle = C.INK;
     g.font = F(700, 38, true);
     g.textAlign = "center";
     g.fillText(`${Math.round(s.pct * 100)}%`, 132, 210);
     g.textAlign = "left";
     g.font = F(600, 26);
-    g.fillStyle = INK;
+    g.fillStyle = C.INK;
     const words = s.text.split(" ");
     let line = "",
       yy = 170;
@@ -243,11 +257,11 @@ export function drawCard(s: CardSpec, a: [string, string]) {
   } else if (s.kind === "bars") {
     barsAt(g, 36, 92, 440, 200, s.bars, [s.color, s.color]);
   } else {
-    g.fillStyle = INK;
+    g.fillStyle = C.INK;
     g.font = F(700, 56, true);
     g.fillText(fit(g, s.value, 440), 36, 160);
     if (s.up != null) {
-      g.fillStyle = s.up ? "#4ade80" : "#f87171";
+      g.fillStyle = s.up ? ART.up : ART.down;
       g.beginPath();
       const y0 = 250;
       if (s.up) {
@@ -262,7 +276,7 @@ export function drawCard(s: CardSpec, a: [string, string]) {
       g.fill();
     }
     rr(g, 120, 236, 356, 22, 11);
-    g.fillStyle = LINE;
+    g.fillStyle = C.LINE;
     g.fill();
     rr(g, 120, 236, 240, 22, 11);
     g.fillStyle = grad(g, 120, 0, 360, 0, a);
@@ -286,19 +300,19 @@ export function drawLabel(l: { kicker: string; value: string; sub?: string; colo
   const W = 512,
     H = 300,
     { c, g } = make(W, H);
-  g.fillStyle = BG;
+  g.fillStyle = C.BG;
   g.fillRect(0, 0, W, H);
   g.fillStyle = grad(g, 0, 0, W, 0, a);
   rr(g, 36, 34, 64, 10, 5);
   g.fill();
-  g.fillStyle = MUTED;
+  g.fillStyle = C.MUTED;
   g.font = F(600, 27);
   g.fillText(fit(g, l.kicker, 440), 36, 96);
-  g.fillStyle = INK;
+  g.fillStyle = C.INK;
   g.font = F(700, 64, true);
   g.fillText(fit(g, l.value, 440), 36, 176);
   if (l.sub) {
-    g.fillStyle = l.color || a[0];
+    g.fillStyle = tone(l.color || a[0]);
     g.font = F(700, 30);
     g.fillText(fit(g, l.sub, 440), 36, 240);
   }
@@ -369,9 +383,9 @@ export function drawBubble(text: string, mine: boolean, a: [string, string]) {
   const W = 640,
     H = 260,
     { c, g } = make(W, H);
-  g.fillStyle = mine ? grad(g, 0, 0, W, H, a) : BG;
+  g.fillStyle = mine ? grad(g, 0, 0, W, H, a) : C.BG;
   g.fillRect(0, 0, W, H);
-  g.fillStyle = mine ? "#0d1a07" : INK;
+  g.fillStyle = mine ? "#0d1a07" : C.INK;
   g.font = F(600, 32);
   const words = text.split(" ");
   let line = "",

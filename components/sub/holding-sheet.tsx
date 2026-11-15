@@ -532,7 +532,7 @@ export function HoldingSheet() {
         if (e.target === ref.current) closeItem();
       }}
       aria-label="Holding details"
-      className="m-auto max-h-[min(92vh,980px)] w-full max-w-[min(640px,calc(100vw-24px))] overflow-auto overscroll-contain rounded-[22px] bg-page p-0 text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_40px_100px_-30px_rgb(0_0_0/0.7)] max-sm:m-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:max-w-none max-sm:rounded-none"
+      className="m-auto max-h-[min(92vh,980px)] w-full max-w-[min(640px,calc(100vw-24px))] overflow-auto overscroll-contain rounded-[22px] bg-page p-0 text-ink shadow-[inset_0_0_0_1px_var(--color-line),0_30px_80px_-30px_rgb(0_0_0/0.35)] max-sm:m-0 max-sm:h-dvh max-sm:max-h-dvh max-sm:max-w-none max-sm:rounded-none"
     >
       <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-line bg-card px-4 py-3.5">
         <button type="button" className="btn min-w-10 px-3" onClick={closeItem} aria-label="Close">

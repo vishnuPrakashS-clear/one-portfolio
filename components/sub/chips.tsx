@@ -34,9 +34,7 @@ export function Chips<T extends number | string>({
               onClick={() => onPick(v)}
               className={cn(
                 "num inline-grid min-h-11 min-w-16 cursor-pointer justify-items-center gap-px rounded-[14px] px-3.5 py-2 font-display text-[15px] leading-tight font-bold transition-colors",
-                on
-                  ? "bg-gradient-to-r from-lime to-lime-2 text-on-lime shadow-[0_8px_18px_-10px_rgb(95_227_122/0.8)]"
-                  : "bg-card text-ink shadow-[inset_0_0_0_1px_var(--color-line)] hover:bg-tint",
+                on ? "bg-act-a text-on-act" : "bg-card text-ink shadow-[inset_0_0_0_1px_var(--color-line)] hover:bg-tint",
               )}
             >
               {render(v)}

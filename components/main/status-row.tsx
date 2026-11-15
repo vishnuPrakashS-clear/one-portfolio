@@ -22,7 +22,7 @@ export function StatusRow() {
       {banner && (
         <div
           role="alert"
-          className="fixed bottom-4 left-1/2 z-[60] flex w-[min(640px,calc(100vw-24px))] -translate-x-1/2 flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] bg-card px-4 py-3 text-[14px] shadow-[inset_0_0_0_1.5px_var(--color-loss),0_20px_50px_-15px_rgb(0_0_0/0.7)] max-sm:bottom-[calc(84px+env(safe-area-inset-bottom))]"
+          className="fixed bottom-4 left-1/2 z-[60] flex w-[min(640px,calc(100vw-24px))] -translate-x-1/2 flex-wrap items-center gap-x-3 gap-y-2 rounded-[18px] bg-card px-4 py-3 text-[14px] shadow-[inset_0_0_0_1.5px_var(--color-loss),0_16px_40px_-15px_rgb(0_0_0/0.3)] max-sm:bottom-[calc(84px+env(safe-area-inset-bottom))]"
         >
           <b className="text-loss-ink">Supabase</b>
           <span className="flex-[1_1_240px]">{banner.text}</span>

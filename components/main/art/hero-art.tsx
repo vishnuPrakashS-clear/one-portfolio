@@ -15,6 +15,7 @@ import { bucketView, hasAbroad, holdingRows, lotRows } from "@/lib/core/abroad";
 import { bondSummary, indHoldings, inTaxSummary } from "@/lib/core/india";
 import { pct1 } from "@/lib/format";
 import { useInView, useMedia, useScrolling, useWebGL } from "@/lib/hooks";
+import { useTheme } from "@/lib/theme";
 import { useMoney } from "@/lib/use-money";
 import { cn } from "@/lib/utils";
 import type { Portfolio } from "@/types/portfolio";
@@ -41,14 +42,14 @@ export interface ArtExtra {
   band: string | null;
 }
 
-const LIME: [string, string] = ["#c4f25a", "#5fe37a"];
+const LIME: [string, string] = ["#8fe3c0", "#149a68"];
 const ACCENT: Partial<Record<ArtKind, [string, string]>> = {
   funds: [CATEGORIES.funds.hex2, CATEGORIES.funds.hex],
   stocks: [CATEGORIES.stocks.hex2, CATEGORIES.stocks.hex],
   bonds: [CATEGORIES.bonds.hex2, CATEGORIES.bonds.hex],
   abroad: [CATEGORIES.abroad.hex2, CATEGORIES.abroad.hex],
   goals: [GOAL_LITE, GOAL_COLOR],
-  health: ["#c4f25a", "#5fe37a"],
+  health: ["#8fe3c0", "#149a68"],
   plan: ["#bfdbfe", "#60a5fa"],
   tax: ["#fed7aa", "#fb923c"],
   checklist: ["#99f6e4", "#2dd4bf"],
@@ -106,7 +107,7 @@ function buildDash(
         value: s(c.value),
         bars: c.covered ? c.val : demoBars,
         labels,
-        split: c.items.slice(0, 4).map((it, i) => ({ name: it.name, color: [accent[1], accent[0], "#5fe37a", "#94a3b8"][i], v: it.value })),
+        split: c.items.slice(0, 4).map((it, i) => ({ name: it.name, color: [accent[1], accent[0], "#149a68", "#94a3b8"][i], v: it.value })),
       },
       phone: {
         kicker: "Gain so far",
@@ -382,7 +383,7 @@ function Flat({ d, kind }: { d: ArtData; kind: ArtKind }) {
         className="absolute top-[6%] left-[22%] aspect-square w-[62%] rounded-full"
         style={{ background: `linear-gradient(140deg, ${d.accent[0]}, ${d.accent[1]})` }}
       />
-      <div className="relative grid w-[66%] gap-1.5 rounded-2xl bg-[#151917] p-5 shadow-[0_30px_60px_-20px_rgb(0_0_0/0.8),inset_0_0_0_6px_#0f1311]">
+      <div className="relative grid w-[66%] gap-1.5 rounded-2xl bg-card p-5 shadow-[0_20px_50px_-20px_rgb(0_0_0/0.35),inset_0_0_0_1px_var(--color-line)]">
         <span className="text-[12.5px] text-muted">{l.kicker}</span>
         <b className="num font-display text-[24px] leading-tight font-bold text-ink">{l.value}</b>
         {l.sub && (
@@ -406,6 +407,7 @@ export function HeroArt({ kind, className, extra }: { kind: ArtKind; className?:
     gl = useWebGL(),
     scrolling = useScrolling();
   const real = !!S && !locked && model.total > 0;
+  const theme = useTheme();
   const data = useMemo(() => {
     const d = build(kind, model, S, real, s, m, extra);
     // the month replay on Home: the screen shows that month's worth
@@ -422,7 +424,7 @@ export function HeroArt({ kind, className, extra }: { kind: ArtKind; className?:
       {gl ? (
         <GlBoundary fallback={<Flat d={data} kind={kind} />}>
           <div className="absolute inset-0">
-            <Art data={data} animate={seen && !reduced && !scrolling} />
+            <Art key={theme} data={data} theme={theme} animate={seen && !reduced && !scrolling} />
           </div>
         </GlBoundary>
       ) : (

@@ -38,7 +38,7 @@ function Dropzone({ onFiles }: { onFiles: (f: File[]) => void }) {
         "relative grid cursor-pointer grid-cols-[auto_1fr] items-center gap-x-5 gap-y-1.5 overflow-hidden rounded-[22px] bg-gradient-to-br from-act-a/10 to-act-b/12 p-7 transition focus-within:outline-2 focus-within:outline-offset-[3px] focus-within:outline-act-a max-sm:grid-cols-1 max-sm:p-[22px]",
         over
           ? "scale-[0.995] shadow-[inset_0_0_0_2px_var(--color-act-a),0_0_40px_-16px_var(--color-act-a)]"
-          : "shadow-[inset_0_0_0_2px_rgb(196_242_90/0.3)] hover:shadow-[inset_0_0_0_2px_var(--color-act-a)]",
+          : "shadow-[inset_0_0_0_2px_var(--color-line)] hover:shadow-[inset_0_0_0_2px_var(--color-act-a)]",
       )}
     >
       <span className="row-span-3 grid size-16 place-items-center rounded-2xl bg-tint text-stocks max-sm:row-span-1" aria-hidden>
@@ -122,7 +122,7 @@ function PendingCard({ p, onAccept, onReject }: { p: Pending; onAccept: () => vo
       : []),
   ];
   return (
-    <div className="grid gap-2.5 rounded-[14px] bg-[rgb(94_234_212/0.1)] p-4">
+    <div className="grid gap-2.5 rounded-[14px] bg-gain-wash p-4">
       <p>
         <b>{p.name}</b>{" "}
         <span className="text-muted">

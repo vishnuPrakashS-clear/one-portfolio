@@ -1,9 +1,8 @@
 @import "tailwindcss";
 
-/* One Portfolio: dark, clean pages with a neon lime gradient and 3D dashboard illustrations, in the style of modern
-   gradient UI/UX landing pages. Charcoal page, slightly lighter solid cards (no blur, so scrolling stays smooth), light text
-   for easy reading. One colour per category, used the same way on tabs, charts and dots. Gains green, losses red, always
-   with a sign. Sora for figures and headings, Inter for everything you read. Content max 1200px. */
+/* One Portfolio: a clean broker-style app (think Groww, Upstox) in light and dark. White or near-black pages, plain cards
+   with a hairline, one green for actions and gains, red for losses, always with a sign. Numbers are tabular so columns line
+   up. The theme follows the device unless you pick one; html[data-theme] holds the choice (set before first paint). */
 
 @font-face {
   font-family: "Inter";
@@ -33,54 +32,52 @@
 
 @theme {
   --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --font-display: "Sora", "Inter", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 
-  /* surfaces */
-  --color-page: #121513;
-  --color-card: #1b1f1d;
-  --color-tint: #232825;
-  --color-tint-2: #2c322e;
-  --color-line: #2f3531;
-  --color-rule: #262b28;
-  /* text: ink 15:1, body 10:1, muted 5.6:1 on the card colour */
-  --color-ink: #f3f6f1;
-  --color-body: #c8d0c9;
-  --color-muted: #939d95;
+  /* light theme (the default); the dark values are below under [data-theme="dark"] */
+  --color-page: #eef5f1;
+  --color-card: #ffffff;
+  --color-tint: #f2f7f4;
+  --color-tint-2: #e4efe8;
+  --color-line: #dfe8e2;
+  --color-rule: #ebf1ed;
+  --color-ink: #13201a;
+  --color-body: #3a4a42;
+  --color-muted: #65766d;
 
-  /* brand: the neon lime gradient */
-  --color-lime: #c4f25a;
-  --color-lime-2: #5fe37a;
-  --color-on-lime: #0d1a07;
+  /* brand green: buttons, the active tab, highlights (the "lime" names are kept so every screen picks it up) */
+  --color-lime: #0f7a4f;
+  --color-lime-2: #149a68;
+  --color-on-lime: #ffffff;
 
-  /* categories: bright tones that read on the dark cards; the -lite tones are highlights */
-  --color-funds: #a78bfa;
-  --color-funds-lite: #ddd6fe;
-  --color-stocks: #22d3ee;
-  --color-stocks-lite: #a5f3fc;
-  --color-bonds: #fbbf24;
-  --color-bonds-lite: #fde68a;
-  --color-abroad: #f472b6;
-  --color-abroad-lite: #fbcfe8;
-  --color-goal: #5fe37a;
-  --color-goal-lite: #c4f25a;
+  --color-funds: #7c5cf5;
+  --color-funds-lite: #c9bcff;
+  --color-stocks: #0ea5e9;
+  --color-stocks-lite: #a5dcf6;
+  --color-bonds: #f59e0b;
+  --color-bonds-lite: #fcd58a;
+  --color-abroad: #e9468f;
+  --color-abroad-lite: #f6b3d1;
+  --color-goal: #00b386;
+  --color-goal-lite: #7fd9bf;
 
-  --color-gain: #4ade80;
-  --color-gain-ink: #86efac;
-  --color-gain-wash: rgb(74 222 128 / 0.13);
-  --color-loss: #f87171;
-  --color-loss-ink: #fca5a5;
-  --color-loss-wash: rgb(248 113 113 / 0.14);
-  --color-warn: #fbbf24;
-  --color-warn-ink: #fcd34d;
-  --color-warn-wash: rgb(251 191 36 / 0.13);
+  --color-gain: #0e9f6e;
+  --color-gain-ink: #0b7d52;
+  --color-gain-wash: rgb(14 159 110 / 0.11);
+  --color-loss: #e5484d;
+  --color-loss-ink: #c4282d;
+  --color-loss-wash: rgb(229 72 77 / 0.1);
+  --color-warn: #f59e0b;
+  --color-warn-ink: #9a5b00;
+  --color-warn-wash: rgb(245 158 11 / 0.13);
 
-  --color-act-a: #c4f25a;
-  --color-act-b: #5fe37a;
-  --color-on-act: #0d1a07;
+  --color-act-a: #117a53;
+  --color-act-b: #0b5a3c;
+  --color-on-act: #ffffff;
 
-  --radius-card: 24px;
-  --shadow-card: 0 1px 0 rgb(255 255 255 / 0.03) inset, 0 18px 40px -24px rgb(0 0 0 / 0.7);
-  --shadow-lift: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 24px 50px -20px rgb(0 0 0 / 0.8), 0 0 0 1px rgb(196 242 90 / 0.35);
+  --radius-card: 22px;
+  --shadow-card: 0 1px 2px rgb(19 32 26 / 0.04), 0 10px 30px -18px rgb(19 32 26 / 0.12);
+  --shadow-lift: 0 4px 16px -4px rgb(16 24 40 / 0.12), 0 0 0 1px var(--color-lime-2);
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   --animate-float: float 6s ease-in-out infinite;
@@ -98,12 +95,55 @@
   }
 }
 
+/* dark theme */
+:root[data-theme="dark"] {
+  --color-page: #0d0e10;
+  --color-card: #17181b;
+  --color-tint: #1e2024;
+  --color-tint-2: #272a2f;
+  --color-line: #2a2d33;
+  --color-rule: #212328;
+  --color-ink: #eef0f3;
+  --color-body: #c2c6ce;
+  --color-muted: #8f949e;
+  --color-lime: #00c48c;
+  --color-lime-2: #1fd19c;
+  --color-on-lime: #03130d;
+  --color-funds: #a08bff;
+  --color-funds-lite: #d4caff;
+  --color-stocks: #38bdf8;
+  --color-stocks-lite: #a8e1fb;
+  --color-bonds: #fbbf24;
+  --color-bonds-lite: #fde28c;
+  --color-abroad: #f472b6;
+  --color-abroad-lite: #f9c2dd;
+  --color-goal: #1fd19c;
+  --color-goal-lite: #8be8c9;
+  --color-gain: #22c98a;
+  --color-gain-ink: #45dba0;
+  --color-gain-wash: rgb(34 201 138 / 0.14);
+  --color-loss: #ff6359;
+  --color-loss-ink: #ff8a80;
+  --color-loss-wash: rgb(255 99 89 / 0.14);
+  --color-warn: #fbbf24;
+  --color-warn-ink: #fcd36a;
+  --color-warn-wash: rgb(251 191 36 / 0.14);
+  --color-act-a: #00c48c;
+  --color-act-b: #00a376;
+  --color-on-act: #03130d;
+  --shadow-card: 0 0 0 0 transparent;
+  --shadow-lift: 0 0 0 1px var(--color-lime-2);
+}
+
 @layer base {
   html {
     background: var(--color-page);
-    color-scheme: dark;
+    color-scheme: light;
     -webkit-text-size-adjust: 100%;
-    scrollbar-color: #3a413c transparent;
+    scrollbar-color: var(--color-tint-2) transparent;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
   }
   body {
     min-height: 100vh;
@@ -173,16 +213,16 @@
 
 @layer components {
   .card {
-    @apply grid min-w-0 content-start gap-4 rounded-[var(--radius-card)] p-6 surface max-sm:rounded-[20px] max-sm:p-[18px];
+    @apply grid min-w-0 content-start gap-4 rounded-[var(--radius-card)] p-6 surface max-sm:rounded-[14px] max-sm:p-4;
   }
   .btn {
     @apply inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-full bg-card px-[18px] py-2 text-[14.5px] font-semibold text-ink no-underline shadow-[inset_0_0_0_1px_var(--color-line)] transition hover:bg-tint active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-primary {
-    @apply bg-gradient-to-r from-act-a to-act-b text-on-act shadow-[0_10px_24px_-10px_rgb(95_227_122/0.7)] hover:bg-transparent hover:brightness-110;
+    @apply bg-gradient-to-b from-act-a to-act-b text-on-act shadow-[0_10px_22px_-10px_var(--color-act-b)] hover:brightness-110;
   }
   .btn-danger {
-    @apply bg-loss-wash text-loss-ink shadow-[inset_0_0_0_1px_rgb(248_113_113/0.35)] hover:bg-loss-wash hover:brightness-110;
+    @apply bg-loss-wash text-loss-ink shadow-[inset_0_0_0_1px_var(--color-loss)] hover:bg-loss-wash hover:brightness-110;
   }
   .chip {
     @apply inline-flex shrink-0 items-center gap-1.5 rounded-full bg-tint px-2.5 py-1.5 text-[12.5px] leading-none font-semibold whitespace-nowrap text-body;
@@ -216,7 +256,7 @@
   }
   /* a soft inner panel inside a card */
   .well {
-    @apply rounded-2xl bg-tint;
+    @apply rounded-xl bg-tint;
   }
 }
 
@@ -271,7 +311,7 @@
   font-variant-numeric: tabular-nums;
 }
 .chart .inv {
-  stroke: rgb(243 246 241 / 0.6);
+  stroke: var(--color-muted);
   stroke-width: 1.6;
   stroke-dasharray: 5 5;
   fill: none;
@@ -281,7 +321,7 @@
   cursor: crosshair;
 }
 .chart .cursor {
-  stroke: rgb(243 246 241 / 0.3);
+  stroke: var(--color-line);
 }
 @media (max-width: 640px) {
   .chart .axis {
@@ -329,8 +369,8 @@
   border-radius: 50%;
   background: #fff;
   box-shadow:
-    0 0 0 4px rgb(196 242 90 / 0.25),
-    0 4px 10px rgb(0 0 0 / 0.5);
+    0 0 0 4px rgb(0 179 134 / 0.25),
+    0 2px 6px rgb(0 0 0 / 0.3);
 }
 .replay-range::-moz-range-thumb {
   width: 20px;
@@ -339,10 +379,10 @@
   border-radius: 50%;
   background: #fff;
   box-shadow:
-    0 0 0 4px rgb(196 242 90 / 0.25),
-    0 4px 10px rgb(0 0 0 / 0.5);
+    0 0 0 4px rgb(0 179 134 / 0.25),
+    0 2px 6px rgb(0 0 0 / 0.3);
 }
 
 dialog::backdrop {
-  background: rgb(5 7 6 / 0.72);
+  background: rgb(8 10 14 / 0.55);
 }

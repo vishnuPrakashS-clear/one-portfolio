@@ -24,31 +24,31 @@ export const VERDICTS: {
 }[] = [
   {
     title: "Not on track yet",
-    color: "#fca5a5",
-    wash: "rgb(248 113 113 / 0.16)",
+    color: "var(--color-loss-ink)",
+    wash: "var(--color-loss-wash)",
     icon: "alert",
     text: (g, r, m, s) =>
       `Even a strong market gets you to about ${s(r.v[2])}. Investing about ${m(Math.ceil(r.need / 500) * 500)} a month (now ${m(r.sip)}) reaches ${s(g.amt)} at the likely rate.`,
   },
   {
     title: "Only in a strong market",
-    color: "#fcd34d",
-    wash: "rgb(251 191 36 / 0.15)",
+    color: "var(--color-warn-ink)",
+    wash: "var(--color-warn-wash)",
     icon: "up",
     text: (g, r, m, s) =>
       `Likely about ${s(r.v[1])}. To reach ${s(g.amt)} at the likely rate, invest about ${m(Math.ceil(r.need / 500) * 500)} a month instead of ${m(r.sip)}.`,
   },
   {
     title: "On track at the likely rate",
-    color: "#86efac",
-    wash: "rgb(74 222 128 / 0.15)",
+    color: "var(--color-gain-ink)",
+    wash: "var(--color-gain-wash)",
     icon: "check",
     text: (g, r, _m, s) => `Likely about ${s(r.v[1])} by ${g.year}. A cautious market would leave you at ${s(r.v[0])}.`,
   },
   {
     title: "On track, even in a cautious market",
-    color: "#c4f25a",
-    wash: "rgb(196 242 90 / 0.15)",
+    color: "var(--color-lime)",
+    wash: "var(--color-gain-wash)",
     icon: "check",
     text: (g, r, _m, s) => `Cautious ${s(r.v[0])}, likely ${s(r.v[1])} by ${g.year}.`,
   },
@@ -128,7 +128,7 @@ export function GoalsScreen() {
     { m, s } = useMoney();
   if (!M.total) {
     return (
-      <Hero badge="Goal check" color={GOAL_COLOR} wash="#5fe37a1f" title="Upload a statement first" big={false} art="goals">
+      <Hero badge="Goal check" color={GOAL_COLOR} wash="transparent" title="Upload a statement first" big={false} art="goals">
         <p className="max-w-[60ch] text-[16.5px] text-body">
           The goal check works out where your current investments and monthly investing lead, and whether that reaches your goal.
         </p>
@@ -155,7 +155,7 @@ export function GoalsScreen() {
       <Hero
         badge="Goal check"
         color={GOAL_COLOR}
-        wash="#5fe37a1f"
+        wash="transparent"
         title={goal ? `${s(goal.amt)} by ${goal.year}` : "Pick a goal and a year"}
         big={false}
         art="goals"

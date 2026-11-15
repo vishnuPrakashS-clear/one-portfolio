@@ -388,7 +388,7 @@ function Dividends({ P }: { P: Planner }) {
         title={`Dividends: about ${m(d.now)} of ${m(d.goal)} a year`}
         note="Estimated from each company's payouts over the last year (its dividend yield) on what you hold today. Companies cut dividends in bad years, so this is a guide, not a promise."
       />
-      <Bar v={d.goal ? d.now / d.goal : 0} color="#c4f25a" />
+      <Bar v={d.goal ? d.now / d.goal : 0} color="var(--color-lime-2)" />
       {top.length > 0 && (
         <p className="text-[14.5px] text-body">Most of it comes from {top.map((x) => `${x.name} (${m(x.divYear)})`).join(", ")}.</p>
       )}

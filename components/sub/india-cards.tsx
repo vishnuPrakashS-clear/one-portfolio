@@ -27,8 +27,8 @@ function Fact({ k, v, s, tone }: { k: string; v: string; s: string; tone?: "pos"
 }
 function Tip({ children }: { children: React.ReactNode }) {
   return (
-    <p className="flex max-w-none items-start gap-2.5 rounded-[14px] bg-[rgb(94_234_212/0.1)] px-3.5 py-3 text-[14px]">
-      <Icon name="bulb" className="mt-0.5 size-[18px] text-[#5eead4]" />
+    <p className="flex max-w-none items-start gap-2.5 rounded-[14px] bg-gain-wash px-3.5 py-3 text-[14px]">
+      <Icon name="bulb" className="mt-0.5 size-[18px] text-lime" />
       <span>{children}</span>
     </p>
   );

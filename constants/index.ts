@@ -25,9 +25,9 @@ export const CATEGORIES: Record<CatId, Category> = {
     id: "funds",
     name: "Mutual funds",
     short: "Funds",
-    hex: "#a78bfa",
-    hex2: "#ddd6fe",
-    wash: "#a78bfa24",
+    hex: "#8b6cf6",
+    hex2: "#c9bcff",
+    wash: "#8b6cf624",
     types: ["mf"],
     rates: [0.08, 0.11, 0.14],
     route: "/funds",
@@ -37,9 +37,9 @@ export const CATEGORIES: Record<CatId, Category> = {
     id: "stocks",
     name: "Stocks",
     short: "Stocks",
-    hex: "#22d3ee",
-    hex2: "#a5f3fc",
-    wash: "#22d3ee1f",
+    hex: "#0ea5e9",
+    hex2: "#a5dcf6",
+    wash: "#0ea5e91f",
     types: ["stock", "etf", "invit"],
     rates: [0.07, 0.12, 0.16],
     route: "/stocks",
@@ -49,9 +49,9 @@ export const CATEGORIES: Record<CatId, Category> = {
     id: "bonds",
     name: "Bonds",
     short: "Bonds",
-    hex: "#fbbf24",
-    hex2: "#fde68a",
-    wash: "#fbbf241f",
+    hex: "#f59e0b",
+    hex2: "#fcd58a",
+    wash: "#f59e0b1f",
     types: ["bond"],
     rates: [0.065, 0.08, 0.095],
     route: "/bonds",
@@ -61,9 +61,9 @@ export const CATEGORIES: Record<CatId, Category> = {
     id: "abroad",
     name: "Abroad",
     short: "Abroad",
-    hex: "#f472b6",
-    hex2: "#fbcfe8",
-    wash: "#f472b61f",
+    hex: "#e9468f",
+    hex2: "#f6b3d1",
+    wash: "#e9468f1f",
     rates: [0.07, 0.11, 0.14],
     route: "/abroad",
     what: "US, Japan and London funds",
@@ -71,7 +71,7 @@ export const CATEGORIES: Record<CatId, Category> = {
 };
 export const CAT_ORDER: CatId[] = ["funds", "stocks", "bonds", "abroad"];
 export const RATE_NAMES = ["Cautious", "Likely", "Strong"] as const;
-export const GOAL_COLOR = "#5fe37a";
+export const GOAL_COLOR = "#00b386";
 export const GOAL_LITE = "#c4f25a";
 
 export interface NavItem {
@@ -81,20 +81,22 @@ export interface NavItem {
   color?: string;
   more?: boolean;
   moreOnPhone?: boolean;
+  /** an Icon name */
+  icon?: string;
 }
 export const NAV: NavItem[] = [
-  { href: "/", label: "Home", short: "Home" },
-  { href: "/funds", label: "Mutual funds", short: "Funds", color: CATEGORIES.funds.hex },
-  { href: "/stocks", label: "Stocks", short: "Stocks", color: CATEGORIES.stocks.hex },
-  { href: "/bonds", label: "Bonds", short: "Bonds", color: CATEGORIES.bonds.hex },
-  { href: "/abroad", label: "Abroad", short: "Abroad", color: CATEGORIES.abroad.hex, moreOnPhone: true },
-  { href: "/goals", label: "Goals", short: "Goals", color: GOAL_COLOR },
-  { href: "/health", label: "Health", short: "Health", color: "#c4f25a", moreOnPhone: true },
-  { href: "/plan", label: "Monthly plan", short: "Plan", more: true },
-  { href: "/tax", label: "Sell & tax", short: "Tax", more: true },
-  { href: "/checklist", label: "Checklist", short: "Checklist", more: true },
-  { href: "/ask", label: "Ask", short: "Ask", more: true },
-  { href: "/upload", label: "Upload", short: "Upload", more: true },
+  { href: "/", label: "Home", short: "Home", icon: "home" },
+  { href: "/funds", label: "Mutual funds", short: "Funds", color: CATEGORIES.funds.hex, icon: "pie" },
+  { href: "/stocks", label: "Stocks", short: "Stocks", color: CATEGORIES.stocks.hex, icon: "trend" },
+  { href: "/bonds", label: "Bonds", short: "Bonds", color: CATEGORIES.bonds.hex, icon: "layers", moreOnPhone: true },
+  { href: "/abroad", label: "Abroad", short: "Abroad", color: CATEGORIES.abroad.hex, icon: "world", moreOnPhone: true },
+  { href: "/health", label: "Insights", short: "Insights", icon: "pulse" },
+  { href: "/goals", label: "Goals", short: "Goals", color: GOAL_COLOR, icon: "flag", moreOnPhone: true },
+  { href: "/plan", label: "Monthly plan", short: "Plan", more: true, icon: "calendar" },
+  { href: "/tax", label: "Sell & tax", short: "Tax", more: true, icon: "receipt" },
+  { href: "/checklist", label: "Checklist", short: "Checklist", more: true, icon: "list" },
+  { href: "/ask", label: "Ask", short: "Ask", more: true, icon: "chat" },
+  { href: "/upload", label: "Upload", short: "Upload", more: true, icon: "upload" },
 ];
 
 /** goal amounts and extra monthly amounts offered as chips (no typing) */
@@ -103,10 +105,10 @@ export const EXTRA_MONTHLY = [0, 5000, 10000, 25000, 50000];
 export const PROJECTION_YEARS = [5, 10, 15, 20];
 
 export const IND_CLASS_COLOR: Record<string, string> = {
-  Equity: "#a78bfa",
-  Hybrid: "#f472b6",
-  Debt: "#22d3ee",
-  "Gold & silver": "#fbbf24",
+  Equity: "#8b6cf6",
+  Hybrid: "#e9468f",
+  Debt: "#0ea5e9",
+  "Gold & silver": "#f59e0b",
   International: "#fb7185",
   Other: "#94a3b8",
 };

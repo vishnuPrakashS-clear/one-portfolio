@@ -43,7 +43,8 @@ export type ArtData =
   | { scene: "tax"; accent: Acc; cal: { ym: string; marks: number[] }; label: Label }
   | { scene: "list"; accent: Acc; rows: { text: string; done: boolean }[]; label: Label }
   | { scene: "chat"; accent: Acc; q: string; a: string }
-  | { scene: "folder"; accent: Acc; docs: { ext: string; name: string; color: string }[] };
+  | { scene: "folder"; accent: Acc; docs: { ext: string; name: string; color: string }[] }
+  | { scene: "gauge"; accent: Acc; score: number | null; parts: number[]; label: Label };
 
 /* ---------- textures and materials ---------- */
 
@@ -638,6 +639,57 @@ function Folder({ docs, a }: { docs: { ext: string; name: string; color: string 
   );
 }
 
+/** Portfolio health: a gauge in Tickertape's four bands with the needle on your score, and a column for each part of it */
+const BANDS: [number, number, string][] = [
+  [0, 25, "#f87171"],
+  [26, 50, "#fbbf24"],
+  [51, 75, "#a3e635"],
+  [76, 100, "#4ade80"],
+];
+function Gauge({ score, parts, label, a, animate }: { score: number | null; parts: number[]; label: Label; a: Acc; animate: boolean }) {
+  const needle = useRef<THREE.Group>(null);
+  const want = (Math.PI * (100 - (score ?? 50))) / 100 - Math.PI / 2;
+  useFrame((st) => {
+    if (!needle.current) return;
+    const wob = animate && score != null ? Math.sin(st.clock.elapsedTime * 1.6) * 0.02 : 0;
+    needle.current.rotation.z += (want + wob - needle.current.rotation.z) * 0.08;
+  });
+  const R = 1.75;
+  return (
+    <>
+      <group position={[0.15, -0.35, 0.2]}>
+        {BANDS.map(([s0, s1, col]) => (
+          <mesh key={s0} rotation={[0, 0, (Math.PI * (100 - s1)) / 100]} material={mat("glossy", col)}>
+            <torusGeometry args={[R, 0.2, 20, 64, (Math.PI * (s1 - s0 + (s0 ? 1 : 0))) / 100 - 0.03]} />
+          </mesh>
+        ))}
+        <group ref={needle} rotation={[0, 0, Math.PI / 2]}>
+          <mesh position={[0, R * 0.48, 0.12]} material={mat("glossy", "#f3f6f1")}>
+            <boxGeometry args={[0.07, R * 0.96, 0.06]} />
+          </mesh>
+        </group>
+        <mesh position={[0, 0, 0.12]} material={mat("glow", a[1])}>
+          <sphereGeometry args={[0.2, 32, 24]} />
+        </mesh>
+        {parts.slice(0, 5).map((p, i) => {
+          const h = 0.15 + 0.85 * Math.max(0, Math.min(1, p));
+          return (
+            <RoundedBox
+              key={i}
+              args={[0.3, h, 0.3]}
+              radius={0.05}
+              smoothness={3}
+              position={[-1.0 + i * 0.5, -1.56 + h / 2, 0.55]}
+              material={mat("glossy", p >= 0.76 ? "#4ade80" : p >= 0.51 ? "#a3e635" : p >= 0.26 ? "#fbbf24" : "#f87171")}
+            />
+          );
+        })}
+      </group>
+      <Panel spec={{ t: "label", l: label, a }} w={1.6} h={0.94} pos={[-2.05, 1.55, 1.0]} rot={0.25} />
+    </>
+  );
+}
+
 export default function Art({ data, animate }: { data: ArtData; animate: boolean }) {
   const a = data.accent;
   return (
@@ -665,6 +717,7 @@ export default function Art({ data, animate }: { data: ArtData; animate: boolean
         {data.scene === "list" && <Clipboard rows={data.rows} label={data.label} a={a} />}
         {data.scene === "chat" && <Chat q={data.q} ans={data.a} a={a} />}
         {data.scene === "folder" && <Folder docs={data.docs} a={a} />}
+        {data.scene === "gauge" && <Gauge score={data.score} parts={data.parts} label={data.label} a={a} animate={animate} />}
       </Rig>
     </Canvas>
   );

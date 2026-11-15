@@ -70,7 +70,7 @@ export function Navbar() {
                   )}
                 >
                   {n.color && <i className="size-[7px] rounded-full" style={{ background: n.color }} aria-hidden />}
-                  {n.label}
+                  {n.more ? n.short : n.label}
                 </Link>
               );
             })}

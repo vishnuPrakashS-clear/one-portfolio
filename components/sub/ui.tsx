@@ -5,7 +5,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { riseIn, slideInFromLeft, slideInFromRight, slideInFromTop } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { pct1 } from "@/lib/format";
-import { HeroArt, type ArtKind } from "@/components/main/art/hero-art";
+import { HeroArt, type ArtExtra, type ArtKind } from "@/components/main/art/hero-art";
 
 /** a white card that rises in as it scrolls into view */
 export function Card({
@@ -60,6 +60,7 @@ export function Hero({
   children,
   aside,
   art,
+  artExtra,
   big = true,
 }: {
   badge: string;
@@ -69,6 +70,8 @@ export function Hero({
   children?: ReactNode;
   aside?: ReactNode;
   art?: ArtKind;
+  /** numbers the screen hands to its 3D scene */
+  artExtra?: ArtExtra;
   compact?: boolean;
   big?: boolean;
 }) {
@@ -115,7 +118,7 @@ export function Hero({
           variants={slideInFromRight(0.2)}
           className="mx-auto w-full max-w-[560px] max-lg:order-1 max-lg:max-w-[460px] max-sm:-mx-2 max-sm:-my-2 max-sm:max-w-none"
         >
-          <HeroArt kind={art} />
+          <HeroArt kind={art} extra={artExtra} />
         </motion.div>
       ) : aside ? (
         <motion.div variants={slideInFromRight(0.35)} className="max-lg:order-3">

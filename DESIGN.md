@@ -59,19 +59,20 @@ A clean, dark dashboard in the style of modern gradient UI/UX landing pages: cha
 brand and every primary action, solid cards, and a 3D illustration at the top of every screen. The illustration is never
 decoration for its own sake. Each screen's scene shows what that screen is about, drawn from your own numbers:
 
-| Screen       | 3D scene                                                                                               |
-| ------------ | ------------------------------------------------------------------------------------------------------ |
-| Home         | a dashboard: monitor with 12 months of worth and the split, a phone with the goal ring, floating cards |
-| Mutual funds | twelve month-end values as 3D bars, this month glowing                                                 |
-| Stocks       | the 12-month line as a glowing tube, with your biggest stocks as tiles                                 |
-| Bonds        | a coin stack for each coming month's payouts, and the payout calendar                                  |
-| Abroad       | a spinning globe with a pin on the US, Japan and London, sized by how much is there                    |
-| Goals        | a staircase to the goal's flag, lit as far as your likely path gets you                                |
-| Monthly plan | the abroad split as a 3D donut, each slice raised by how full it is against its target                 |
-| Sell & tax   | the next long-term date's month as a calendar block, with an hourglass                                 |
-| Checklist    | a clipboard with this year's jobs ticked off                                                           |
-| Ask          | your question and an answer from your numbers as chat bubbles                                          |
-| Upload       | a folder with your latest statement files floating into it                                             |
+| Screen       | 3D scene                                                                                                |
+| ------------ | ------------------------------------------------------------------------------------------------------- |
+| Home         | a dashboard: monitor with 12 months of worth and the split, a phone with the goal ring, floating cards  |
+| Mutual funds | twelve month-end values as 3D bars, this month glowing                                                  |
+| Stocks       | the 12-month line as a glowing tube, with your biggest stocks as tiles                                  |
+| Bonds        | a coin stack for each coming month's payouts, and the payout calendar                                   |
+| Abroad       | a spinning globe with a pin on the US, Japan and London, sized by how much is there                     |
+| Goals        | a staircase to the goal's flag, lit as far as your likely path gets you                                 |
+| Health       | a gauge in the score's colour band with a needle on your score, and a column for each of its five parts |
+| Monthly plan | the abroad split as a 3D donut, each slice raised by how full it is against its target                  |
+| Sell & tax   | the next long-term date's month as a calendar block, with an hourglass                                  |
+| Checklist    | a clipboard with this year's jobs ticked off                                                            |
+| Ask          | your question and an answer from your numbers as chat bubbles                                           |
+| Upload       | a folder with your latest statement files floating into it                                              |
 
 Every scene stands on the same round podium in front of a glowing disc in the screen's accent colour (lime on Home, the
 category colour on category screens).

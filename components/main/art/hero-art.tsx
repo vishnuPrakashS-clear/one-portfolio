@@ -33,7 +33,13 @@ class GlBoundary extends Component<{ children: ReactNode; fallback: ReactNode },
   }
 }
 
-export type ArtKind = "home" | CatId | "goals" | "plan" | "tax" | "checklist" | "ask" | "upload";
+export type ArtKind = "home" | CatId | "goals" | "health" | "plan" | "tax" | "checklist" | "ask" | "upload";
+/** numbers a screen already worked out and hands to its scene (Portfolio health passes its score) */
+export interface ArtExtra {
+  score: number | null;
+  parts: number[];
+  band: string | null;
+}
 
 const LIME: [string, string] = ["#c4f25a", "#5fe37a"];
 const ACCENT: Partial<Record<ArtKind, [string, string]>> = {
@@ -42,6 +48,7 @@ const ACCENT: Partial<Record<ArtKind, [string, string]>> = {
   bonds: [CATEGORIES.bonds.hex2, CATEGORIES.bonds.hex],
   abroad: [CATEGORIES.abroad.hex2, CATEGORIES.abroad.hex],
   goals: [GOAL_LITE, GOAL_COLOR],
+  health: ["#c4f25a", "#5fe37a"],
   plan: ["#bfdbfe", "#60a5fa"],
   tax: ["#fed7aa", "#fb923c"],
   checklist: ["#99f6e4", "#2dd4bf"],
@@ -55,6 +62,7 @@ const SUB: Record<ArtKind, string> = {
   bonds: "Bonds",
   abroad: "Abroad",
   goals: "Goal check",
+  health: "Portfolio health",
   plan: "Monthly plan",
   tax: "Sell & tax",
   checklist: "Checklist",
@@ -153,7 +161,31 @@ const sgnS = (v: number, s: (v: number) => string) => `${v >= 0 ? "+" : "−"}${
 const DEMO12 = [3, 3.4, 3.2, 3.9, 4.2, 4.1, 4.8, 5.2, 5.1, 5.8, 6.3, 6.9];
 
 /** each screen's own scene, from that screen's numbers (a quiet demo before anything is uploaded) */
-function build(kind: ArtKind, M: Model, S: Portfolio | null, real: boolean, s: (v: number) => string, m: (v: number) => string): ArtData {
+function build(
+  kind: ArtKind,
+  M: Model,
+  S: Portfolio | null,
+  real: boolean,
+  s: (v: number) => string,
+  m: (v: number) => string,
+  extra?: ArtExtra,
+): ArtData {
+  if (kind === "health")
+    return {
+      scene: "gauge",
+      accent: ACCENT.health!,
+      score: extra?.score ?? null,
+      parts: extra?.parts ?? [0.5, 0.6, 0.4, 0.7, 0.5],
+      label:
+        extra?.score != null
+          ? {
+              kicker: "Diversification score",
+              value: `${extra.score} / 100`,
+              sub: extra.band || undefined,
+              color: extra.score >= 51 ? "#86efac" : extra.score >= 26 ? "#fcd34d" : "#fca5a5",
+            }
+          : { kicker: "Diversification score", value: "Checking…", sub: "Reading your funds" },
+    };
   const accent = ACCENT[kind] || LIME,
     today = TODAY(),
     ym = today.slice(0, 7);
@@ -364,7 +396,7 @@ function Flat({ d, kind }: { d: ArtData; kind: ArtKind }) {
 }
 
 /** the hero illustration */
-export function HeroArt({ kind, className }: { kind: ArtKind; className?: string }) {
+export function HeroArt({ kind, className, extra }: { kind: ArtKind; className?: string; extra?: ArtExtra }) {
   const { model, S, locked } = usePortfolio();
   const { month } = useUi();
   const { s, m } = useMoney();
@@ -375,7 +407,7 @@ export function HeroArt({ kind, className }: { kind: ArtKind; className?: string
     scrolling = useScrolling();
   const real = !!S && !locked && model.total > 0;
   const data = useMemo(() => {
-    const d = build(kind, model, S, real, s, m);
+    const d = build(kind, model, S, real, s, m, extra);
     // the month replay on Home: the screen shows that month's worth
     if (d.scene === "dash" && real && month >= 0 && month < model.months.length) {
       d.dash.screen.kicker = `Worth at the end of ${monthShort(model.months[month])}`;
@@ -383,7 +415,7 @@ export function HeroArt({ kind, className }: { kind: ArtKind; className?: string
       d.dash.screen.bars = model.val.map((v, i) => (i <= month ? v : 0));
     }
     return d;
-  }, [kind, model, S, real, s, m, month]);
+  }, [kind, model, S, real, s, m, month, extra]);
 
   return (
     <div ref={box} className={cn("relative aspect-[5/4] w-full", className)}>

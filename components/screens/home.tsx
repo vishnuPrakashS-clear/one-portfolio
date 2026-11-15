@@ -393,6 +393,23 @@ export function HomeScreen() {
           </ul>
         </Card>
       </div>
+      <Link
+        href="/health"
+        className="card no-underline transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+        style={{ backgroundImage: "radial-gradient(80% 140% at 100% 50%, rgb(196 242 90 / 0.12), transparent 60%)" }}
+      >
+        <div className="grid gap-1.5">
+          <span className="kicker">Portfolio health</span>
+          <b className="font-display text-[20px] leading-snug font-semibold text-ink">
+            How well is your money spread, and do your funds repeat each other?
+          </b>
+          <p className="text-[14.5px] text-body">
+            Your diversification score, the companies you really own across all funds, fund overlap, a report card for every fund and stock,
+            and what to change.
+          </p>
+        </div>
+        <span className="btn btn-primary justify-self-start">Check my portfolio →</span>
+      </Link>
       <GameLayer />
       <div className="grid gap-5 md:grid-cols-2">
         <PricesCard />

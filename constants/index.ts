@@ -89,6 +89,7 @@ export const NAV: NavItem[] = [
   { href: "/bonds", label: "Bonds", short: "Bonds", color: CATEGORIES.bonds.hex },
   { href: "/abroad", label: "Abroad", short: "Abroad", color: CATEGORIES.abroad.hex, moreOnPhone: true },
   { href: "/goals", label: "Goals", short: "Goals", color: GOAL_COLOR },
+  { href: "/health", label: "Health", short: "Health", color: "#c4f25a", moreOnPhone: true },
   { href: "/plan", label: "Monthly plan", short: "Plan", more: true },
   { href: "/tax", label: "Sell & tax", short: "Tax", more: true },
   { href: "/checklist", label: "Checklist", short: "Checklist", more: true },

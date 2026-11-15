@@ -1,4 +1,5 @@
 /* Supabase on the free tier: sign-in, the person's own portfolio row (row-level security), "refresh now" and the optional AI helper. */
+import type { MarketClass, MarketData, MarketFund, MarketStock } from "@/types/market";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { supabaseConfig } from "@/config";
 import type { Portfolio } from "@/types/portfolio";
@@ -103,4 +104,50 @@ export async function aiSetup(): Promise<AiHelper | null> {
   } catch {
     return null;
   }
+}
+
+/* ---------- shared market data for Portfolio health (public data; readable by anyone signed in) ---------- */
+/** what's known about the funds and stocks you hold: fund holdings and report-card numbers, stock fundamentals, NSE lists */
+export async function loadMarketData(fundIsins: string[], stockIsins: string[]): Promise<MarketData> {
+  const out: MarketData = { funds: {}, stocks: {}, klass: {} };
+  const chunks = (a: string[]) => Array.from({ length: Math.ceil(a.length / 150) }, (_, i) => a.slice(i * 150, i * 150 + 150));
+  const jobs: Promise<void>[] = [];
+  for (const c of chunks(fundIsins))
+    jobs.push(
+      (async () => {
+        const { data, error } = await sb()
+          .from("market_fund")
+          .select("isin,search_id,name,info,holdings,as_of,fetched_at,miss")
+          .in("isin", c);
+        if (error) throw error;
+        for (const r of (data || []) as MarketFund[]) out.funds[r.isin] = r;
+      })(),
+    );
+  for (const c of chunks(stockIsins))
+    jobs.push(
+      (async () => {
+        const { data, error } = await sb()
+          .from("market_stock")
+          .select("isin,search_id,nse,name,industry,info,fetched_at,miss")
+          .in("isin", c);
+        if (error) throw error;
+        for (const r of (data || []) as MarketStock[]) out.stocks[r.isin] = r;
+      })(),
+    );
+  for (const c of chunks(stockIsins))
+    jobs.push(
+      (async () => {
+        const { data, error } = await sb().from("market_class").select("isin,symbol,name,industry,cap").in("isin", c);
+        if (error) throw error;
+        for (const r of (data || []) as MarketClass[]) out.klass[r.isin] = r;
+      })(),
+    );
+  await Promise.all(jobs);
+  return out;
+}
+/** ask the server to fetch market data for what you hold (a small batch; call again until nothing is left) */
+export async function fillMarketData(): Promise<{ funds?: number; stocks?: number; todo?: { funds: number; stocks: number } }> {
+  const { data, error } = await sb().functions.invoke("market-data", { body: {} });
+  if (error) throw error;
+  return data;
 }

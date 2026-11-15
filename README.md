@@ -34,7 +34,7 @@ A game layer (levels, XP, monthly missions, achievements, a buying streak) rewar
 ## Project structure
 
 ```
-app/                    one folder per route: / funds stocks bonds abroad goals plan tax checklist ask upload
+app/                    one folder per route: / funds stocks bonds abroad goals health plan tax checklist ask upload
   fonts/                Sora and Inter, self-hosted (SIL Open Font License)
   globals.css           design tokens (@theme), surfaces, buttons, chips, charts
 components/
@@ -48,13 +48,15 @@ lib/
   core/                 statement readers (CAS, broker sheets, INDmoney), Indian tax rules, XIRR
   model.ts              monthly growth series, SIP detection, projections, goal check
   game.ts               missions, achievements, streak, level
-  supabase.ts           cloud load/save, refresh now, AI helper
+  analysis.ts           portfolio health: funds opened up, diversification score, overlap, report cards, action plan
+  supabase.ts           cloud load/save, refresh now, market data, AI helper
   upload.ts             reads uploaded files and routes them to the right reader
 constants/  config/  types/
 supabase/
   migrations/           tables, row-level security, sign-up cap, history, schedule
   sql/                  database functions the price refresh uses
-  functions/            refresh-prices (daily), price-history (month-end prices), ai (optional)
+  functions/            refresh-prices (daily), price-history (month-end prices), market-data (fund portfolios and
+                        stock fundamentals), ai (optional)
 tests/                  unit tests on synthetic data
 ```
 
@@ -84,6 +86,7 @@ Browser (GitHub Pages)  ──sign in──▶  Supabase Auth
                                            ▲
    pg_cron 07:10 IST Tue–Sat ──▶ refresh-prices ──▶ Yahoo Finance · mfapi.in · INDmoney · screener.in
    pg_cron nightly           ──▶ price-history  ──▶ month-end prices for the growth charts
+   pg_cron nightly           ──▶ market-data    ──▶ Groww public fund and stock pages · NSE index lists
 ```
 
 Everything runs on free tiers:
@@ -95,6 +98,7 @@ Everything runs on free tiers:
 | Data                 | Supabase Postgres                      | one JSON document per person; every change keeps the previous version (newest 30)                                                                        |
 | Daily prices         | Edge Function + pg_cron                | US/London closes, Indian share prices and fund NAVs, the ₹/$ rate; each symbol fetched once for everyone, with a per-portfolio limit on new code lookups |
 | Price history        | Edge Function + pg_cron                | month-end prices for each holding, so growth charts show real history                                                                                    |
+| Market data          | Edge Function + pg_cron                | what each fund holds, its category average and cost; stock ratios; sector and size from NSE's index lists. Public data only, shared by everyone          |
 | AI helper (optional) | Edge Function + Google Gemini free API | reads screenshots and image-only PDFs, answers questions; off until a key is added                                                                       |
 
 ## Privacy
@@ -102,6 +106,7 @@ Everything runs on free tiers:
 - Each person signs in with their own account. **Row-level security** lets a signed-in person read, change or delete only their own row; the publishable key in the page can read nothing by itself.
 - Statements are opened in the browser. A CAS password is used only to open the file there and is never saved or sent.
 - The app never stores or shows PAN, address, client IDs, folio or account numbers.
+- The Health screen's market data looks up only the names and ISINs of funds and shares (public identifiers); the shared market tables hold public data and nothing about who owns what.
 - The person running the Supabase project can see all rows in its dashboard, so only invite people who are comfortable with that.
 - Anyone can delete their own data from **Upload → Security → Delete all my data**.
 
@@ -109,7 +114,7 @@ See [SECURITY.md](SECURITY.md) to report a problem.
 
 ## Setting up your own copy
 
-1. **Database**: run `supabase/migrations/0001_one_portfolio.sql` and `supabase/sql/price_refresh.sql` in the Supabase SQL editor.
+1. **Database**: run `supabase/migrations/0001_one_portfolio.sql`, `supabase/migrations/0002_market_data.sql` and `supabase/sql/price_refresh.sql` in the Supabase SQL editor.
 2. **Functions**: deploy `supabase/functions/*` with the JWT check off — each function checks the caller itself (a signed-in person refreshes only their own row; refreshing everyone needs the job key in `public.job_keys` that only the schedule sends).
 3. **Auth**: set the Site URL to your Pages address, and turn off "Confirm email" (Supabase's built-in email only reaches the project's own team unless you add SMTP).
 4. **Website**: Settings → Pages → Source: GitHub Actions, then push to `main`.
@@ -124,6 +129,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Design and product notes live in [DESIGN
 ## Credits
 
 Layout, motion patterns and project structure inspired by [sanidhyy/space-portfolio](https://github.com/sanidhyy/space-portfolio) (MIT).
+
+The Health screen follows the portfolio checks [Tickertape](https://www.tickertape.in) describes (diversification score
+bands, red flags, stock scorecards, fund overlap). Fund portfolios and stock ratios come from Groww's public pages
+(unofficial, so they can change without notice); sectors and company sizes from NSE's official index lists.
 
 ## License
 

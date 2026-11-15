@@ -28,7 +28,7 @@ It is built from the user's own statements (CDSL/NSDL CAS, Groww, Zerodha, Wint 
 
 ## Capabilities and Constraints
 
-- Screens: Home (3D dashboard, total, growth over 12 months, goal check, game layer), Mutual funds, Stocks, Bonds and Abroad (each with worth vs. put in over 12 months, the monthly SIP read from purchases, and a 5–20 year projection as a cautious / likely / strong range), Goals (tap-only goal check: will the current SIP get there, and what extra a month would), Plan, Tax, Checklist, Ask (AI helper), Upload.
+- Screens: Home (3D dashboard, total, growth over 12 months, goal check, game layer), Mutual funds, Stocks, Bonds and Abroad (each with worth vs. put in over 12 months, the monthly SIP read from purchases, and a 5–20 year projection as a cautious / likely / strong range), Goals (tap-only goal check: will the current SIP get there, and what extra a month would), Health (Tickertape-style portfolio check: every fund opened up into the companies it holds, a 0–100 diversification score in five parts, fund overlap, a report card for each fund against its category, a scorecard and red flags for each stock, and a ranked plan of what to change with its rupee effect), Plan, Tax, Checklist, Ask (AI helper), Upload.
 - Per-holding detail sheet: every purchase lot, returns, tax, bond maturity and payouts.
 - A game layer that stays a main feature: levels, XP, quests, badges and streaks that reward investing steadily and following the plan.
 - Accounts: email and password sign-up for anyone with the link (capped at 100), optional PIN lock, sign out, delete all my data. Data is private per account.

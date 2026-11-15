@@ -127,6 +127,75 @@ export function Hero({
   );
 }
 
+/** the top of a holdings screen, like a broker's summary: the big current value, the key numbers in a row under it,
+    and the screen's 3D scene kept small at the side (below the numbers on phones, so figures come first) */
+export function Summary({
+  badge,
+  color,
+  title,
+  items,
+  art,
+  artExtra,
+  children,
+}: {
+  badge: string;
+  color?: string;
+  title: ReactNode;
+  items?: { k: string; v: ReactNode; tone?: "pos" | "neg" | "" }[];
+  art?: ArtKind;
+  artExtra?: ArtExtra;
+  children?: ReactNode;
+}) {
+  return (
+    <motion.section
+      initial="hidden"
+      animate="visible"
+      className="grid items-center gap-x-8 gap-y-4 rounded-[var(--radius-card)] px-6 py-5 surface max-sm:rounded-[14px] max-sm:px-4 max-sm:py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]"
+    >
+      <div className="grid min-w-0 content-center gap-3">
+        <motion.span variants={slideInFromTop} className="inline-flex items-center gap-2 text-[13.5px] font-medium text-muted">
+          <i className="size-2 rounded-full" style={{ background: color || "var(--color-lime-2)" }} />
+          {badge}
+        </motion.span>
+        <motion.h1 variants={slideInFromLeft(0.08)} className="num text-[clamp(28px,3.6vw,40px)] leading-none font-semibold tracking-[-0.02em] text-ink">
+          {title}
+        </motion.h1>
+        {items && (
+          <motion.dl variants={slideInFromLeft(0.16)} className="flex flex-wrap gap-x-7 gap-y-2 border-t border-rule pt-3">
+            {items.map((x) => (
+              <div key={x.k} className="grid content-start gap-0.5">
+                <dt className="text-[12.5px] text-muted">{x.k}</dt>
+                <dd
+                  className={cn(
+                    "num text-[15.5px] leading-tight font-semibold whitespace-nowrap text-ink",
+                    x.tone === "pos" && "text-gain-ink",
+                    x.tone === "neg" && "text-loss-ink",
+                  )}
+                >
+                  {x.v}
+                </dd>
+              </div>
+            ))}
+          </motion.dl>
+        )}
+        {children && (
+          <motion.div variants={slideInFromLeft(0.22)} className="grid gap-3">
+            {children}
+          </motion.div>
+        )}
+      </div>
+      {art && (
+        <motion.div
+          variants={slideInFromRight(0.15)}
+          className="mx-auto w-full max-w-[300px] max-lg:order-last max-lg:max-w-[240px] max-sm:-my-2 max-sm:max-w-[200px]"
+        >
+          <HeroArt kind={art} extra={artExtra} />
+        </motion.div>
+      )}
+    </motion.section>
+  );
+}
+
 /** the key numbers under a hero figure, like a broker's holdings summary: label over value, a hairline between */
 export function SummaryRow({ items }: { items: { k: string; v: ReactNode; s?: ReactNode; tone?: "pos" | "neg" | "" }[] }) {
   return (

@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { CATEGORIES, IND_CLASS_COLOR, PROJECTION_YEARS, type CatId } from "@/constants";
 import { fv, type CategoryModel } from "@/lib/model";
-import { pct1 } from "@/lib/format";
+import { inr2, pct1, qty } from "@/lib/format";
 import { itemXirr } from "@/lib/planner";
 import { useMoney } from "@/lib/use-money";
 import { useUi } from "@/components/providers/ui-provider";
@@ -76,49 +77,85 @@ export function ProjectionCard({ c, title = "Where this could be" }: { c: Catego
 }
 
 /** every holding, largest first; the bar shows its share of the category; tap opens its details */
+const SORTS = [
+  ["value", "Current value"],
+  ["ret", "Returns %"],
+  ["name", "Name"],
+] as const;
+/** the holdings list, broker-style: name and what you paid on the left, current value and returns on the right */
 export function HoldingsList({ c, limit }: { c: CategoryModel; limit?: number }) {
-  const { m, s } = useMoney(),
-    { openItem } = useUi(),
-    hex = CATEGORIES[c.id].hex;
-  const max = Math.max(1, ...c.items.map((x) => x.value));
+  const { m } = useMoney(),
+    { openItem } = useUi();
+  const [sort, setSort] = useState<(typeof SORTS)[number][0]>("value");
+  const rows = [...c.items].sort((a, b) => {
+    if (sort === "name") return a.name.localeCompare(b.name);
+    if (sort === "ret") {
+      const ra = a.cost ? (a.value - a.cost) / a.cost : -1e9,
+        rb = b.cost ? (b.value - b.cost) / b.cost : -1e9;
+      return rb - ra;
+    }
+    return b.value - a.value;
+  });
   return (
-    <ol className="grid max-h-[760px] [scrollbar-width:thin] gap-0.5 overflow-auto">
-      {c.items.slice(0, limit).map((it) => {
-        const g = it.cost != null ? it.value - it.cost : null,
-          gp = it.cost ? (g as number) / it.cost : null,
-          xr = itemXirr(it);
-        return (
-          <li key={it.id}>
-            <button
-              type="button"
-              onClick={() => openItem(c.id, it.id)}
-              className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-3.5 gap-y-1.5 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-tint focus-visible:outline-offset-[-2px]"
-            >
-              <span className="grid min-w-0 gap-px">
-                <b className="truncate text-[14.5px] font-semibold">{it.name}</b>
-                <span className="truncate text-[12.5px] text-muted">{it.sub}</span>
-              </span>
-              <span className="num text-right font-display text-[15px] font-semibold">{m(it.value)}</span>
-              <span className="h-[5px] self-center overflow-hidden rounded-full bg-tint">
-                <i className="block h-full rounded-full" style={{ width: `${(100 * it.value) / max}%`, background: hex }} />
-              </span>
-              <span
-                className={cn(
-                  "num text-right text-[12.5px] whitespace-nowrap text-muted",
-                  g != null && "font-semibold",
-                  g != null && (g >= 0 ? "text-gain-ink" : "text-loss-ink"),
-                )}
+    <div className="grid gap-1">
+      <div className="flex flex-wrap items-center gap-1.5 pb-1" role="group" aria-label="Sort holdings">
+        <span className="pr-1 text-[12.5px] text-muted">Sort</span>
+        {SORTS.map(([k, l]) => (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={sort === k}
+            onClick={() => setSort(k)}
+            className={cn("chip cursor-pointer", sort === k ? "bg-gain-wash text-lime" : "hover:bg-tint-2")}
+          >
+            {l}
+          </button>
+        ))}
+      </div>
+      <ol className="grid max-h-[760px] [scrollbar-width:thin] overflow-auto">
+        {rows.slice(0, limit).map((it) => {
+          const g = it.cost != null ? it.value - it.cost : null,
+            gp = it.cost ? (g as number) / it.cost : null,
+            xr = itemXirr(it),
+            h = it.india;
+          const left =
+            h && h.type !== "mf" && (h.avg || (h.cost && h.units))
+              ? `${qty(h.units)} × avg ${inr2(h.avg || (h.cost as number) / h.units)}`
+              : it.cost != null
+                ? `Invested ${m(it.cost)}`
+                : it.sub;
+          return (
+            <li key={it.id} className="border-b border-rule last:border-0">
+              <button
+                type="button"
+                onClick={() => openItem(c.id, it.id)}
+                className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-1.5 py-3 text-left transition-colors hover:bg-tint focus-visible:outline-offset-[-2px]"
               >
-                {g == null ? "buy price not uploaded" : `${g >= 0 ? "+" : "−"}${s(Math.abs(g))} · ${pct1(gp)}`}
-                {xr != null && (
-                  <span className={cn("block font-normal", xr >= 0 ? "text-gain-ink" : "text-loss-ink")}>XIRR {pct1(xr)} a year</span>
-                )}
-              </span>
-            </button>
-          </li>
-        );
-      })}
-    </ol>
+                <b className="truncate text-[14.5px] font-medium text-ink">{it.name}</b>
+                <b className="num text-right text-[14.5px] font-semibold text-ink">{m(it.value)}</b>
+                <span className="num truncate text-[12.5px] text-muted">
+                  {left}
+                  {xr != null && (
+                    <>
+                      {" "}
+                      · XIRR <b className={cn("font-semibold", xr >= 0 ? "text-gain-ink" : "text-loss-ink")}>{pct1(xr)}</b>
+                    </>
+                  )}
+                </span>
+                <span
+                  className={cn(
+                    "num text-right text-[12.5px] font-semibold whitespace-nowrap",
+                    g == null ? "font-normal text-muted" : g >= 0 ? "text-gain-ink" : "text-loss-ink",
+                  )}
+                >
+                  {g == null ? "buy price not uploaded" : `${g >= 0 ? "+" : "−"}${m(Math.abs(g))} (${pct1(gp)})`}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 }
 

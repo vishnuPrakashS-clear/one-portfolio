@@ -10,7 +10,7 @@ import { holdingRows } from "@/lib/core/abroad";
 import { fmtDate } from "@/lib/dates";
 import { pct1, pctf, sgn, tk } from "@/lib/format";
 import { useMoney } from "@/lib/use-money";
-import { Card, CardHead, Chip, GainPill, Hero, Pill, Stat, StatGrid } from "@/components/sub/ui";
+import { Card, CardHead, Chip, Hero, Summary } from "@/components/sub/ui";
 import { CountUp } from "@/components/sub/count-up";
 import { Legend, LineChart } from "@/components/sub/charts";
 import { FundMix, HoldingsList, Movers, ProjectionCard } from "@/components/sub/category-parts";
@@ -158,48 +158,40 @@ export function CategoryScreen({ id }: { id: CatId }) {
   const extras = id === "funds" ? <FundMix c={c} /> : id === "stocks" ? <Movers c={c} /> : null;
   return (
     <>
-      <Hero
+      <Summary
         badge={`${cat.name} · ${c.items.length} holding${c.items.length === 1 ? "" : "s"}`}
         color={cat.hex}
-        wash={cat.wash}
         art={id}
         title={<CountUp value={c.value} format={m} />}
+        items={[
+          {
+            k: c.known < c.value - 1 ? `Invested (${Math.round((100 * c.known) / c.value)}% known)` : "Invested",
+            v: c.cost ? s(c.cost) : "—",
+          },
+          {
+            k: "Total returns",
+            v: c.gain != null ? `${c.gain >= 0 ? "+" : "−"}${s(Math.abs(c.gain))} (${pct1(c.gainPct)})` : "—",
+            tone: c.gain == null ? "" : c.gain >= 0 ? "pos" : "neg",
+          },
+          ...(c.xirr != null
+            ? [{ k: `XIRR since ${fmtDate(c.since)}`, v: pct1(c.xirr), tone: (c.xirr >= 0 ? "pos" : "neg") as "pos" | "neg" }]
+            : []),
+          { k: "This month", v: `${move >= 0 ? "+" : "−"}${s(Math.abs(move))}`, tone: move >= 0 ? "pos" : "neg" },
+          ...(c.sip ? [{ k: "Going in monthly", v: m(c.sip) }] : []),
+        ]}
       >
-        <div className="flex max-w-[640px] flex-wrap gap-2">
-          <GainPill gain={c.gain} pct={c.gainPct} base={c.cost} s={s} />
-          {c.xirr != null && (
-            <Pill>
-              {pct1(c.xirr)} a year since {fmtDate(c.since)}
-            </Pill>
-          )}
-          <Pill>{c.sip ? `${m(c.sip)} a month` : "No regular monthly buying found"}</Pill>
-          {id === "abroad" && (
+        {id === "abroad" && (
+          <div>
             <Link href="/plan" className="pill text-ink no-underline hover:bg-tint">
               This month&apos;s buys →
             </Link>
-          )}
-        </div>
-      </Hero>
-      <StatGrid>
-        <Stat k="Value" v={s(c.value)} />
-        <Stat
-          k="Put in"
-          v={c.cost ? s(c.cost) : "—"}
-          s={c.known < c.value - 1 ? `buy price known for ${Math.round((100 * c.known) / c.value)}%` : undefined}
-        />
-        <Stat
-          k="Gain"
-          v={c.gain != null ? `${c.gain >= 0 ? "+" : "−"}${s(Math.abs(c.gain))}` : "—"}
-          s={c.gainPct != null ? pct1(c.gainPct) : undefined}
-          tone={c.gain == null ? "" : c.gain >= 0 ? "pos" : "neg"}
-        />
-        <Stat
-          k="This month"
-          v={`${move >= 0 ? "+" : "−"}${s(Math.abs(move))}`}
-          s="market move, besides money added"
-          tone={move >= 0 ? "pos" : "neg"}
-        />
-      </StatGrid>
+          </div>
+        )}
+      </Summary>
+      <Card>
+        <CardHead title={`Your ${cat.name.toLowerCase()}`} note="Tap one for its purchases, XIRR explained, returns and tax." />
+        <HoldingsList c={c} />
+      </Card>
       <Card>
         <CardHead
           title={`Growth over the last ${n} months`}
@@ -244,17 +236,8 @@ export function CategoryScreen({ id }: { id: CatId }) {
         <HistNote />
       </Card>
       <div className="grid items-start gap-5 lg:grid-cols-2">
-        <div className="grid gap-5">
-          <ProjectionCard c={c} />
-          {extras}
-        </div>
-        <Card delay={0.05}>
-          <CardHead
-            title={`Your ${cat.name.toLowerCase()}`}
-            note="Largest first; the biggest circle the shape at the top (green above what you paid, red below). Tap one for its purchases, returns and tax."
-          />
-          <HoldingsList c={c} />
-        </Card>
+        <ProjectionCard c={c} />
+        {extras}
       </div>
       {id === "bonds" && I && <BondCard H={H} I={I} />}
       {id === "abroad" && <AbroadTable />}

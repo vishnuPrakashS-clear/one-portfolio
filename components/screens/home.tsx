@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { useUi } from "@/components/providers/ui-provider";
@@ -10,15 +9,13 @@ import { goalCalc, projectAll } from "@/lib/model";
 import { fmtDate, ist, longDate, monthLong, monthShort, nextRefresh, TODAY } from "@/lib/dates";
 import { pct1 } from "@/lib/format";
 import { useMoney } from "@/lib/use-money";
-import { stagger, riseIn } from "@/lib/motion";
-import { Card, CardHead, Empty, GainPill, Hero, Pill } from "@/components/sub/ui";
+import { Card, CardHead, Empty, Hero, Summary } from "@/components/sub/ui";
 import { CountUp } from "@/components/sub/count-up";
 import { Legend, StackChart } from "@/components/sub/charts";
 import { GameLayer } from "@/components/sub/game-layer";
 import { Icon } from "@/components/sub/icon";
 import { useNow } from "@/lib/hooks";
 import { VERDICTS } from "./goals";
-import { CatOrb } from "@/components/main/art/hero-art";
 
 function HistNote() {
   const { model } = usePortfolio();
@@ -95,49 +92,6 @@ function Replay() {
         />
       </div>
     </div>
-  );
-}
-
-function CategoryTiles() {
-  const { model } = usePortfolio(),
-    { s } = useMoney();
-  return (
-    <motion.div variants={stagger(0.08, 0.6)} initial="hidden" animate="visible" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      {CAT_ORDER.filter((id) => model.cats[id].items.length).map((id) => {
-        const c = model.cats[id],
-          cat = CATEGORIES[id];
-        return (
-          <motion.div key={id} variants={riseIn()}>
-            <Link
-              href={cat.route}
-              className="group relative grid gap-1 overflow-hidden rounded-[22px] px-[18px] pt-4 pb-4 no-underline surface transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)]"
-              style={{ backgroundImage: `linear-gradient(160deg, ${cat.wash}, transparent 70%)` }}
-            >
-              <CatOrb
-                id={id}
-                size={40}
-                className="absolute top-3.5 right-3.5 transition-transform group-hover:-translate-y-1 max-[420px]:scale-75"
-              />
-              <span className="text-[13px] font-semibold" style={{ color: cat.hex }}>
-                {cat.name}
-              </span>
-              <b className="num font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink max-[420px]:text-[20px]">
-                {s(c.value)}
-              </b>
-              <span className="num flex justify-between gap-2 text-[12.5px] text-muted">
-                <span>{((100 * c.value) / model.total).toFixed(0)}% of all</span>
-                {c.gainPct != null && (
-                  <span className={`font-semibold ${c.gainPct >= 0 ? "text-gain-ink" : "text-loss-ink"}`}>{pct1(c.gainPct)}</span>
-                )}
-              </span>
-              <span className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-tint-2">
-                <i className="block h-full rounded-full" style={{ width: `${(100 * c.value) / model.total}%`, background: cat.hex }} />
-              </span>
-            </Link>
-          </motion.div>
-        );
-      })}
-    </motion.div>
   );
 }
 
@@ -300,20 +254,61 @@ export function HomeScreen() {
   const coverage = CAT_ORDER.reduce((a, id) => a + model.cats[id].covered, 0) / model.total;
   return (
     <>
-      <Hero badge={`All investments · ${longDate(TODAY())}`} title={<CountUp value={model.total} format={m} />} art="home">
-        <div className="flex max-w-[620px] flex-wrap gap-2">
-          <GainPill gain={gain} pct={null} base={known} s={s} />
-          <Pill>
-            {s(Math.abs(growth))} {growth >= 0 ? "growth" : "fall"} in {monthShort(model.months[n - 1])}
-            {putIn > 0 ? ` (besides ${s(putIn)} added)` : ""}
-          </Pill>
-          {model.sip > 0 && <Pill>{m(model.sip)} going in each month</Pill>}
-        </div>
-        <div className="max-w-[520px]">
-          <Replay />
-        </div>
-      </Hero>
-      <CategoryTiles />
+      <Summary
+        badge={`All investments · ${longDate(TODAY())}`}
+        title={<CountUp value={model.total} format={m} />}
+        art="home"
+        items={[
+          { k: "Invested", v: known ? s(known) : "—" },
+          {
+            k: "Total returns",
+            v: gain != null ? `${gain >= 0 ? "+" : "−"}${s(Math.abs(gain))} (${pct1(known ? gain / known : null)})` : "—",
+            tone: gain == null ? "" : gain >= 0 ? "pos" : "neg",
+          },
+          {
+            k: `${monthShort(model.months[n - 1])} so far`,
+            v: `${growth >= 0 ? "+" : "−"}${s(Math.abs(growth))}`,
+            tone: growth >= 0 ? "pos" : "neg",
+          },
+          ...(model.sip > 0 ? [{ k: "Going in monthly", v: m(model.sip) }] : []),
+        ]}
+      />
+      <Card>
+        <CardHead title="Your investments" />
+        <ul className="grid">
+          {CAT_ORDER.filter((id) => model.cats[id].items.length).map((id) => {
+            const c = model.cats[id],
+              cat = CATEGORIES[id];
+            return (
+              <li key={id} className="border-b border-rule last:border-0">
+                <Link
+                  href={cat.route}
+                  className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] items-center gap-x-3.5 gap-y-0.5 rounded-lg px-1.5 py-3.5 no-underline transition-colors hover:bg-tint"
+                >
+                  <span className="grid size-9 place-items-center rounded-full" style={{ background: cat.wash }}>
+                    <i className="size-2.5 rounded-full" style={{ background: cat.hex }} aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <b className="block truncate text-[14.5px] font-medium text-ink">{cat.name}</b>
+                    <span className="block text-[12.5px] text-muted">
+                      {c.items.length} holding{c.items.length === 1 ? "" : "s"} · {((100 * c.value) / model.total).toFixed(0)}% of all
+                    </span>
+                  </span>
+                  <span className="text-right">
+                    <b className="num block text-[14.5px] font-semibold text-ink">{s(c.value)}</b>
+                    {c.gainPct != null && (
+                      <span className={`num block text-[12.5px] font-semibold ${c.gainPct >= 0 ? "text-gain-ink" : "text-loss-ink"}`}>
+                        {pct1(c.gainPct)}
+                      </span>
+                    )}
+                  </span>
+                  <Icon name="chevron" className="text-muted" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </Card>
       <Card>
         <CardHead
           title="How your money grew"
@@ -327,6 +322,9 @@ export function HomeScreen() {
           label={`Value by category over the last ${n} months`}
         />
         <Legend items={[...layers.map((l) => ({ name: l.name, color: l.color })), { name: "Money put in", dashed: true }]} />
+        <div className="max-w-[520px]">
+          <Replay />
+        </div>
         <HistNote />
       </Card>
       <div className="grid gap-5 md:grid-cols-2">
@@ -395,19 +393,18 @@ export function HomeScreen() {
       </div>
       <Link
         href="/health"
-        className="card no-underline transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
+        className="card grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 no-underline transition hover:shadow-[var(--shadow-lift)]"
       >
-        <div className="grid gap-1.5">
-          <span className="kicker">Portfolio health</span>
-          <b className="font-display text-[20px] leading-snug font-semibold text-ink">
-            How well is your money spread, and do your funds repeat each other?
-          </b>
-          <p className="text-[14.5px] text-body">
-            Your diversification score, the companies you really own across all funds, fund overlap, a report card for every fund and stock,
-            and what to change.
-          </p>
-        </div>
-        <span className="btn btn-primary justify-self-start">Check my portfolio →</span>
+        <span className="grid size-10 place-items-center rounded-full bg-gain-wash text-lime">
+          <Icon name="pulse" className="size-5" />
+        </span>
+        <span className="grid min-w-0 gap-0.5">
+          <b className="text-[15.5px] font-semibold text-ink">Portfolio insights</b>
+          <span className="truncate text-[13px] text-muted">
+            Diversification score, fund overlap, report cards for every fund and stock, and your plan
+          </span>
+        </span>
+        <Icon name="chevron" className="text-muted" />
       </Link>
       <GameLayer />
       <div className="grid gap-5 md:grid-cols-2">

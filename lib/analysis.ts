@@ -481,13 +481,20 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
     const flags: Flag[] = [];
     const d3 = i.r3 != null && i.c3 != null ? i.r3 - i.c3 : null,
       d5 = i.r5 != null && i.c5 != null ? i.r5 - i.c5 : null;
-    const index = /index|etf/i.test(f.name + " " + (i.sub || ""));
+    const index = /index|etf/i.test(f.name + " " + (i.sub || "")),
+      passive = index || /gold|silver/i.test(i.sub || "");
     let review = false,
       good = false;
     if (d3 != null) {
       if (d3 >= 1 && (d5 == null || d5 >= 0)) {
         good = true;
         flags.push({ tone: "good", text: `Ahead of its category: ${i.r3!.toFixed(1)}% a year over 3 years vs ${i.c3!.toFixed(1)}%` });
+      } else if (d3 <= -1.5 && (d5 == null || d5 <= -1) && passive) {
+        // a fund that follows an index or a metal can't pick better stocks: a gap is cost and tracking, worth a cheaper twin
+        flags.push({
+          tone: "wait",
+          text: `${i.r3!.toFixed(1)}% a year over 3 years vs ${i.c3!.toFixed(1)}% for its kind: it follows an index or a metal, so the gap is mostly cost and tracking`,
+        });
       } else if (d3 <= -1.5 && (d5 == null || d5 <= -1)) {
         review = true;
         flags.push({
@@ -550,7 +557,8 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
       quality = Math.round(clamp(q / 100) * 100);
       if (i.loss) flags.push("Making losses");
       if (!fin && i.de != null && i.de > 2) flags.push(`Heavy debt (${i.de.toFixed(1)}× equity)`);
-      if (i.prom != null && i.promYr != null && i.prom - i.promYr <= -5)
+      // above 75% a cut is usually the sell-down every listed company must make to 25% public shareholding
+      if (i.prom != null && i.promYr != null && i.prom - i.promYr <= -5 && i.promYr <= 75)
         flags.push(`Promoters cut their stake from ${i.promYr.toFixed(0)}% to ${i.prom.toFixed(0)}% in a year`);
       if (i.pe != null && i.ipe && i.pe > 3 * i.ipe && i.pe > 60)
         flags.push(`Very expensive: P/E ${Math.round(i.pe)} vs ${Math.round(i.ipe)} for its industry`);
@@ -859,7 +867,7 @@ function plan(x: {
     A.push({
       level: 2,
       kind: "laggard",
-      title: `${lag.length} fund${lag.length > 1 ? "s have" : " has"} trailed their category for years`,
+      title: `${lag.length} fund${lag.length > 1 ? "s have trailed their" : " has trailed its"} category for years`,
       body: `${lag.map((f) => f.short).join(", ")}. One bad year is normal; 3 and 5 years behind usually isn't luck. Stop new money first; decide on the rest after a year-old check on tax and exit load. An index fund of the same kind is the simple fallback.`,
     });
 

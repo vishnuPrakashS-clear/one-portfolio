@@ -654,8 +654,8 @@ function About({ A, filling }: { A: Analysis; filling: boolean }) {
             : ""}
         </li>
         <li>
-          • Red flags here: losses, heavy debt, promoters selling 5+ points in a year, a P/E over 3× its industry, micro-caps, and stocks
-          with no market data.
+          • Red flags here: losses, heavy debt, promoters selling 5+ points in a year (once at or under 75%), a P/E over 3× its industry,
+          micro-caps, and stocks with no market data.
         </li>
       </ul>
     </Card>

@@ -223,6 +223,48 @@ describe("portfolio health", () => {
     expect(A.funds.find((f) => f.isin === "INF000000D01")!.equity).toBe(false);
     expect(A.actions.some((a) => a.kind === "duplicate" && a.title.includes("Thematic"))).toBe(false);
   });
+  test("gold funds behind their kind and post-listing promoter sell-downs aren't marked for review", () => {
+    const S = sample();
+    S.india!.holdings.push(hold("INF000000G01", "Golden Gold Fund - Direct Plan - Growth", "mf", 50000, "Gold & silver"));
+    const D = data();
+    D.funds.INF000000G01 = { ...fund("INF000000G01", "Gold", "Direct", 0.2, 0.2, 28, 31, null), holdings: null };
+    D.funds.INF000000G01.info!.r5 = 20;
+    D.funds.INF000000G01.info!.c5 = 22;
+    const info = {
+      mcap: 50000,
+      pe: 20,
+      ipe: 22,
+      pb: 3,
+      roe: 15,
+      de: 0.2,
+      dy: 1,
+      eps: 10,
+      rev1: 0.1,
+      rev3: 0.1,
+      pr1: 0.1,
+      pr3: 0.1,
+      margin: 0.1,
+      loss: false,
+      cap: "L" as const,
+      groww: null,
+    };
+    D.stocks.INE000000X01 = {
+      isin: "INE000000X01",
+      search_id: null,
+      nse: "BIGBANK",
+      name: "Bigbank",
+      industry: "Financial Services",
+      fetched_at: null,
+      miss: null,
+      info: { ...info, prom: 88, promYr: 98 },
+    };
+    const A = analyse(buildModel(S), S, D);
+    expect(A.funds.find((f) => f.isin === "INF000000G01")!.verdict).not.toBe("review");
+    expect(A.stocks.find((x) => x.isin === "INE000000X01")!.flags.some((t) => t.startsWith("Promoters"))).toBe(false);
+    D.stocks.INE000000X01.info = { ...info, prom: 60, promYr: 70 };
+    const B = analyse(buildModel(S), S, D);
+    expect(B.stocks.find((x) => x.isin === "INE000000X01")!.flags.some((t) => t.startsWith("Promoters"))).toBe(true);
+  });
   test("helpers", () => {
     expect(norm("ICICI Bank Ltd.")).toBe(norm("ICICI BANK LIMITED"));
     expect(shortFund("HDFC Focused Fund - Direct Plan - Growth Option")).toBe("HDFC Focused Fund");

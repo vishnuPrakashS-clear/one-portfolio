@@ -12,6 +12,8 @@ import { inr, inr2, pctf, qty, sgn, tk, tone } from "@/lib/format";
 import { useMoney } from "@/lib/use-money";
 import { CATEGORIES, TYPE_NAME } from "@/constants";
 import { Chip } from "./ui";
+import { HowCalculated, StockOutlook } from "./stock-insight";
+import type { Lot } from "@/lib/planner";
 import { Icon } from "./icon";
 import { cn } from "@/lib/utils";
 
@@ -207,6 +209,12 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
           ]}
         />
       </Section>
+      {h.type !== "bond" && (
+        <>
+          <HowCalculated h={h} price={px} value={v} lots={dl as Lot[]} xr={xr} />
+          <StockOutlook h={h} price={px} lots={dl as Lot[]} />
+        </>
+      )}
       {F && (
         <Section title="Bond details">
           <DL

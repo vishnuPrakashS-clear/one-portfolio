@@ -49,6 +49,7 @@ lib/
   model.ts              monthly growth series, SIP detection, projections, goal check
   game.ts               missions, achievements, streak, level
   analysis.ts           portfolio health: funds opened up, diversification score, overlap, report cards, action plan
+  planner.ts            your plan: fund and stock keep / build up / let go, monthly money, dividends, leaders, vs Nifty 50
   supabase.ts           cloud load/save, refresh now, market data, AI helper
   upload.ts             reads uploaded files and routes them to the right reader
 constants/  config/  types/
@@ -86,20 +87,20 @@ Browser (GitHub Pages)  ──sign in──▶  Supabase Auth
                                            ▲
    pg_cron 07:10 IST Tue–Sat ──▶ refresh-prices ──▶ Yahoo Finance · mfapi.in · INDmoney · screener.in
    pg_cron nightly           ──▶ price-history  ──▶ month-end prices for the growth charts
-   pg_cron nightly           ──▶ market-data    ──▶ Groww public fund and stock pages · NSE index lists
+   pg_cron nightly           ──▶ market-data    ──▶ Groww public fund and stock pages · NSE index lists · mfapi.in (Nifty 50)
 ```
 
 Everything runs on free tiers:
 
-| Part                 | Free tier                              | What it does                                                                                                                                             |
-| -------------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Website              | GitHub Pages                           | the static export, rebuilt by CI on every push to `main`                                                                                                 |
-| Login                | Supabase Auth                          | email + password for anyone with the link (capped at 100 accounts)                                                                                       |
-| Data                 | Supabase Postgres                      | one JSON document per person; every change keeps the previous version (newest 30)                                                                        |
-| Daily prices         | Edge Function + pg_cron                | US/London closes, Indian share prices and fund NAVs, the ₹/$ rate; each symbol fetched once for everyone, with a per-portfolio limit on new code lookups |
-| Price history        | Edge Function + pg_cron                | month-end prices for each holding, so growth charts show real history                                                                                    |
-| Market data          | Edge Function + pg_cron                | what each fund holds, its category average and cost; stock ratios; sector and size from NSE's index lists. Public data only, shared by everyone          |
-| AI helper (optional) | Edge Function + Google Gemini free API | reads screenshots and image-only PDFs, answers questions; off until a key is added                                                                       |
+| Part                 | Free tier                              | What it does                                                                                                                                                                                  |
+| -------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Website              | GitHub Pages                           | the static export, rebuilt by CI on every push to `main`                                                                                                                                      |
+| Login                | Supabase Auth                          | email + password for anyone with the link (capped at 100 accounts)                                                                                                                            |
+| Data                 | Supabase Postgres                      | one JSON document per person; every change keeps the previous version (newest 30)                                                                                                             |
+| Daily prices         | Edge Function + pg_cron                | US/London closes, Indian share prices and fund NAVs, the ₹/$ rate; each symbol fetched once for everyone, with a per-portfolio limit on new code lookups                                      |
+| Price history        | Edge Function + pg_cron                | month-end prices for each holding, so growth charts show real history                                                                                                                         |
+| Market data          | Edge Function + pg_cron                | what each fund holds, its category average and cost; stock ratios and 52-week range; sector and size from NSE's index lists; the Nifty 50's daily value. Public data only, shared by everyone |
+| AI helper (optional) | Edge Function + Google Gemini free API | reads screenshots and image-only PDFs, answers questions; off until a key is added                                                                                                            |
 
 ## Privacy
 
@@ -114,7 +115,7 @@ See [SECURITY.md](SECURITY.md) to report a problem.
 
 ## Setting up your own copy
 
-1. **Database**: run `supabase/migrations/0001_one_portfolio.sql`, `supabase/migrations/0002_market_data.sql` and `supabase/sql/price_refresh.sql` in the Supabase SQL editor.
+1. **Database**: run `supabase/migrations/0001_one_portfolio.sql`, `supabase/migrations/0002_market_data.sql`, `supabase/migrations/0003_market_index.sql` and `supabase/sql/price_refresh.sql` in the Supabase SQL editor.
 2. **Functions**: deploy `supabase/functions/*` with the JWT check off — each function checks the caller itself (a signed-in person refreshes only their own row; refreshing everyone needs the job key in `public.job_keys` that only the schedule sends).
 3. **Auth**: set the Site URL to your Pages address, and turn off "Confirm email" (Supabase's built-in email only reaches the project's own team unless you add SMTP).
 4. **Website**: Settings → Pages → Source: GitHub Actions, then push to `main`.

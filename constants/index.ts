@@ -1,5 +1,5 @@
 /* Fixed content: the four categories and their colours, return assumptions, navigation, checklist and copy used across screens. */
-import type { IndType } from "@/types/portfolio";
+import type { IndType, PlanPrefs } from "@/types/portfolio";
 
 export type CatId = "funds" | "stocks" | "bonds" | "abroad";
 
@@ -180,3 +180,16 @@ export const RANKS: [number, string][] = [
   [12, "Compounder"],
   [24, "Long-term legend"],
 ];
+
+/* ---------- the Health screen's plan ---------- */
+export const PLAN_DEFAULT: PlanPrefs = { mix: "balanced", div: 5000, monthly: 0, stocks: -1 };
+/** your own limits for a portfolio you can keep track of */
+export const PLAN_RULES = {
+  maxFunds: 12,
+  maxStocks: 60,
+  minQty: 20,
+  /** above this, 20 shares is too much in one stock */ maxPosition: 30000,
+};
+export const PLAN_MONTHLY = [5000, 10000, 20000, 30000, 50000, 100000];
+export const PLAN_DIV = [2000, 5000, 10000, 25000];
+export const PLAN_SPLIT = [0.3, 0.5, 0.7];

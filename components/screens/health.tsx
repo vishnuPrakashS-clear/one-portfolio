@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import type { MarketData } from "@/types/market";
 import { Card, CardHead, Chip, Hero, Pill } from "@/components/sub/ui";
 import { Icon } from "@/components/sub/icon";
+import { PlanCards } from "./health-plan";
 
 const BUCKET_COLOR: Record<Bucket, string> = {
   equity: "#a78bfa",
@@ -143,6 +144,10 @@ export function HealthScreen() {
                 {A.coverage.fundsWithData} of {A.coverage.funds} funds opened up
               </Pill>
               {A.asOf && <Pill>Fund holdings as of {monthLong(A.asOf.slice(0, 7))}</Pill>}
+              <a href="#plan" className="btn btn-primary">
+                <Icon name="arrow" />
+                Your plan
+              </a>
             </div>
           </>
         ) : (
@@ -168,6 +173,7 @@ export function HealthScreen() {
         <>
           <Breakdown A={A} />
           <Actions A={A} />
+          {load.data && <PlanCards A={A} D={load.data} />}
           <Mix A={A} s={s} />
           <TopCompanies A={A} s={s} />
           <OverlapCard A={A} m={m} />

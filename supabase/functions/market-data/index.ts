@@ -5,7 +5,10 @@
 //   market_fund   each fund's or ETF's latest disclosed holdings (with sector and band), category, plan,
 //                 expense ratio, size, risk, and 1/3/5-year returns against its category average
 //   market_stock  each directly held stock's fundamentals: market cap, P/E vs industry P/E, P/B, ROE, debt/equity,
-//                 revenue and profit growth, margin and promoter holding
+//                 revenue and profit growth, margin, promoter holding and 52-week range; also a fixed list of
+//                 market leaders (LEADERS) so the plan can suggest ones you don't own
+//   market_index  the Nifty 50's daily value (UTI Nifty 50 Index Fund, direct growth NAV from mfapi.in) to compare
+//                 your purchases against the same money put in the index on the same days
 // Sources: niftyindices.com constituent lists (official), and Groww's public fund and stock pages (the data shown on
 // groww.in, itself from monthly AMC portfolio disclosures and company filings). Each run does a small batch and skips
 // anything fetched in the last few weeks, so the nightly schedule stays well inside the free tier.
@@ -13,6 +16,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const UA = { "User-Agent": "Mozilla/5.0 (One Portfolio market data)", Accept: "application/json,text/csv;q=0.9,*/*;q=0.8" };
 const FRESH_DAYS = 25, MISS_DAYS = 7, FUNDS_PER_RUN = 18, STOCKS_PER_RUN = 50;
+/** market leaders (monopolies, duopolies and clear No. 1s) by NSE symbol; keep in step with constants/leaders.ts */
+export const LEADERS = ["IRCTC", "CDSL", "MCX", "IEX", "CAMS", "KFINTECH", "BSE", "HAL", "BEL", "BDL", "MAZDOCK", "COALINDIA", "POWERGRID",
+  "CONCOR", "IRFC", "GAIL", "PETRONET", "IGL", "MGL", "HINDZINC", "NMDC", "ITC", "ASIANPAINT", "PIDILITIND", "NAUKRI", "INDIGO", "MARUTI",
+  "HINDUNILVR", "NESTLEIND", "LICI", "ONGC", "NTPC", "NHPC", "POLYCAB", "SOLARINDS", "DIXON", "CRISIL"];
+/** the index fund whose NAV stands in for the Nifty 50 (it includes dividends and a small cost) */
+const NIFTY_FUND = { key: "NIFTY50", code: 120716, name: "Nifty 50 (UTI Nifty 50 Index Fund, direct)" };
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type" } });
 const days = (d?: string | null) => (d ? (Date.now() - Date.parse(d)) / 86400000 : Infinity);
 const today = () => new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
@@ -201,13 +210,31 @@ async function fetchStock(isin: string, name: string, klass: Map<string, Klass>,
   const promNow = qs.length ? sh[qs[qs.length - 1]]?.promoters ?? null : null,
     promYr = qs.length >= 5 ? sh[qs[qs.length - 5]]?.promoters ?? null : qs.length ? sh[qs[0]]?.promoters ?? null : null;
   const k = byIsin.get(isin) || klass.get(norm(p.header.displayName || name));
+  const pr = p.priceData?.nse || p.priceData?.bse || {};
   const info = {
     mcap: num(f["Market Cap"]), pe: num(f["P/E Ratio(TTM)"]), ipe: num(f["Industry P/E"]), pb: num(f["P/B Ratio"]), roe: num(f["ROE"]), de: num(f["Debt to Equity"]),
     dy: num(f["Dividend Yield"]), eps: num(f["EPS(TTM)"]), rev1: fs.Revenue?.cagr?.oneYearTtm ?? null, rev3: fs.Revenue?.cagr?.threeYearCagr ?? null,
     pr1: fs.Profit?.cagr?.oneYearTtm ?? null, pr3: fs.Profit?.cagr?.threeYearCagr ?? null, margin: rev && prof != null ? Math.round((prof / rev) * 1000) / 1000 : null,
     loss: prof != null ? prof < 0 : null, prom: promNow, promYr, cap: k?.cap || null, groww: p.header.industryName || null,
+    hi52: num(pr.yearHighPrice), lo52: num(pr.yearLowPrice),
   };
   return { isin, search_id: hit.search_id, nse: p.header.nseScriptCode || hit.nse_scrip_code || null, name: p.header.displayName || name, industry: k?.industry || canonSector(p.header.industryName), info, fetched_at: new Date().toISOString(), miss: null };
+}
+
+/* ---------- the Nifty 50 series ---------- */
+async function refreshIndex(sb: ReturnType<typeof createClient>) {
+  const { data: have } = await sb.from("market_index").select("updated_at").eq("key", NIFTY_FUND.key).maybeSingle();
+  if (have && (Date.now() - Date.parse(have.updated_at)) / 3600e3 < 20) return "fresh";
+  const j = await getJson(`https://api.mfapi.in/mf/${NIFTY_FUND.code}`);
+  const pts: [string, number][] = [];
+  for (const d of j?.data || []) {
+    const s = String(d.date), iso = `${s.slice(6, 10)}-${s.slice(3, 5)}-${s.slice(0, 2)}`, v = +d.nav;
+    if (iso >= "2013-01-01" && v > 0) pts.push([iso, v]);
+  }
+  if (pts.length < 100) return "no data";
+  pts.sort((a, b) => a[0].localeCompare(b[0]));
+  const { error } = await sb.from("market_index").upsert({ key: NIFTY_FUND.key, name: NIFTY_FUND.name, source: `mfapi.in/mf/${NIFTY_FUND.code}`, points: pts, updated_at: new Date().toISOString() }, { onConflict: "key" });
+  return error ? error.message : pts.length;
 }
 
 /* ---------- the run ---------- */
@@ -225,8 +252,11 @@ async function run(sb: ReturnType<typeof createClient>, rows: { watch: Watch[] |
   const klass = new Map<string, Klass>(), byIsin = new Map<string, Klass>();
   for (const k of klassRows) { klass.set(norm(k.name), k); byIsin.set(k.isin, k); }
 
-  // 2. what people hold
+  out.index = await refreshIndex(sb).catch((e) => String(e));
+
+  // 2. what people hold, and the market leaders the plan compares against
   const funds = new Map<string, Target>(), stocks = new Map<string, string>();
+  for (const k of klassRows) if (LEADERS.includes(k.symbol || "")) stocks.set(k.isin, k.name);
   for (const r of rows) {
     for (const h of r.holdings || []) {
       if (!h.isin) continue;

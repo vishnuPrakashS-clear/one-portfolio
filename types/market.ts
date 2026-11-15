@@ -99,6 +99,9 @@ export interface StockInfo {
   promYr: number | null;
   cap: Cap | null;
   groww: string | null;
+  /** 52-week high and low price (NSE) */
+  hi52?: number | null;
+  lo52?: number | null;
 }
 
 export interface MarketStock {
@@ -116,4 +119,15 @@ export interface MarketData {
   funds: Record<string, MarketFund>;
   stocks: Record<string, MarketStock>;
   klass: Record<string, MarketClass>;
+  /** ISINs of the market leaders (constants/leaders.ts); their rows are in stocks and klass */
+  leaders?: string[];
+  /** the Nifty 50's daily value */
+  nifty?: MarketIndex | null;
+}
+
+/** an index's daily value, oldest first (market_index) */
+export interface MarketIndex {
+  key: string;
+  name: string;
+  points: [string, number][];
 }

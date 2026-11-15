@@ -15,7 +15,7 @@ import { CATEGORIES } from "@/constants";
 import { priceKey } from "@/lib/core/india";
 import { fv, steadyMonthly, type Model, type ModelItem } from "@/lib/model";
 import type { Portfolio } from "@/types/portfolio";
-import type { Cap, FundLine, MarketData, MarketFund, MarketStock } from "@/types/market";
+import type { Cap, FundLine, MarketData, MarketFund, MarketStock, StockInfo } from "@/types/market";
 
 export type Bucket = "equity" | "intl" | "debt" | "gold" | "cash" | "other";
 export const BUCKET_NAME: Record<Bucket, string> = {
@@ -77,6 +77,8 @@ export interface FundRow {
   /** steady monthly purchase over the last six months */
   sip: number;
   equity: boolean;
+  /** an exchange-traded fund (bought like a share) rather than a mutual fund */
+  etf: boolean;
   data: MarketFund | null;
   flags: Flag[];
   verdict: "good" | "ok" | "review" | "unknown";
@@ -162,6 +164,42 @@ function etfSplit(name: string): Partial<Record<Bucket, number>> {
 }
 
 const FIN = /financial|bank|insur/i;
+
+/** a stock's valuation, growth and quality (0–100) and red flags from its fundamentals; P/E under 2 is treated as a
+    data glitch (it shows up around demergers) */
+export function scoreStock(i: StockInfo | null | undefined, industry: string | null) {
+  let valuation: number | null = null,
+    growth: number | null = null,
+    quality: number | null = null;
+  const flags: string[] = [];
+  if (!i) return { valuation, growth, quality, flags };
+  const pe = i.pe != null && i.pe >= 2 ? i.pe : null;
+  if (pe != null)
+    valuation =
+      i.ipe && i.ipe > 0 ? Math.round(clamp(1 - (pe / i.ipe - 0.5) * 0.66) * 100) : Math.round(clamp(1 - (pe - 10) * 0.015) * 100);
+  else if (i.loss) valuation = 10;
+  const g1 = i.rev3 ?? i.rev1,
+    g2 = i.pr3 ?? i.pr1;
+  if (g1 != null || g2 != null) growth = Math.round(clamp((40 + 200 * (0.4 * (g1 ?? g2 ?? 0) + 0.6 * (g2 ?? g1 ?? 0))) / 100) * 100);
+  const fin = FIN.test(industry || "");
+  let q = i.roe != null ? clamp(i.roe / 25) * 100 : 50;
+  if (!fin && i.de != null && i.de > 2) q -= 30;
+  else if (!fin && i.de != null && i.de > 1) q -= 15;
+  if (i.loss || (i.margin != null && i.margin < 0)) q = Math.min(q, 15);
+  quality = Math.round(clamp(q / 100) * 100);
+  if (i.loss) flags.push("Making losses");
+  if (!fin && i.de != null && i.de > 2) flags.push(`Heavy debt (${i.de.toFixed(1)}× equity)`);
+  // above 75% a cut is usually the sell-down every listed company must make to 25% public shareholding
+  if (i.prom != null && i.promYr != null && i.prom - i.promYr <= -5 && i.promYr <= 75)
+    flags.push(`Promoters cut their stake from ${i.promYr.toFixed(0)}% to ${i.prom.toFixed(0)}% in a year`);
+  if (pe != null && i.ipe && pe > 3 * i.ipe && pe > 60)
+    flags.push(`Very expensive: P/E ${Math.round(pe)} vs ${Math.round(i.ipe)} for its industry`);
+  if (i.mcap != null && i.mcap < 500) flags.push(`Micro-cap (₹${Math.round(i.mcap)} Cr): thinly traded and risky`);
+  return { valuation, growth, quality, flags };
+}
+
+/** dividend yield as a fraction, ignoring one-off figures above 10% (a special payout or a listing-year glitch) */
+export const yieldOf = (i: StockInfo | null | undefined) => (i?.dy != null && i.dy >= 0 && i.dy <= 10 ? i.dy / 100 : null);
 
 export function verdictBand(score: number) {
   if (score >= 76)
@@ -318,6 +356,7 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
           value: it.value,
           sip: itemSip(it, M),
           equity: eq,
+          etf: h.type === "etf",
           data: f || null,
           flags: [],
           verdict: "unknown",
@@ -536,34 +575,9 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
     const d = D.stocks[h.isin] || null,
       i = d?.info;
     const k = D.klass[h.isin];
-    let valuation: number | null = null,
-      growth: number | null = null,
-      quality: number | null = null,
-      momentum: number | null = null;
-    const flags: string[] = [];
-    if (i) {
-      if (i.pe != null && i.pe > 0)
-        valuation =
-          i.ipe && i.ipe > 0 ? Math.round(clamp(1 - (i.pe / i.ipe - 0.5) * 0.66) * 100) : Math.round(clamp(1 - (i.pe - 10) * 0.015) * 100);
-      else if (i.loss) valuation = 10;
-      const g1 = i.rev3 ?? i.rev1,
-        g2 = i.pr3 ?? i.pr1;
-      if (g1 != null || g2 != null) growth = Math.round(clamp((40 + 200 * (0.4 * (g1 ?? g2 ?? 0) + 0.6 * (g2 ?? g1 ?? 0))) / 100) * 100);
-      const fin = FIN.test(d?.industry || i.groww || "");
-      let q = i.roe != null ? clamp(i.roe / 25) * 100 : 50;
-      if (!fin && i.de != null && i.de > 2) q -= 30;
-      else if (!fin && i.de != null && i.de > 1) q -= 15;
-      if (i.loss || (i.margin != null && i.margin < 0)) q = Math.min(q, 15);
-      quality = Math.round(clamp(q / 100) * 100);
-      if (i.loss) flags.push("Making losses");
-      if (!fin && i.de != null && i.de > 2) flags.push(`Heavy debt (${i.de.toFixed(1)}× equity)`);
-      // above 75% a cut is usually the sell-down every listed company must make to 25% public shareholding
-      if (i.prom != null && i.promYr != null && i.prom - i.promYr <= -5 && i.promYr <= 75)
-        flags.push(`Promoters cut their stake from ${i.promYr.toFixed(0)}% to ${i.prom.toFixed(0)}% in a year`);
-      if (i.pe != null && i.ipe && i.pe > 3 * i.ipe && i.pe > 60)
-        flags.push(`Very expensive: P/E ${Math.round(i.pe)} vs ${Math.round(i.ipe)} for its industry`);
-      if (i.mcap != null && i.mcap < 500) flags.push(`Micro-cap (₹${Math.round(i.mcap)} Cr): thinly traded and risky`);
-    } else if (d?.miss) flags.push("No market data found: check whether it was delisted, suspended or renamed");
+    let momentum: number | null = null;
+    const { valuation, growth, quality, flags } = scoreStock(i, d?.industry || i?.groww || null);
+    if (!i && d?.miss) flags.push("No market data found: check whether it was delisted, suspended or renamed");
     const p = pxm[priceKey(h)] || {},
       units = h.units || 0;
     const now = units ? it.value / units : null,
@@ -646,6 +660,27 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
   };
 }
 
+/** how good a fund's record is for keeping: beating its category (5 years counts double), low cost, direct plan */
+export function fundMerit(f: FundRow) {
+  const i = f.data?.info;
+  if (!i) return 0;
+  const d5 = i.r5 != null && i.c5 != null ? i.r5 - i.c5 : null,
+    d3 = i.r3 != null && i.c3 != null ? i.r3 - i.c3 : null;
+  return (d5 ?? d3 ?? 0) * 2 + (d3 ?? 0) - (i.er ?? 1) * 1.5 + (i.plan === "Regular" ? -2 : 0);
+}
+/** a fund's record in a few words */
+export function fundWhy(f: FundRow) {
+  const i = f.data?.info;
+  if (!i) return "";
+  const bits: string[] = [];
+  if (i.r5 != null && i.c5 != null)
+    bits.push(`${(i.r5 - i.c5 >= 0 ? "+" : "") + (i.r5 - i.c5).toFixed(1)}% a year vs its category over 5 years`);
+  else if (i.r3 != null && i.c3 != null)
+    bits.push(`${(i.r3 - i.c3 >= 0 ? "+" : "") + (i.r3 - i.c3).toFixed(1)}% a year vs its category over 3 years`);
+  if (i.er != null) bits.push(`costs ${i.er.toFixed(2)}% a year`);
+  return bits.join(", ");
+}
+
 /** extra wealth over `yrs` from paying `cut` less a year on `value` growing at `r` */
 const costGain = (value: number, cut: number, r: number, yrs = 10) => fv(value, 0, r, yrs) - fv(value, 0, r - cut, yrs);
 
@@ -664,27 +699,8 @@ function plan(x: {
 }): Action[] {
   const A: Action[] = [];
   const inr = (v: number) => "₹" + Math.round(v).toLocaleString("en-IN");
-  const better = (a: FundRow, b: FundRow) => {
-    const s = (f: FundRow) => {
-      const i = f.data?.info;
-      if (!i) return 0;
-      const d5 = i.r5 != null && i.c5 != null ? i.r5 - i.c5 : null,
-        d3 = i.r3 != null && i.c3 != null ? i.r3 - i.c3 : null;
-      return (d5 ?? d3 ?? 0) * 2 + (d3 ?? 0) - (i.er ?? 1) * 1.5 + (i.plan === "Regular" ? -2 : 0);
-    };
-    return s(a) >= s(b) ? a : b;
-  };
-  const why = (f: FundRow) => {
-    const i = f.data?.info;
-    if (!i) return "";
-    const bits: string[] = [];
-    if (i.r5 != null && i.c5 != null)
-      bits.push(`${(i.r5 - i.c5 >= 0 ? "+" : "") + (i.r5 - i.c5).toFixed(1)}% a year vs its category over 5 years`);
-    else if (i.r3 != null && i.c3 != null)
-      bits.push(`${(i.r3 - i.c3 >= 0 ? "+" : "") + (i.r3 - i.c3).toFixed(1)}% a year vs its category over 3 years`);
-    if (i.er != null) bits.push(`costs ${i.er.toFixed(2)}% a year`);
-    return bits.join(", ");
-  };
+  const better = (a: FundRow, b: FundRow) => (fundMerit(a) >= fundMerit(b) ? a : b);
+  const why = fundWhy;
 
   // overlapping funds: funds linked by 40%+ overlap form a group, and each group gets one keeper
   const parent = x.fundRows.map((_, i) => i);

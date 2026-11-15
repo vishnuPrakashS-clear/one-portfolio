@@ -3,6 +3,7 @@
 import { CATEGORIES, IND_CLASS_COLOR, PROJECTION_YEARS, type CatId } from "@/constants";
 import { fv, type CategoryModel } from "@/lib/model";
 import { pct1 } from "@/lib/format";
+import { itemXirr } from "@/lib/planner";
 import { useMoney } from "@/lib/use-money";
 import { useUi } from "@/components/providers/ui-provider";
 import { Card, CardHead } from "./ui";
@@ -84,7 +85,8 @@ export function HoldingsList({ c, limit }: { c: CategoryModel; limit?: number })
     <ol className="grid max-h-[760px] [scrollbar-width:thin] gap-0.5 overflow-auto">
       {c.items.slice(0, limit).map((it) => {
         const g = it.cost != null ? it.value - it.cost : null,
-          gp = it.cost ? (g as number) / it.cost : null;
+          gp = it.cost ? (g as number) / it.cost : null,
+          xr = itemXirr(it);
         return (
           <li key={it.id}>
             <button
@@ -108,6 +110,9 @@ export function HoldingsList({ c, limit }: { c: CategoryModel; limit?: number })
                 )}
               >
                 {g == null ? "buy price not uploaded" : `${g >= 0 ? "+" : "−"}${s(Math.abs(g))} · ${pct1(gp)}`}
+                {xr != null && (
+                  <span className={cn("block font-normal", xr >= 0 ? "text-gain-ink" : "text-loss-ink")}>XIRR {pct1(xr)} a year</span>
+                )}
               </span>
             </button>
           </li>

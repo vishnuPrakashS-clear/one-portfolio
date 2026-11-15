@@ -64,6 +64,17 @@ export interface Goal {
   year: number;
   extra?: number;
 }
+/** choices for the Health screen's plan, set by tapping chips */
+export interface PlanPrefs {
+  /** target split of your shares across company sizes: equal thirds, or 55 / 25 / 20 large / mid / small */
+  mix: "equal" | "balanced";
+  /** yearly dividend you want from your shares (₹) */
+  div: number;
+  /** money you can add each month (₹); 0 = what your statements show you add */
+  monthly: number;
+  /** share of the monthly money for direct stocks (the rest goes to funds); -1 = as you do now */
+  stocks: number;
+}
 export interface Settings {
   monthlyInr: number;
   fx: number;
@@ -76,6 +87,7 @@ export interface Settings {
   refreshedAt?: string;
   startedOn?: ISODate;
   goal?: Goal;
+  plan?: PlanPrefs;
   age?: number;
   ageYear?: number;
 }

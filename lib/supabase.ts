@@ -1,5 +1,6 @@
 /* Supabase on the free tier: sign-in, the person's own portfolio row (row-level security), "refresh now" and the optional AI helper. */
-import type { MarketClass, MarketData, MarketFund, MarketStock } from "@/types/market";
+import type { MarketClass, MarketData, MarketFund, MarketIndex, MarketStock } from "@/types/market";
+import { LEADERS } from "@/constants/leaders";
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { supabaseConfig } from "@/config";
 import type { Portfolio } from "@/types/portfolio";
@@ -142,8 +143,57 @@ export async function loadMarketData(fundIsins: string[], stockIsins: string[]):
         for (const r of (data || []) as MarketClass[]) out.klass[r.isin] = r;
       })(),
     );
+  // market leaders (for ideas you don't own yet) and the Nifty 50 series; both optional extras
+  jobs.push(
+    (async () => {
+      const { data } = await sb()
+        .from("market_class")
+        .select("isin,symbol,name,industry,cap")
+        .in(
+          "symbol",
+          LEADERS.map((l) => l.sym),
+        );
+      const ks = (data || []) as MarketClass[];
+      for (const k of ks) out.klass[k.isin] = k;
+      out.leaders = ks.map((k) => k.isin);
+      if (ks.length) {
+        const { data: st } = await sb()
+          .from("market_stock")
+          .select("isin,search_id,nse,name,industry,info,fetched_at,miss")
+          .in(
+            "isin",
+            ks.map((k) => k.isin),
+          );
+        for (const r of (st || []) as MarketStock[]) out.stocks[r.isin] ||= r;
+      }
+    })(),
+    (async () => {
+      const { data } = await sb().from("market_index").select("key,name,points").eq("key", "NIFTY50").maybeSingle();
+      out.nifty = (data as MarketIndex | null) || null;
+    })(),
+  );
   await Promise.all(jobs);
   return out;
+}
+let niftyCache: Promise<MarketIndex | null> | null = null;
+/** one stock's market data, its NSE class and the Nifty 50 series (for the holding sheet) */
+export async function loadStockData(
+  isin: string,
+): Promise<{ stock: MarketStock | null; klass: MarketClass | null; nifty: MarketIndex | null }> {
+  niftyCache ||= (async () => {
+    const { data } = await sb().from("market_index").select("key,name,points").eq("key", "NIFTY50").maybeSingle();
+    return (data as MarketIndex | null) || null;
+  })().catch(() => (niftyCache = null));
+  const [st, k, nifty] = await Promise.all([
+    isin
+      ? sb().from("market_stock").select("isin,search_id,nse,name,industry,info,fetched_at,miss").eq("isin", isin).maybeSingle()
+      : Promise.resolve({ data: null }),
+    isin
+      ? sb().from("market_class").select("isin,symbol,name,industry,cap").eq("isin", isin).maybeSingle()
+      : Promise.resolve({ data: null }),
+    niftyCache,
+  ]);
+  return { stock: (st.data as MarketStock | null) || null, klass: (k.data as MarketClass | null) || null, nifty };
 }
 /** ask the server to fetch market data for what you hold (a small batch; call again until nothing is left) */
 export async function fillMarketData(): Promise<{ funds?: number; stocks?: number; todo?: { funds: number; stocks: number } }> {

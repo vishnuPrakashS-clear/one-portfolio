@@ -4,7 +4,8 @@
    Upload parsers change the document in place, so changes go through mutate(), which re-renders and saves (debounced). */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { User } from "@supabase/supabase-js";
-import type { Goal, PinLock, Portfolio } from "@/types/portfolio";
+import type { Goal, PinLock, PlanPrefs, Portfolio } from "@/types/portfolio";
+import { PLAN_DEFAULT } from "@/constants";
 import { adopt, freshState } from "@/lib/core/abroad";
 import { buildModel, type Model } from "@/lib/model";
 import {
@@ -58,6 +59,7 @@ interface PortfolioCtx {
   /** the same for slow changes (reading uploads); saves only when save(result) says so */
   mutateAsync: <T>(fn: (S: Portfolio) => Promise<T>, save?: (r: T) => boolean) => Promise<T | undefined>;
   setGoal: (g: Partial<Goal>) => void;
+  setPlan: (g: Partial<PlanPrefs>) => void;
   setStatus: (s: Status) => void;
   /** put the status line back to saved / signed out */
   idleStatus: () => void;
@@ -343,6 +345,13 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
       }),
     [mutate],
   );
+  const setPlan = useCallback(
+    (g: Partial<PlanPrefs>) =>
+      mutate((S) => {
+        S.settings.plan = { ...PLAN_DEFAULT, ...(S.settings.plan || {}), ...g };
+      }),
+    [mutate],
+  );
   const unlock = useCallback(
     async (pin: string) => {
       if (!(await pinMatches(pin, heldRef.current?.lock))) return false;
@@ -429,6 +438,7 @@ export function PortfolioProvider({ children }: { children: ReactNode }) {
     mutate,
     mutateAsync,
     setGoal,
+    setPlan,
     setStatus,
     idleStatus,
     signedIn,

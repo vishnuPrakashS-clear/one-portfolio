@@ -9,7 +9,17 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { useUi } from "@/components/providers/ui-provider";
-import { analyse, BUCKET_NAME, CAP_NAME, type Analysis, type Bucket, type Exposure, type FundRow, type StockRow } from "@/lib/analysis";
+import {
+  analyse,
+  isinOf,
+  BUCKET_NAME,
+  CAP_NAME,
+  type Analysis,
+  type Bucket,
+  type Exposure,
+  type FundRow,
+  type StockRow,
+} from "@/lib/analysis";
 import { fillMarketData, loadMarketData } from "@/lib/supabase";
 import { monthLong } from "@/lib/dates";
 import { useMoney } from "@/lib/use-money";
@@ -48,15 +58,18 @@ export function HealthScreen() {
   // what to ask the shared tables about: every fund, ETF and stock you hold
   const ids = useMemo(() => {
     const f: string[] = [],
-      st: string[] = [];
+      st: string[] = [],
+      isin = S ? isinOf(S) : (h: { isin: string }) => h.isin;
     for (const it of model.cats.funds.items.concat(model.cats.stocks.items)) {
       const h = it.india;
       if (!h) continue;
-      if (h.type === "mf" || h.type === "etf") f.push(h.isin);
-      else if (h.type === "stock") st.push(h.isin);
+      if (h.type === "mf" || h.type === "etf") {
+        const i = isin(h);
+        if (i) f.push(i);
+      } else if (h.type === "stock") st.push(h.isin);
     }
     return { f, st, key: f.join() + "|" + st.join() };
-  }, [model]);
+  }, [model, S]);
 
   useEffect(() => {
     if (!S || locked || (!ids.f.length && !ids.st.length)) return;
@@ -136,14 +149,16 @@ export function HealthScreen() {
           <p className="max-w-[56ch] text-[16.5px] text-body">
             {load.error
               ? `Couldn't load market data: ${load.error}`
-              : "Reading what's inside each of your funds and how each stock is doing. The first time can take a minute."}
+              : A && !load.filling
+                ? `${A.coverage.fundsWithData} of ${A.coverage.funds} funds opened up so far. The score waits until most of your money inside funds can be seen; the rest is fetched overnight, or check again in a minute.`
+                : "Reading what's inside each of your funds and how each stock is doing. The first time can take a minute."}
           </p>
         )}
-        {load.error && (
+        {(load.error || (A && A.score == null && !load.filling)) && (
           <div>
             <button className="btn" onClick={() => setNonce((n) => n + 1)}>
               <Icon name="refresh" />
-              Try again
+              {load.error ? "Try again" : "Check again"}
             </button>
           </div>
         )}
@@ -178,7 +193,11 @@ function Breakdown({ A }: { A: Analysis }) {
     <Card>
       <CardHead
         title="What the score is made of"
-        note="Five checks, each scored from what you actually own once funds are opened up. Tickertape's bands: 76+ very good, 51–75 good, 26–50 low, 25 or less extremely low."
+        note={
+          A.score == null
+            ? "So far, from the funds opened up only: these will move once the rest are read."
+            : "Five checks, each scored from what you actually own once funds are opened up. Tickertape's bands: 76+ very good, 51–75 good, 26–50 low, 25 or less extremely low."
+        }
       />
       <div className="grid gap-4 md:grid-cols-2">
         {A.parts.map((p) => (

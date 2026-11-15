@@ -2,7 +2,7 @@ import { beforeAll, describe, expect, test } from "vitest";
 import { setToday } from "@/lib/dates";
 import { buildModel } from "@/lib/model";
 import { freshState } from "@/lib/core/abroad";
-import { analyse, norm, shortFund, verdictBand } from "@/lib/analysis";
+import { analyse, isinOf, norm, shortFund, verdictBand } from "@/lib/analysis";
 import type { CasHolding, Portfolio } from "@/types/portfolio";
 import type { MarketData, MarketFund } from "@/types/market";
 
@@ -175,6 +175,53 @@ describe("portfolio health", () => {
     expect(groups[0].title).toBe("3 of your funds hold mostly the same stocks");
     expect(groups[0].body.match(/Keep /g)).toHaveLength(1);
     expect(A.actions.some((a) => a.kind === "duplicate")).toBe(false);
+  });
+  test("the same fund in two folios is one row, and no score while most funds are unopened", () => {
+    const S = sample();
+    S.india!.holdings.push(hold("INF000000A01", "Alpha Flexi Cap Fund - Direct Plan - Growth", "mf", 50000));
+    const A = analyse(buildModel(S), S, data());
+    expect(A.funds.filter((f) => f.isin === "INF000000A01")).toHaveLength(1);
+    expect(A.funds.find((f) => f.isin === "INF000000A01")!.value).toBe(450000);
+    const D = data();
+    delete D.funds.INF000000A01;
+    delete D.funds.INF000000B01;
+    const B = analyse(buildModel(S), S, D);
+    expect(B.score).toBeNull();
+    expect(B.parts.some((p) => p.key === "overlap")).toBe(false);
+  });
+  test("a fund known only by name (fund report) finds its ISIN through the price list", () => {
+    const S = sample();
+    S.india!.watch = [
+      {
+        key: "MF:ALPHAFLEXICAPFUNDDIRECTGROWTH",
+        kind: "mf",
+        name: "Alpha Flexi Cap Fund Direct Growth",
+        isin: "INF000000A01",
+        mfcode: null,
+      },
+    ];
+    const of = isinOf(S);
+    expect(of({ type: "mf", isin: "", name: "Alpha Flexi Cap Fund Direct Growth" })).toBe("INF000000A01");
+    expect(of({ type: "stock", isin: "INE000000X01", name: "Bigbank" })).toBe("INE000000X01");
+    expect(of({ type: "mf", isin: "", name: "Unknown Fund" })).toBe("");
+  });
+  test("an arbitrage fund counts as cash-like, not as shares, and thematic funds aren't duplicates by label", () => {
+    const S = sample();
+    S.india!.holdings.push(hold("INF000000D01", "Delta Arbitrage Fund - Direct Plan - Growth", "mf", 100000, "Debt"));
+    S.india!.holdings.push(hold("INF000000E01", "Echo Infrastructure Fund - Direct Plan - Growth", "mf", 50000));
+    S.india!.holdings.push(hold("INF000000F01", "Foxtrot Momentum Fund - Direct Plan - Growth", "mf", 50000));
+    const D = data();
+    D.funds.INF000000D01 = fund("INF000000D01", "Arbitrage", "Direct", 0.4, 0.4, 7, 6.8, [line("Bigbank Ltd", "INE000000X01", 60)]);
+    D.funds.INF000000E01 = fund("INF000000E01", "Thematic", "Direct", 0.8, 0.8, 15, 15, [line("Powerco Ltd", "INE000000P01", 20, "Power")]);
+    D.funds.INF000000F01 = fund("INF000000F01", "Thematic", "Direct", 0.8, 0.8, 15, 15, [
+      line("Softco Ltd", "INE000000Y01", 20, "Information Technology"),
+    ]);
+    const base = analyse(buildModel(sample()), sample(), data());
+    const A = analyse(buildModel(S), S, D);
+    const big = (Z: typeof A) => Math.round(Z.exposures.find((e) => e.isin === "INE000000X01")!.value);
+    expect(big(A)).toBe(big(base));
+    expect(A.funds.find((f) => f.isin === "INF000000D01")!.equity).toBe(false);
+    expect(A.actions.some((a) => a.kind === "duplicate" && a.title.includes("Thematic"))).toBe(false);
   });
   test("helpers", () => {
     expect(norm("ICICI Bank Ltd.")).toBe(norm("ICICI BANK LIMITED"));

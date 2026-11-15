@@ -192,9 +192,16 @@ function itemSip(it: ModelItem, M: Model) {
   return Math.round(steadyMonthly(per) / 100) * 100;
 }
 
+/** a holding's ISIN; funds read from the Groww fund report carry only a name, so use the ISIN the price list matched it to */
+export function isinOf(S: Portfolio) {
+  const w = new Map((S.india?.watch || []).map((x) => [x.key, x.isin]));
+  return (h: { type: string; isin: string; name: string }) => h.isin || w.get(priceKey(h)) || "";
+}
+
 export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
   const buckets: Record<Bucket, number> = { equity: 0, intl: 0, debt: 0, gold: 0, cash: 0, other: 0 };
   const exp = new Map<string, Exposure>();
+  const fisin = isinOf(S);
   const gmap = new Map<string, string>(); // Groww stock id → ISIN, from directly held stocks
   for (const s of Object.values(D.stocks)) if (s.search_id) gmap.set(s.search_id, s.isin);
   let unmappedEquity = 0;
@@ -249,8 +256,11 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
       continue;
     }
     // funds and ETFs
-    const f = D.funds[h.isin];
-    const lines = f?.holdings?.length ? f.holdings : null;
+    const isin = fisin(h),
+      f = isin ? D.funds[isin] : undefined;
+    // an arbitrage fund's shares are matched by futures sold against them: it behaves like cash, not like shares
+    const arb = /arbitrage/i.test((f?.info?.sub || "") + " " + it.name);
+    const lines = f?.holdings?.length && !arb ? f.holdings : null;
     const name = shortFund(it.name);
     if (lines) {
       const sum = lines.reduce((a, l) => a + l.w, 0) || 100;
@@ -282,7 +292,7 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
         if (rest > 0) put(h.cls === "Debt" ? "debt" : "other", rest);
       }
     } else {
-      const sp = h.type === "etf" ? etfSplit(it.name) : classSplit(h.cls);
+      const sp = arb ? { debt: 1 } : h.type === "etf" ? etfSplit(it.name) : classSplit(h.cls);
       for (const [b, w] of Object.entries(sp)) {
         put(b as Bucket, it.value * (w as number));
         if (b === "equity") unmappedEquity += it.value * (w as number);
@@ -292,19 +302,26 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
       // an equity fund: at least half of what it lists is shares (or, without holdings, its class says so)
       const eq = lines
         ? lines.filter((l) => l.t === "E" || l.t === "F").reduce((a, l) => a + l.w, 0) >= 0.5 * lines.reduce((a, l) => a + l.w, 0)
-        : h.cls === "Equity";
-      fundRows.push({
-        id: it.id,
-        isin: h.isin,
-        name: it.name,
-        short: name,
-        value: it.value,
-        sip: itemSip(it, M),
-        equity: eq,
-        data: f || null,
-        flags: [],
-        verdict: "unknown",
-      });
+        : !arb && h.cls === "Equity";
+      // the same fund in two folios or accounts is one fund
+      const rid = isin || priceKey(h),
+        same = fundRows.find((r) => r.isin === rid);
+      if (same) {
+        same.value += it.value;
+        same.sip += itemSip(it, M);
+      } else
+        fundRows.push({
+          id: it.id,
+          isin: rid,
+          name: it.name,
+          short: name,
+          value: it.value,
+          sip: itemSip(it, M),
+          equity: eq,
+          data: f || null,
+          flags: [],
+          verdict: "unknown",
+        });
     }
   }
   for (const it of M.cats.bonds.items) put("debt", it.value);
@@ -334,7 +351,9 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
   for (const e of exposures) caps[e.cap || "?"] += e.value;
 
   // 3. fund overlap (equity funds with holdings)
-  const eqFunds = fundRows.filter((f) => f.equity && f.data?.holdings?.length);
+  const eqAll = fundRows.filter((f) => f.equity);
+  const eqFunds = eqAll.filter((f) => f.data?.holdings?.length);
+  const eqSeen = eqFunds.reduce((a, f) => a + f.value, 0) / (eqAll.reduce((a, f) => a + f.value, 0) || 1);
   const fw = eqFunds.map((f) => {
     const m = new Map<string, { n: string; w: number }>();
     for (const l of f.data!.holdings!) if (l.t === "E" || l.t === "F") m.set(lineKey(l), { n: l.n, w: l.w });
@@ -416,7 +435,7 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
       note: `Shares ${pctTxt(e)} (abroad ${pctTxt(intl)}), bonds, debt and gold ${pctTxt(safe)}.`,
     });
   }
-  if (eqFunds.length >= 2) {
+  if (eqAll.length >= 2 && eqFunds.length >= 2 && eqSeen >= 0.6) {
     let num = 0,
       den = 0;
     for (const o of overlaps) {
@@ -432,7 +451,7 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
       max: 15,
       note: `Your equity funds share ${Math.round(avg)}% of their stocks on average${overlaps[0] ? `; the closest pair shares ${Math.round(overlaps[0].pct)}%` : ""}.`,
     });
-  } else if (eqFunds.length === 1)
+  } else if (eqAll.length === 1 && eqFunds.length === 1)
     parts.push({
       key: "overlap",
       label: "Funds that don't repeat each other",
@@ -441,11 +460,13 @@ export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
       note: "One equity fund, so nothing repeats.",
     });
   const max = parts.reduce((a, p) => a + p.max, 0);
-  const score = max >= 40 ? Math.round((100 * parts.reduce((a, p) => a + p.score, 0)) / max) : null;
+  // no score until most of what sits inside funds has been opened up: a guess from a few funds would mislead
+  const score =
+    max >= 40 && (buckets.equity === 0 || mapped >= 0.6) ? Math.round((100 * parts.reduce((a, p) => a + p.score, 0)) / max) : null;
 
   const directStocks = M.cats.stocks.items.filter((x) => x.india?.type === "stock");
   const overDiversified: string[] = [];
-  if (eqFunds.length > 7) overDiversified.push(`${eqFunds.length} equity funds`);
+  if (eqAll.length > 7) overDiversified.push(`${eqAll.length} equity funds`);
   if (directStocks.length > 40) overDiversified.push(`${directStocks.length} separate stocks`);
 
   // 5. each fund's report card
@@ -713,7 +734,8 @@ function plan(x: {
   const bySub = new Map<string, FundRow[]>();
   for (const [i, f] of x.fundRows.entries()) {
     const sub = f.data?.info?.sub;
-    if (!f.equity || !sub || covered.has(i)) continue; // already decided in an overlap group
+    // already decided in an overlap group; thematic and sectoral funds share a label but not a theme
+    if (!f.equity || !sub || covered.has(i) || /thematic|sectoral/i.test(sub)) continue;
     bySub.set(sub, [...(bySub.get(sub) || []), f]);
   }
   for (const [sub, fs] of bySub) {

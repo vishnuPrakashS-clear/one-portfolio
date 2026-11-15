@@ -170,7 +170,8 @@ async function fetchFund(t: Target, klass: Map<string, Klass>) {
     cat: p.category || null, sub: p.sub_category || null, plan: regular ? "Regular" : p.plan_type || null, er: regular && rer ? rer : Number(p.expense_ratio) || null,
     der: Number(p.expense_ratio) || null, aum: Number(p.aum) || null, risk: rs.risk || p.nfo_risk || null, bench: p.benchmark_name || null,
     r1: pct(st.FUND_RETURN?.stat_1y ?? rs.return1y), r3: pct(st.FUND_RETURN?.stat_3y ?? rs.return3y), r5: pct(st.FUND_RETURN?.stat_5y ?? rs.return5y),
-    c1: pct(st.CATEGORY_AVG_RETURN?.stat_1y ?? rs.cat_return1y), c3: pct(st.CATEGORY_AVG_RETURN?.stat_3y ?? rs.cat_return3y), c5: pct(st.CATEGORY_AVG_RETURN?.stat_5y ?? rs.cat_return5y),
+    // the category averages in return_stats agree with the fund's rank; the separate "stats" block can come from another base
+    c1: pct(rs.cat_return1y ?? st.CATEGORY_AVG_RETURN?.stat_1y), c3: pct(rs.cat_return3y ?? st.CATEGORY_AVG_RETURN?.stat_3y), c5: pct(rs.cat_return5y ?? st.CATEGORY_AVG_RETURN?.stat_5y),
     rank3: rs.rank3yr ? [rs.rank3yr, rs.rank_count3yr] : null, rank5: rs.rank5yr ? [rs.rank5yr, rs.rank_count5yr] : null,
     alpha: pct(rs.alpha), beta: pct(rs.beta), sharpe: pct(rs.sharpe_ratio), sd: pct(rs.standard_deviation), launch: p.launch_date || null, turnover: Number(p.portfolio_turnover) || null,
     name: p.scheme_name || p.fund_name || null,

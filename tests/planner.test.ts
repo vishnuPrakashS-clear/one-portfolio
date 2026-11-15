@@ -211,6 +211,23 @@ describe("plan helpers", () => {
 });
 
 describe("the plan", () => {
+  test("trimming to the fund limit never drops a big fund before a tiny one", () => {
+    const S = sample();
+    const D = data();
+    const kinds = ["Thematic", "Sectoral", "Dynamic Asset Allocation", "Multi Asset Allocation", "Equity Savings", "Aggressive Hybrid"];
+    for (let i = 0; i < 14; i++) {
+      const isin = `INF00000Z${String(i).padStart(3, "0")}`;
+      S.india!.holdings.push(hold(isin, `Fund ${i} - Direct Plan - Growth`, "mf", i === 0 ? 500000 : 2000 + i * 100));
+      D.funds[isin] = fund(isin, kinds[i % kinds.length], 13, 13, 0.8, [[`Only${i}`, 50, "L"]]);
+    }
+    const M = buildModel(S),
+      A = analyse(M, S, D),
+      P = makePlan(M, S, A, D);
+    expect(P.funds.keep.length).toBeLessThanOrEqual(12);
+    expect(P.funds.keep.some((k) => k.f.isin === "INF00000Z000")).toBe(true);
+    // the large-cap keeper is never trimmed away
+    expect(P.funds.keep.some((k) => k.f.isin === "INF0000000A1")).toBe(true);
+  });
   test("one fund per kind, stock verdicts, dividends, ideas and this month's buys", () => {
     const S = sample();
     S.settings.plan = { ...PLAN_DEFAULT, monthly: 20000, stocks: 0.5, mix: "equal", div: 5000 };

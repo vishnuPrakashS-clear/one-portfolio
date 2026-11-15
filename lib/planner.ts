@@ -341,19 +341,32 @@ export function makePlan(M: Model, S: Portfolio, A: Analysis, D: MarketData, tod
       dropped.add(f);
       drop.push({ f, why: `${f.flags[0]?.text || "Trailed its category"}. An index fund of the same kind is the simple swap.` });
     }
-  // still too many: let the smallest non-core ones go first, then the smallest
+  // leftover balances aren't worth a line
+  for (const f of A.funds)
+    if (!dropped.has(f) && f.value < 1000) {
+      dropped.add(f);
+      drop.push({ f, why: "A leftover balance: move it into a fund you keep." });
+    }
+  // still too many: narrower funds go first, smallest first; the one fund kept for each core job stays
   let kept = A.funds.filter((f) => !dropped.has(f));
   const over = kept.length - PLAN_RULES.maxFunds;
   if (over > 0) {
     const order = kept
-      .slice()
-      .sort((a, b) => Number(CORE.test(kindOf(a))) - Number(CORE.test(kindOf(b))) || a.value - b.value)
+      .filter((f) => !CORE.test(kindOf(f)))
+      .sort((a, b) => a.value - b.value)
+      .concat(
+        kept
+          .filter((f) => CORE.test(kindOf(f)) && kept.filter((g) => kindOf(g) === kindOf(f)).length > 1)
+          .sort((a, b) => a.value - b.value),
+      )
       .slice(0, over);
     for (const f of order) {
       dropped.add(f);
       drop.push({
         f,
-        why: `One of your smallest${CORE.test(kindOf(f)) ? "" : ", narrower"} funds: folding it in gets you to ${PLAN_RULES.maxFunds} funds.`,
+        why: CORE.test(kindOf(f))
+          ? `A smaller fund doing a job another fund you keep already does; folding it in gets you to ${PLAN_RULES.maxFunds} funds.`
+          : `A narrower fund (${kindOf(f).split(":")[0].toLowerCase()}) and one of your smaller ones: folding it into your core funds gets you to ${PLAN_RULES.maxFunds}.`,
       });
     }
     kept = A.funds.filter((f) => !dropped.has(f));
@@ -469,7 +482,8 @@ export function makePlan(M: Model, S: Portfolio, A: Analysis, D: MarketData, tod
     if (!st?.info || !k) continue;
     const sc = scoreStock(st.info, st.industry || st.info.groww);
     const pe = st.info.pe != null && st.info.pe >= 2 ? st.info.pe : null;
-    const fair = sc.valuation != null && sc.valuation >= 50,
+    // fair: P/E within about 10% of its industry's, or below it
+    const fair = sc.valuation != null && sc.valuation >= 60,
       strong = (sc.quality ?? 0) >= 55 && !sc.flags.some((f) => SERIOUS.test(f));
     ideas.push({
       isin,

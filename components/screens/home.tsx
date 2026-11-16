@@ -11,7 +11,7 @@ import { pct1 } from "@/lib/format";
 import { useMoney } from "@/lib/use-money";
 import { Card, CardHead, Empty, Hero, Summary } from "@/components/sub/ui";
 import { CountUp } from "@/components/sub/count-up";
-import { Legend, StackChart } from "@/components/sub/charts";
+import { Legend, StackChart, ValueChart } from "@/components/sub/charts";
 import { GameLayer } from "@/components/sub/game-layer";
 import { Icon } from "@/components/sub/icon";
 import { useNow } from "@/lib/hooks";
@@ -257,7 +257,17 @@ export function HomeScreen() {
       <Summary
         badge={`All investments · ${longDate(TODAY())}`}
         title={<CountUp value={model.total} format={m} />}
-        art="home"
+        chart={
+          <ValueChart
+            months={model.months}
+            values={model.val}
+            invested={model.inv}
+            color="var(--color-lime-2)"
+            fmt={s}
+            label={`All investments: value and money put in over the last ${n} months`}
+            note={coverage < 0.995 ? `Holdings with purchase dates: ${Math.round(coverage * 100)}% of your money` : undefined}
+          />
+        }
         items={[
           { k: "Invested", v: known ? s(known) : "—" },
           {
@@ -311,7 +321,7 @@ export function HomeScreen() {
       </Card>
       <Card>
         <CardHead
-          title="How your money grew"
+          title="By kind of investment"
           note={`Month-end value of each kind of investment for the holdings with purchase dates (${Math.round(coverage * 100)}% of your money). The dashed line is what you put in.`}
         />
         <StackChart

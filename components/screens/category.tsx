@@ -12,11 +12,10 @@ import { pct1, pctf, sgn, tk } from "@/lib/format";
 import { useMoney } from "@/lib/use-money";
 import { Card, CardHead, Chip, Hero, Summary } from "@/components/sub/ui";
 import { CountUp } from "@/components/sub/count-up";
-import { Legend, LineChart } from "@/components/sub/charts";
+import { ValueChart } from "@/components/sub/charts";
 import { FundMix, HoldingsList, Movers, ProjectionCard } from "@/components/sub/category-parts";
 import { BondCard } from "@/components/sub/india-cards";
 import { Icon } from "@/components/sub/icon";
-import { HistNote } from "./home";
 import { cn } from "@/lib/utils";
 
 const EMPTY: Record<CatId, string> = {
@@ -159,10 +158,30 @@ export function CategoryScreen({ id }: { id: CatId }) {
   return (
     <>
       <Summary
-        badge={`${cat.name} · ${c.items.length} holding${c.items.length === 1 ? "" : "s"}`}
+        badge={`${id === "abroad" ? "US stocks · INDmoney" : cat.name} · ${c.items.length} holding${c.items.length === 1 ? "" : "s"}`}
         color={cat.hex}
-        art={id}
         title={<CountUp value={c.value} format={m} />}
+        chart={
+          c.covered > 0 ? (
+            <ValueChart
+              months={model.months}
+              values={c.val}
+              invested={c.inv}
+              color={cat.hex}
+              fmt={s}
+              label={`${cat.name}: value and money put in over the last ${n} months`}
+              note={
+                c.coverage < 0.995
+                  ? `Holdings with purchase dates: ${Math.round(100 * c.coverage)}% of the value`
+                  : id === "abroad"
+                    ? "In rupees at INDmoney's rate on each date"
+                    : id === "bonds"
+                      ? "Bonds at the price you paid; interest arrives as payouts"
+                      : undefined
+              }
+            />
+          ) : undefined
+        }
         items={[
           {
             k: c.known < c.value - 1 ? `Invested (${Math.round((100 * c.known) / c.value)}% known)` : "Invested",
@@ -191,49 +210,6 @@ export function CategoryScreen({ id }: { id: CatId }) {
       <Card>
         <CardHead title={`Your ${cat.name.toLowerCase()}`} note="Tap one for its purchases, XIRR explained, returns and tax." />
         <HoldingsList c={c} />
-      </Card>
-      <Card>
-        <CardHead
-          title={`Growth over the last ${n} months`}
-          note={
-            <>
-              Value of{" "}
-              {c.coverage < 0.995
-                ? `the holdings with purchase dates (${Math.round(100 * c.coverage)}% of ${cat.name.toLowerCase()})`
-                : `your ${cat.name.toLowerCase()}`}{" "}
-              at each month end, against the money put in (dashed).
-              {id === "bonds" ? " Bonds are shown at the price you paid; their interest arrives as payouts below." : ""}
-              {id === "abroad" ? " In rupees at INDmoney's rate on each date." : ""}
-            </>
-          }
-        />
-        {c.covered > 0 ? (
-          <LineChart
-            months={model.months}
-            values={c.val}
-            invested={c.inv}
-            color={cat.hex}
-            fmt={s}
-            label={`${cat.name}: value and money put in over the last ${n} months`}
-          />
-        ) : (
-          <p className="note">
-            No purchase dates yet, so the growth line can&apos;t be drawn.{" "}
-            <Link href="/upload" className="font-semibold text-ink underline">
-              Upload an order history
-            </Link>{" "}
-            to fill it in.
-          </p>
-        )}
-        {c.covered > 0 && (
-          <Legend
-            items={[
-              { name: "Value", color: cat.hex },
-              { name: "Money put in", dashed: true },
-            ]}
-          />
-        )}
-        <HistNote />
       </Card>
       <div className="grid items-start gap-5 lg:grid-cols-2">
         <ProjectionCard c={c} />

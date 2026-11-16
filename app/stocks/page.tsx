@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { CategoryScreen } from "@/components/screens/category";
+import { StocksOverview } from "@/components/screens/brokers";
 
 export const metadata: Metadata = { title: "Stocks" };
 
 export default function Page() {
-  return <CategoryScreen id="stocks" />;
+  return <StocksOverview />;
 }

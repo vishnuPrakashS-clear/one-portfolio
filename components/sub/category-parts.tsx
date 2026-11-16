@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { CATEGORIES, IND_CLASS_COLOR, PROJECTION_YEARS, type CatId } from "@/constants";
-import { fv, type CategoryModel } from "@/lib/model";
+import { fv, type CategoryModel, type ModelItem } from "@/lib/model";
 import { inr2, pct1, qty } from "@/lib/format";
 import { itemXirr } from "@/lib/planner";
 import { useMoney } from "@/lib/use-money";
@@ -83,11 +83,23 @@ const SORTS = [
   ["name", "Name"],
 ] as const;
 /** the holdings list, broker-style: name and what you paid on the left, current value and returns on the right */
-export function HoldingsList({ c, limit }: { c: CategoryModel; limit?: number }) {
+export function HoldingsList({
+  c,
+  limit,
+  items,
+  tag,
+}: {
+  c: CategoryModel;
+  limit?: number;
+  /** a subset of the category (one broker's, say); all of it by default */
+  items?: ModelItem[];
+  /** a short label shown after the name, e.g. the broker */
+  tag?: (it: ModelItem) => string | null;
+}) {
   const { m } = useMoney(),
     { openItem } = useUi();
   const [sort, setSort] = useState<(typeof SORTS)[number][0]>("value");
-  const rows = [...c.items].sort((a, b) => {
+  const rows = [...(items || c.items)].sort((a, b) => {
     if (sort === "name") return a.name.localeCompare(b.name);
     if (sort === "ret") {
       const ra = a.cost ? (a.value - a.cost) / a.cost : -1e9,
@@ -131,7 +143,12 @@ export function HoldingsList({ c, limit }: { c: CategoryModel; limit?: number })
                 onClick={() => openItem(c.id, it.id)}
                 className="grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-0.5 rounded-lg px-1.5 py-3 text-left transition-colors hover:bg-tint focus-visible:outline-offset-[-2px]"
               >
-                <b className="truncate text-[14.5px] font-medium text-ink">{it.name}</b>
+                <b className="truncate text-[14.5px] font-medium text-ink">
+                  {it.name}
+                  {tag?.(it) && (
+                    <span className="ml-2 rounded-md bg-tint px-1.5 py-0.5 text-[11px] font-semibold text-muted">{tag(it)}</span>
+                  )}
+                </b>
                 <b className="num text-right text-[14.5px] font-semibold text-ink">{m(it.value)}</b>
                 <span className="num truncate text-[12.5px] text-muted">
                   {left}

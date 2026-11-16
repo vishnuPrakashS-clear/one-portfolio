@@ -34,8 +34,9 @@ interface Frame {
   pb: number;
   n: number;
   max: number;
+  min: number;
 }
-function frame(W: number, H: number, n: number, max: number): Frame & { X: (i: number) => number; Y: (v: number) => number } {
+function frame(W: number, H: number, n: number, max: number, min = 0): Frame & { X: (i: number) => number; Y: (v: number) => number } {
   const pl = 56,
     pr = 14,
     pt = 16,
@@ -49,8 +50,9 @@ function frame(W: number, H: number, n: number, max: number): Frame & { X: (i: n
     pb,
     n,
     max,
+    min,
     X: (i) => pl + (i * (W - pl - pr)) / Math.max(1, n - 1),
-    Y: (v) => pt + (1 - v / max) * (H - pt - pb),
+    Y: (v) => pt + (1 - (v - min) / (max - min || 1)) * (H - pt - pb),
   };
 }
 function Axes({ f, months, fmt }: { f: ReturnType<typeof frame>; months: YearMonth[]; fmt: (v: number) => string }) {
@@ -59,9 +61,9 @@ function Axes({ f, months, fmt }: { f: ReturnType<typeof frame>; months: YearMon
     <>
       {[0, 0.25, 0.5, 0.75, 1].map((k) => (
         <g key={k}>
-          <line className="grid" x1={f.pl} x2={f.W - f.pr} y1={f.Y(k * f.max)} y2={f.Y(k * f.max)} />
-          <text className="axis" x={f.pl - 8} y={f.Y(k * f.max) + 4} textAnchor="end">
-            {fmt(k * f.max)}
+          <line className="grid" x1={f.pl} x2={f.W - f.pr} y1={f.Y(f.min + k * (f.max - f.min))} y2={f.Y(f.min + k * (f.max - f.min))} />
+          <text className="axis" x={f.pl - 8} y={f.Y(f.min + k * (f.max - f.min)) + 4} textAnchor="end">
+            {fmt(f.min + k * (f.max - f.min))}
           </text>
         </g>
       ))}
@@ -236,6 +238,7 @@ export function LineChart({
   color,
   fmt,
   label,
+  zoom = false,
 }: {
   months: YearMonth[];
   values: number[];
@@ -243,13 +246,19 @@ export function LineChart({
   color: string;
   fmt: (v: number) => string;
   label: string;
+  /** start the axis near the lowest value instead of zero, so movement shows */
+  zoom?: boolean;
 }) {
   const W = useChartWidth(),
     H = 240,
     uid = useId().replace(/:/g, "");
   const [sel, setSel] = useState<number | null>(null);
   const n = months.length,
-    f = frame(W, H, n, niceMax(Math.max(...values, ...invested) * 1.08));
+    hi = Math.max(...values, ...invested),
+    lo = Math.min(...values.filter((v) => v > 0), ...invested.filter((v) => v > 0));
+  const span = Math.max(hi - lo, hi * 0.04);
+  const min = zoom && lo > 0 ? Math.max(0, lo - span * 0.25) : 0;
+  const f = frame(W, H, n, zoom ? hi + span * 0.15 : niceMax(hi * 1.08), min);
   return (
     <div className="relative" onPointerLeave={() => setSel(null)}>
       <svg className="chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={label}>
@@ -261,7 +270,7 @@ export function LineChart({
         </defs>
         <Axes f={f} months={months} fmt={fmt} />
         <g className="draw">
-          <path d={`${path(values, f.X, f.Y)}L${f.X(n - 1)},${f.Y(0)}L${f.X(0)},${f.Y(0)}Z`} fill={`url(#${uid}a)`} />
+          <path d={`${path(values, f.X, f.Y)}L${f.X(n - 1)},${f.Y(f.min)}L${f.X(0)},${f.Y(f.min)}Z`} fill={`url(#${uid}a)`} />
           <path d={path(invested, f.X, f.Y)} className="inv" />
           <path d={path(values, f.X, f.Y)} fill="none" stroke={color} strokeWidth={3} strokeLinejoin="round" />
         </g>
@@ -419,6 +428,83 @@ export function Legend({ items }: { items: { name: string; color?: string; dashe
           {i.name}
         </span>
       ))}
+    </div>
+  );
+}
+
+const RANGES = [
+  [3, "3M"],
+  [6, "6M"],
+  [12, "1Y"],
+] as const;
+/** a screen's money over time, like a broker's portfolio chart: pick a range, hover or tap for any month, and the
+    change over the range (market move, without the money you added) */
+export function ValueChart({
+  months,
+  values,
+  invested,
+  color,
+  fmt,
+  label,
+  note,
+}: {
+  months: YearMonth[];
+  values: number[];
+  invested: number[];
+  color: string;
+  fmt: (v: number) => string;
+  label: string;
+  note?: string;
+}) {
+  const [r, setR] = useState<number>(12);
+  const n = months.length,
+    k = Math.min(n, r + 1);
+  const ms = months.slice(n - k),
+    vs = values.slice(n - k),
+    iv = invested.slice(n - k);
+  const added = iv[iv.length - 1] - iv[0],
+    move = vs[vs.length - 1] - vs[0] - added,
+    base = vs[0] + added / 2;
+  if (!values.some((v) => v > 0)) return null;
+  return (
+    <div className="grid gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="num text-[13.5px] text-body">
+          <b className={move >= 0 ? "text-gain-ink" : "text-loss-ink"}>
+            {move >= 0 ? "+" : "−"}
+            {fmt(Math.abs(move))}
+            {base > 0 ? ` (${move >= 0 ? "+" : "−"}${((100 * Math.abs(move)) / base).toFixed(1)}%)` : ""}
+          </b>{" "}
+          market move in {RANGES.find(([m]) => m === r)?.[1]}
+          {added > 0 ? `, besides ${fmt(added)} added` : ""}
+        </p>
+        <div className="inline-flex rounded-full bg-tint p-[3px]" role="group" aria-label="Chart range">
+          {RANGES.filter(([m]) => m < n || m === 12).map(([m, l]) => (
+            <button
+              key={m}
+              type="button"
+              aria-pressed={r === m}
+              onClick={() => setR(m)}
+              className={
+                "num h-7 min-w-[42px] cursor-pointer rounded-full px-2.5 text-[12.5px] font-semibold " +
+                (r === m ? "bg-card text-lime shadow-[0_1px_2px_rgb(0_0_0/0.12)]" : "text-muted")
+              }
+            >
+              {l}
+            </button>
+          ))}
+        </div>
+      </div>
+      <LineChart months={ms} values={vs} invested={iv} color={color} fmt={fmt} label={label} zoom />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Legend
+          items={[
+            { name: "Value", color },
+            { name: "Money put in", dashed: true },
+          ]}
+        />
+        {note && <span className="text-[12px] text-muted">{note}</span>}
+      </div>
     </div>
   );
 }

@@ -5,7 +5,8 @@ import type { CSSProperties, ReactNode } from "react";
 import { riseIn, slideInFromLeft, slideInFromRight, slideInFromTop } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import { pct1 } from "@/lib/format";
-import { HeroArt, type ArtExtra, type ArtKind } from "@/components/main/art/hero-art";
+type ArtKind = string;
+type ArtExtra = unknown;
 
 /** a white card that rises in as it scrolls into view */
 export function Card({
@@ -60,7 +61,6 @@ export function Hero({
   children,
   aside,
   art,
-  artExtra,
   big = true,
 }: {
   badge: string;
@@ -79,7 +79,10 @@ export function Hero({
     <motion.section
       initial="hidden"
       animate="visible"
-      className="relative isolate grid items-center gap-x-8 gap-y-3 overflow-hidden rounded-[var(--radius-card)] px-8 py-7 surface max-sm:rounded-[14px] max-sm:px-4 max-sm:py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)]"
+      className={cn(
+        "relative isolate grid items-center gap-x-8 gap-y-3 overflow-hidden rounded-[var(--radius-card)] px-8 py-7 surface max-sm:rounded-[14px] max-sm:px-4 max-sm:py-4",
+        aside && !art && "lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]",
+      )}
       style={{
         backgroundImage: `radial-gradient(85% 120% at 100% 30%, ${wash && wash !== "transparent" ? wash : "color-mix(in srgb, var(--color-lime-2) 9%, transparent)"}, transparent 62%)`,
       }}
@@ -105,20 +108,13 @@ export function Hero({
             {children}
           </motion.div>
         )}
-        {aside && art && (
+        {aside && art != null && (
           <motion.div variants={slideInFromLeft(0.3)} className="mt-1">
             {aside}
           </motion.div>
         )}
       </div>
-      {art ? (
-        <motion.div
-          variants={slideInFromRight(0.15)}
-          className="mx-auto w-full max-w-[580px] max-lg:order-1 max-lg:max-w-[460px] max-sm:-my-2 max-sm:max-w-[360px]"
-        >
-          <HeroArt kind={art} extra={artExtra} />
-        </motion.div>
-      ) : aside ? (
+      {aside && !art ? (
         <motion.div variants={slideInFromRight(0.25)} className="max-lg:order-3">
           {aside}
         </motion.div>
@@ -134,23 +130,24 @@ export function Summary({
   color,
   title,
   items,
-  art,
-  artExtra,
+  chart,
   children,
 }: {
   badge: string;
   color?: string;
   title: ReactNode;
   items?: { k: string; v: ReactNode; tone?: "pos" | "neg" | "" }[];
-  art?: ArtKind;
-  artExtra?: ArtExtra;
+  /** usually a ValueChart of this screen's money */
+  chart?: ReactNode;
   children?: ReactNode;
+  art?: unknown;
+  artExtra?: unknown;
 }) {
   return (
     <motion.section
       initial="hidden"
       animate="visible"
-      className="grid items-center gap-x-8 gap-y-4 rounded-[var(--radius-card)] px-6 py-5 surface max-sm:rounded-[14px] max-sm:px-4 max-sm:py-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)]"
+      className="grid gap-4 rounded-[var(--radius-card)] px-6 py-5 surface max-sm:rounded-[14px] max-sm:px-4 max-sm:py-4"
     >
       <div className="grid min-w-0 content-center gap-3">
         <motion.span variants={slideInFromTop} className="inline-flex items-center gap-2 text-[13.5px] font-medium text-muted">
@@ -187,12 +184,9 @@ export function Summary({
           </motion.div>
         )}
       </div>
-      {art && (
-        <motion.div
-          variants={slideInFromRight(0.15)}
-          className="mx-auto w-full max-w-[300px] max-lg:order-last max-lg:max-w-[240px] max-sm:-my-2 max-sm:max-w-[200px]"
-        >
-          <HeroArt kind={art} extra={artExtra} />
+      {chart && (
+        <motion.div variants={slideInFromRight(0.1)} className="min-w-0">
+          {chart}
         </motion.div>
       )}
     </motion.section>

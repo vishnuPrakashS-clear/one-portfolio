@@ -12,6 +12,7 @@ import { useUi } from "@/components/providers/ui-provider";
 import {
   analyse,
   isinOf,
+  verdictBand,
   BUCKET_NAME,
   CAP_NAME,
   type Analysis,
@@ -114,7 +115,7 @@ export function HealthScreen() {
 
   if (!S || !model.total) {
     return (
-      <Hero badge="Portfolio health" title="How well is your money spread?" big={false} art="health">
+      <Hero badge="Portfolio health" title="How well is your money spread?" big={false}>
         <p className="max-w-[60ch] text-[16.5px] text-body">
           Upload your CDSL statement and broker reports. This screen opens up every fund to show the companies you really own, scores your
           diversification, finds funds that hold the same stocks and tells you what to change.
@@ -129,15 +130,13 @@ export function HealthScreen() {
     );
   }
 
-  const extra = A ? { score: A.score, parts: A.parts.map((p) => p.score / p.max), band: A.band?.label || null } : undefined;
   return (
     <>
       <Hero
         badge="Portfolio health"
         color="var(--color-lime)"
         title={A?.score != null ? `${A.score} / 100` : "Checking…"}
-        art="health"
-        artExtra={extra}
+        aside={A?.score != null ? <ScoreRing score={A.score} parts={A.parts} /> : undefined}
       >
         {A?.band ? (
           <>
@@ -685,5 +684,55 @@ function About({ A, filling }: { A: Analysis; filling: boolean }) {
         </li>
       </ul>
     </Card>
+  );
+}
+
+/** the score as a ring in its band's colour, with each part's share of its maximum as a small bar */
+function ScoreRing({ score, parts }: { score: number; parts: Analysis["parts"] }) {
+  const band = verdictBand(score);
+  const col = score >= 76 ? "var(--color-gain)" : score >= 51 ? "#84cc16" : score >= 26 ? "var(--color-warn)" : "var(--color-loss)";
+  const R = 70,
+    C = 2 * Math.PI * R;
+  return (
+    <div className="mx-auto grid w-full max-w-[380px] min-w-0 justify-items-center gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:justify-items-stretch">
+      <svg viewBox="0 0 180 180" className="size-[150px]" role="img" aria-label={`Score ${score} out of 100, ${band.label}`}>
+        <circle cx="90" cy="90" r={R} fill="none" strokeWidth="14" style={{ stroke: "var(--color-tint-2)" }} />
+        <circle
+          cx="90"
+          cy="90"
+          r={R}
+          fill="none"
+          strokeWidth="14"
+          strokeLinecap="round"
+          strokeDasharray={`${(C * score) / 100} ${C}`}
+          transform="rotate(-90 90 90)"
+          style={{ stroke: col, transition: "stroke-dasharray .8s ease" }}
+        />
+        <text x="90" y="88" textAnchor="middle" fontSize="40" fontWeight="700" style={{ fill: "var(--color-ink)" }}>
+          {score}
+        </text>
+        <text x="90" y="112" textAnchor="middle" fontSize="13" style={{ fill: "var(--color-muted)" }}>
+          {band.label}
+        </text>
+      </svg>
+      <ul className="grid w-full min-w-0 gap-2">
+        {parts.map((p) => (
+          <li key={p.key} className="grid min-w-0 gap-1">
+            <span className="flex justify-between gap-2 text-[12px] text-muted">
+              <span className="truncate">{p.label}</span>
+              <b className="num text-ink">
+                {p.score ?? "—"}/{p.max}
+              </b>
+            </span>
+            <span className="h-1.5 overflow-hidden rounded-full bg-tint-2">
+              <i
+                className="block h-full rounded-full"
+                style={{ width: `${p.score != null ? (100 * p.score) / p.max : 0}%`, background: col }}
+              />
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

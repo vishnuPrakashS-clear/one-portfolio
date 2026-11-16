@@ -2,12 +2,61 @@
 
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { Icon } from "@/components/sub/icon";
+import { fmtDate, TODAY } from "@/lib/dates";
+
+const SRC_NAME: Record<string, string> = {
+  grSt: "Groww stocks holdings",
+  grStO: "Groww stocks order history",
+  grMF: "Groww mutual funds holdings",
+  grMFO: "Groww mutual funds order history",
+  zd: "Zerodha holdings",
+  wint: "Wint Wealth report",
+  ib: "IndiaBonds statement",
+  ibcf: "IndiaBonds cash flows",
+};
+/** a warning when the newest report is more than two weeks old, so sales and buys since then are clearly not counted */
+function DataAge() {
+  const { S, locked } = usePortfolio();
+  const I = S?.india;
+  if (!I || locked) return null;
+  const dates = [I.asOf, ...Object.values(I.src || {}).map((x) => (x as { asOf?: string } | undefined)?.asOf)].filter(
+    (d): d is string => !!d,
+  );
+  if (!dates.length) return null;
+  const newest = dates.sort().at(-1)!;
+  const days = Math.floor((Date.parse(TODAY()) - Date.parse(newest)) / 864e5);
+  if (days <= 14) return null;
+  const old = Object.entries(I.src || {})
+    .filter(([, v]) => (v as { asOf?: string } | undefined)?.asOf)
+    .map(([k, v]) => `${SRC_NAME[k] || k} (${fmtDate((v as { asOf: string }).asOf)})`);
+  return (
+    <div
+      role="note"
+      className="mt-2.5 grid gap-x-4 gap-y-2 rounded-[16px] bg-warn-wash px-4 py-3 text-[14px] text-body shadow-[inset_0_0_0_1px_var(--color-warn)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+    >
+      <span>
+        <b className="text-warn-ink">
+          Your holdings are as of {fmtDate(newest)}, {days} days ago.
+        </b>{" "}
+        Anything you bought or sold since then isn&apos;t counted. Upload the latest reports: CDSL/NSDL statement ({fmtDate(I.asOf)})
+        {old.length ? `, ${old.join(", ")}` : ""}.
+      </span>
+      <Link href="/upload" className="btn btn-primary justify-self-start">
+        <Icon name="upload" />
+        Upload newer reports
+      </Link>
+    </div>
+  );
+}
 
 /** where the data stands: saved, saving, or why it can't be saved */
 export function StatusRow() {
   const { status, banner } = usePortfolio();
   return (
     <>
+      <DataAge />
       <div className="flex min-h-[30px] justify-end pt-2.5" role="status" aria-live="polite">
         <span className="flex min-w-0 items-baseline gap-2 rounded-full bg-card px-2.5 py-1 text-[12.5px] text-muted shadow-[inset_0_0_0_1px_var(--color-line)] max-sm:text-[11.5px]">
           <span

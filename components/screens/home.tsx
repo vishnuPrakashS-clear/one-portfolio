@@ -381,15 +381,18 @@ export function HomeScreen() {
           )}
         </Link>
         <Card delay={0.05}>
-          <CardHead title="Going in every month" note="Read from your purchases, not typed in." />
+          <CardHead title="Going in every month" note="Read from your order history, not typed in.." />
           <ul className="grid">
             {CAT_ORDER.filter((id) => model.cats[id].items.length).map((id) => (
               <li
                 key={id}
-                className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-center gap-3 border-b border-rule py-2.5 text-[14.5px]"
+                className="grid grid-cols-[10px_minmax(0,1fr)_auto] items-start gap-3 border-b border-rule py-2.5 text-[14.5px] [&>span:first-child]:mt-1.5"
               >
                 <span className="size-2.5 rounded-full" style={{ background: CATEGORIES[id].hex }} />
-                <span>{CATEGORIES[id].name}</span>
+                <span className="min-w-0">
+                  {id === "abroad" ? "US stocks" : CATEGORIES[id].name}
+                  <span className="block text-[12px] text-muted">{model.cats[id].sipSrc}</span>
+                </span>
                 <b className="num font-display font-semibold">{model.cats[id].sip ? m(model.cats[id].sip) : "—"}</b>
               </li>
             ))}

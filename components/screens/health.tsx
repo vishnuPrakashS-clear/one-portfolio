@@ -13,6 +13,8 @@ import {
   analyse,
   isinOf,
   verdictBand,
+  scopeModel,
+  forStocks,
   BUCKET_NAME,
   CAP_NAME,
   type Analysis,
@@ -28,7 +30,7 @@ import { cn } from "@/lib/utils";
 import type { MarketData } from "@/types/market";
 import { Card, CardHead, Chip, Hero, Pill } from "@/components/sub/ui";
 import { Icon } from "@/components/sub/icon";
-import { PlanCards } from "./health-plan";
+import { PlanCards, type Scope } from "./health-plan";
 
 const BUCKET_COLOR: Record<Bucket, string> = {
   equity: "#a78bfa",
@@ -112,6 +114,18 @@ export function HealthScreen() {
   }, [S == null, locked, ids.key, nonce, mode]);
 
   const A: Analysis | null = useMemo(() => (S && load.data ? analyse(model, S, load.data) : null), [S, model, load.data]);
+  const AF: Analysis | null = useMemo(
+    () => (S && load.data && model.cats.funds.items.length ? analyse(scopeModel(model, "funds"), S, load.data) : null),
+    [S, model, load.data],
+  );
+  const AS: Analysis | null = useMemo(
+    () => (S && load.data && model.cats.stocks.items.length ? forStocks(analyse(scopeModel(model, "stocks"), S, load.data)) : null),
+    [S, model, load.data],
+  );
+  const [pick, setScope] = useState<Scope | null>(null);
+  const scope: Scope = pick ?? (model.cats.funds.items.length || !model.cats.stocks.items.length ? "funds" : "stocks");
+  const X = scope === "funds" ? AF : scope === "stocks" ? AS : A;
+  const TAB_NAME: Record<Scope, string> = { funds: "Mutual funds", stocks: "Stocks", all: "Overall" };
 
   if (!S || !model.total) {
     return (
@@ -132,25 +146,50 @@ export function HealthScreen() {
 
   return (
     <>
+      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="What to look at">
+        {(["funds", "stocks", "all"] as Scope[])
+          .filter((k) => k === "all" || model.cats[k].items.length)
+          .map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={scope === k}
+              onClick={() => setScope(k)}
+              className={cn(
+                "btn min-h-10 px-5 text-[14.5px]",
+                scope === k && "bg-act-a text-on-act shadow-none hover:bg-act-a hover:brightness-110",
+              )}
+            >
+              {TAB_NAME[k]}
+              {k !== "all" && <span className="num opacity-70">{model.cats[k].items.length}</span>}
+            </button>
+          ))}
+      </div>
       <Hero
-        badge="Portfolio health"
+        badge={`${TAB_NAME[scope]} · health`}
         color="var(--color-lime)"
-        title={A?.score != null ? `${A.score} / 100` : "Checking…"}
-        aside={A?.score != null ? <ScoreRing score={A.score} parts={A.parts} /> : undefined}
+        title={X?.score != null ? `${X.score} / 100` : "Checking…"}
+        aside={X?.score != null ? <ScoreRing score={X.score} parts={X.parts} /> : undefined}
       >
-        {A?.band ? (
+        {X?.band ? (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <Chip tone={A.band.tone}>{A.band.label} diversification</Chip>
-              {A.overDiversified.length > 0 && <Chip tone="wait">Over-diversified: {A.overDiversified.join(", ")}</Chip>}
+              <Chip tone={X.band.tone}>{X.band.label} diversification</Chip>
+              {X.overDiversified.length > 0 && <Chip tone="wait">Over-diversified: {X.overDiversified.join(", ")}</Chip>}
             </div>
-            <p className="max-w-[56ch] text-[16.5px] text-body">{A.band.text}</p>
+            <p className="max-w-[56ch] text-[16.5px] text-body">{X.band.text}</p>
             <div className="flex flex-wrap gap-2">
-              <Pill>{A.exposures.length} companies inside everything you own</Pill>
               <Pill>
-                {A.coverage.fundsWithData} of {A.coverage.funds} funds opened up
+                {X.exposures.length} companies inside{" "}
+                {scope === "funds" ? "your funds" : scope === "stocks" ? "your stocks" : "everything you own"}
               </Pill>
-              {A.asOf && <Pill>Fund holdings as of {monthLong(A.asOf.slice(0, 7))}</Pill>}
+              {scope !== "stocks" && (
+                <Pill>
+                  {X.coverage.fundsWithData} of {X.coverage.funds} funds opened up
+                </Pill>
+              )}
+              {X.asOf && <Pill>Fund holdings as of {monthLong(X.asOf.slice(0, 7))}</Pill>}
               <a href="#plan" className="btn btn-primary">
                 <Icon name="arrow" />
                 Your plan
@@ -161,12 +200,12 @@ export function HealthScreen() {
           <p className="max-w-[56ch] text-[16.5px] text-body">
             {load.error
               ? `Couldn't load market data: ${load.error}`
-              : A && !load.filling
-                ? `${A.coverage.fundsWithData} of ${A.coverage.funds} funds opened up so far. The score waits until most of your money inside funds can be seen; the rest is fetched overnight, or check again in a minute.`
+              : X && !load.filling
+                ? `${X.coverage.fundsWithData} of ${X.coverage.funds} funds opened up so far. The score waits until most of your money inside funds can be seen; the rest is fetched overnight, or check again in a minute.`
                 : "Reading what's inside each of your funds and how each stock is doing. The first time can take a minute."}
           </p>
         )}
-        {(load.error || (A && A.score == null && !load.filling)) && (
+        {(load.error || (X && X.score == null && !load.filling)) && (
           <div>
             <button className="btn" onClick={() => setNonce((n) => n + 1)}>
               <Icon name="refresh" />
@@ -176,17 +215,21 @@ export function HealthScreen() {
         )}
       </Hero>
 
-      {A && (
+      {X && A && (
         <>
-          <Breakdown A={A} />
-          <Actions A={A} />
-          {load.data && <PlanCards A={A} D={load.data} />}
-          <Mix A={A} s={s} />
-          <TopCompanies A={A} s={s} />
-          <OverlapCard A={A} m={m} />
-          <FundCards A={A} s={s} onOpen={(f) => openItem("funds", f.id)} />
-          <StockCards A={A} s={s} onOpen={(r) => openItem("stocks", r.id)} />
-          <About A={A} filling={load.filling} />
+          <Breakdown A={X} />
+          <Actions A={X} />
+          {load.data && <PlanCards A={A} D={load.data} scope={scope} />}
+          <Mix A={X} s={s} />
+          <TopCompanies A={X} s={s} />
+          {scope === "funds" && (
+            <>
+              <OverlapCard A={X} m={m} />
+              <FundCards A={X} s={s} onOpen={(f) => openItem("funds", f.id)} />
+            </>
+          )}
+          {scope === "stocks" && <StockCards A={X} s={s} onOpen={(r) => openItem("stocks", r.id)} />}
+          <About A={X} filling={load.filling} />
         </>
       )}
     </>
@@ -209,7 +252,7 @@ function Breakdown({ A }: { A: Analysis }) {
         note={
           A.score == null
             ? "So far, from the funds opened up only: these will move once the rest are read."
-            : "Five checks, each scored from what you actually own once funds are opened up. Tickertape's bands: 76+ very good, 51–75 good, 26–50 low, 25 or less extremely low."
+            : `${A.parts.length === 5 ? "Five" : A.parts.length === 3 ? "Three" : A.parts.length} checks, each scored from what you actually own once funds are opened up. Tickertape's bands: 76+ very good, 51–75 good, 26–50 low, 25 or less extremely low.`
         }
       />
       <div className="grid gap-4 md:grid-cols-2">

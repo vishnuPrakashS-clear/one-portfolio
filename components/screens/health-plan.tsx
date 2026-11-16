@@ -30,19 +30,24 @@ function Bar({ v, color }: { v: number; color: string }) {
   );
 }
 
-export function PlanCards({ A, D }: { A: Analysis; D: MarketData }) {
+export type Scope = "funds" | "stocks" | "all";
+export function PlanCards({ A, D, scope = "all" }: { A: Analysis; D: MarketData; scope?: Scope }) {
   const { model, S, setPlan } = usePortfolio();
   const P = useMemo(() => (S ? makePlan(model, S, A, D) : null), [model, S, A, D]);
   if (!P) return null;
   return (
     <div id="plan" className="grid scroll-mt-24 gap-[inherit]">
-      <Rules P={P} setPlan={setPlan} />
-      <ThisMonth P={P} />
-      <Funds P={P} />
-      <Stocks P={P} />
-      <Dividends P={P} />
-      <Ideas P={P} />
-      <VsNifty P={P} />
+      {scope === "all" && <Rules P={P} setPlan={setPlan} />}
+      <ThisMonth P={P} scope={scope} />
+      {scope === "funds" && <Funds P={P} />}
+      {scope === "stocks" && (
+        <>
+          <Stocks P={P} />
+          <Dividends P={P} />
+          <Ideas P={P} />
+        </>
+      )}
+      {scope !== "all" && <VsNifty P={P} scope={scope} />}
     </div>
   );
 }
@@ -112,7 +117,7 @@ function Rules({ P, setPlan }: { P: Planner; setPlan: ReturnType<typeof usePortf
   );
 }
 
-function ThisMonth({ P }: { P: Planner }) {
+function ThisMonth({ P, scope }: { P: Planner; scope: Scope }) {
   const { s, m } = useMoney();
   const fundsIn = P.funds.keep.filter((x) => x.monthly > 0);
   const stockBudget = Math.round(P.monthly * P.stockShare);
@@ -123,78 +128,82 @@ function ThisMonth({ P }: { P: Planner }) {
         title="Where this month's money goes"
         note="Worked out again every time you upload: towards the company sizes you're short of, building up strong stocks to their target size, and a cushion of debt and gold if you have under 10%. No selling needed."
       />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <div className="well grid content-start gap-3 p-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <b className="text-ink">Funds</b>
-            <span className="num font-display font-bold text-ink">{s(P.funds.budget)}</span>
-          </div>
-          {P.funds.add.length > 0 && (
-            <ul className="grid gap-2.5">
-              {P.funds.add.map((x) => (
-                <li key={x.label} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
-                  <span className="min-w-0">
-                    <b className="block font-semibold text-ink">
-                      {x.label} <Chip className="ml-1 align-middle">new</Chip>
-                    </b>
-                    <span className="block text-[13px] text-muted">{x.note}</span>
-                  </span>
-                  <b className="num text-ink">{m(x.monthly)}</b>
-                </li>
-              ))}
-            </ul>
-          )}
-          {fundsIn.length ? (
-            <ul className="grid gap-2.5">
-              {fundsIn.map((x) => (
-                <li key={x.f.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
-                  <span className="min-w-0">
-                    <b className="block truncate font-semibold text-ink">{x.f.short}</b>
-                    <span className="block text-[13px] text-muted">{x.note}</span>
-                  </span>
-                  <b className="num text-ink">{m(x.monthly)}</b>
-                </li>
-              ))}
-            </ul>
-          ) : P.funds.add.length ? null : (
-            <p className="note">Nothing set aside for funds this month.</p>
-          )}
-        </div>
-        <div className="well grid content-start gap-3 p-4">
-          <div className="flex items-baseline justify-between gap-2">
-            <b className="text-ink">Stocks</b>
-            <span className="num font-display font-bold text-ink">{s(stockBudget)}</span>
-          </div>
-          {P.buys.length ? (
-            <ul className="grid gap-2.5">
-              {P.buys.map((b) => (
-                <li key={b.isin} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
-                  <span className="min-w-0">
-                    <b className="block truncate font-semibold text-ink">
-                      {b.name} {b.isNew && <Chip className="ml-1 align-middle">new</Chip>}
-                    </b>
-                    <span className="num block text-[13px] text-muted">
-                      {qty(b.qty)} × about {m(b.price)} · {b.why}
+      <div className={cn("grid gap-4", scope === "all" && "lg:grid-cols-2")}>
+        {scope !== "stocks" && (
+          <div className="well grid content-start gap-3 p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <b className="text-ink">Funds</b>
+              <span className="num font-display font-bold text-ink">{s(P.funds.budget)}</span>
+            </div>
+            {P.funds.add.length > 0 && (
+              <ul className="grid gap-2.5">
+                {P.funds.add.map((x) => (
+                  <li key={x.label} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
+                    <span className="min-w-0">
+                      <b className="block font-semibold text-ink">
+                        {x.label} <Chip className="ml-1 align-middle">new</Chip>
+                      </b>
+                      <span className="block text-[13px] text-muted">{x.note}</span>
                     </span>
-                  </span>
-                  <b className="num text-ink">{m(b.cost)}</b>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="note">
-              {stockBudget > 0
-                ? "No stock here is both strong and fairly priced right now; let this month's stock money go to funds."
-                : "No money set aside for stocks."}
-            </p>
-          )}
-          {P.buys.length > 0 && stockBudget - P.buysCost > 200 && (
-            <p className="note">About {m(stockBudget - P.buysCost)} left over: carry it to next month.</p>
-          )}
-        </div>
+                    <b className="num text-ink">{m(x.monthly)}</b>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {fundsIn.length ? (
+              <ul className="grid gap-2.5">
+                {fundsIn.map((x) => (
+                  <li key={x.f.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
+                    <span className="min-w-0">
+                      <b className="block truncate font-semibold text-ink">{x.f.short}</b>
+                      <span className="block text-[13px] text-muted">{x.note}</span>
+                    </span>
+                    <b className="num text-ink">{m(x.monthly)}</b>
+                  </li>
+                ))}
+              </ul>
+            ) : P.funds.add.length ? null : (
+              <p className="note">Nothing set aside for funds this month.</p>
+            )}
+          </div>
+        )}
+        {scope !== "funds" && (
+          <div className="well grid content-start gap-3 p-4">
+            <div className="flex items-baseline justify-between gap-2">
+              <b className="text-ink">Stocks</b>
+              <span className="num font-display font-bold text-ink">{s(stockBudget)}</span>
+            </div>
+            {P.buys.length ? (
+              <ul className="grid gap-2.5">
+                {P.buys.map((b) => (
+                  <li key={b.isin} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
+                    <span className="min-w-0">
+                      <b className="block truncate font-semibold text-ink">
+                        {b.name} {b.isNew && <Chip className="ml-1 align-middle">new</Chip>}
+                      </b>
+                      <span className="num block text-[13px] text-muted">
+                        {qty(b.qty)} × about {m(b.price)} · {b.why}
+                      </span>
+                    </span>
+                    <b className="num text-ink">{m(b.cost)}</b>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="note">
+                {stockBudget > 0
+                  ? "No stock here is both strong and fairly priced right now; let this month's stock money go to funds."
+                  : "No money set aside for stocks."}
+              </p>
+            )}
+            {P.buys.length > 0 && stockBudget - P.buysCost > 200 && (
+              <p className="note">About {m(stockBudget - P.buysCost)} left over: carry it to next month.</p>
+            )}
+          </div>
+        )}
       </div>
       <div className="grid gap-2 text-[14.5px] text-body">
-        {P.fill.stocks > 0 && (
+        {scope !== "funds" && P.fill.stocks > 0 && (
           <p>
             Bringing all {P.fill.stocks} stocks you keep up to their target size takes about <b className="text-ink">{s(P.fill.cost)}</b>
             {P.fill.months ? (
@@ -210,7 +219,7 @@ function ThisMonth({ P }: { P: Planner }) {
             . Letting the weak ones go (below) frees money for this and gets there sooner.
           </p>
         )}
-        {capShort.length > 0 && (
+        {scope === "all" && capShort.length > 0 && (
           <p>
             To reach your {P.prefs.mix === "equal" ? "equal" : "55 / 25 / 20"} split without selling, you need about{" "}
             {capShort.map((c, i) => (
@@ -477,12 +486,14 @@ function Ideas({ P }: { P: Planner }) {
   );
 }
 
-function VsNifty({ P }: { P: Planner }) {
+function VsNifty({ P, scope }: { P: Planner; scope: Scope }) {
   const { m } = useMoney();
-  const rows = [
-    ["Your stocks", P.vs.stocks],
-    ["Your equity funds", P.vs.funds],
-  ] as const;
+  const rows = (
+    [
+      ["Your stocks", P.vs.stocks],
+      ["Your equity funds", P.vs.funds],
+    ] as const
+  ).filter(([k]) => scope === "all" || (scope === "stocks" ? k === "Your stocks" : k === "Your equity funds"));
   const any = rows.some(([, v]) => v && v.xirr != null && v.ixXirr != null);
   return (
     <Card>

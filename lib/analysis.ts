@@ -236,6 +236,29 @@ export function isinOf(S: Portfolio) {
   return (h: { type: string; isin: string; name: string }) => h.isin || w.get(priceKey(h)) || "";
 }
 
+/** the model with only one kind of investment in it, so the analysis can look at mutual funds or stocks on their own */
+export function scopeModel(M: Model, keep: "funds" | "stocks"): Model {
+  const cats = { ...M.cats };
+  for (const id of Object.keys(cats) as (keyof typeof cats)[])
+    if (id !== keep) cats[id] = { ...cats[id], items: [], value: 0, cost: 0, known: 0, gain: null, gainPct: null };
+  return { ...M, cats, total: M.cats[keep].value };
+}
+/** a stocks-only analysis: the mix of kinds of investment and fund overlap don't apply, so the score is rescaled over
+    the checks that do (spread across companies, sectors and sizes) */
+export function forStocks(A: Analysis): Analysis {
+  const parts = A.parts.filter((p) => p.key !== "assets" && p.key !== "overlap");
+  const max = parts.reduce((a, p) => a + p.max, 0);
+  const score = A.score == null || !max ? null : Math.round((100 * parts.reduce((a, p) => a + p.score, 0)) / max);
+  const vb = score != null ? verdictBand(score) : null;
+  return {
+    ...A,
+    parts,
+    score,
+    band: vb,
+    actions: A.actions.filter((x) => !/^(overlap|duplicate|cost|laggard|assets|too-many)$/.test(x.kind)),
+  };
+}
+
 export function analyse(M: Model, S: Portfolio, D: MarketData): Analysis {
   const buckets: Record<Bucket, number> = { equity: 0, intl: 0, debt: 0, gold: 0, cash: 0, other: 0 };
   const exp = new Map<string, Exposure>();

@@ -80,6 +80,15 @@ export function steadyMonthly(a: number[]): number {
   const m = rest.reduce((x, y) => x + y, 0) / (rest.length || 1);
   return mx > 2.5 * m && rest.length ? m : a.reduce((x, y) => x + y, 0) / a.length;
 }
+/** a fund's monthly SIP, read from its purchases still held: bought in at least 3 of the given months (one of them among
+    the last two, so it's still running); the amount is the median month */
+export function sipOf(lots: ModelLot[], win: YearMonth[]): number {
+  const by = win.map((m) => lots.filter((l) => l.d.slice(0, 7) === m).reduce((a, l) => a + l.q * l.p, 0));
+  const on = by.filter((v) => v > 0);
+  if (on.length < 3 || !(by[by.length - 1] > 0 || by[by.length - 2] > 0)) return 0;
+  const so = on.slice().sort((a, b) => a - b);
+  return so[Math.floor(so.length / 2)];
+}
 /** future value of today's money plus a monthly amount, compounding monthly at an annual rate */
 export function fv(pv: number, sip: number, r: number, yrs: number): number {
   const i = Math.pow(1 + r, 1 / 12) - 1,
@@ -208,11 +217,25 @@ export function buildModel(S: Portfolio | null, today: ISODate = TODAY()): Model
     const first = cf.length ? cf[0].d : null;
     c.since = first;
     c.xirr = id !== "bonds" && first && daysBetween(first, today) > 120 ? xirr(cf) : null;
-    // monthly investing, read from the last six complete months of purchases
-    const ins: number[] = [];
-    for (let i = NMONTHS - 7; i < NMONTHS - 1; i++) if (i > 0) ins.push(Math.max(0, c.inv[i] - c.inv[i - 1]));
-    c.sip = id === "abroad" ? (c.items.length ? S.settings.monthlyInr || 0 : 0) : Math.round(steadyMonthly(ins) / 100) * 100;
-    c.sipSrc = id === "abroad" ? "your monthly plan" : "the average of your last six months of purchases";
+    // monthly investing. Funds: only real SIPs (a fund bought in at least 3 of the last 6 complete months, and in one
+    // of the last 2), so switches between funds and one-off lump sums don't count. Shares and bonds have no SIPs, so
+    // it's their typical month of buying over the same six months (a one-off big month left out). Abroad: your plan.
+    const win = months.slice(NMONTHS - 7, NMONTHS - 1);
+    if (id === "funds") {
+      c.sip = 0;
+      for (const it of c.items) c.sip += sipOf(it.lots, win);
+      c.sip = Math.round(c.sip / 100) * 100;
+      c.sipSrc = "SIPs: funds bought in at least 3 of the last 6 months (switches and one-off buys left out)";
+    } else if (id === "abroad") {
+      c.sip = c.items.length ? S.settings.monthlyInr || 0 : 0;
+      c.sipSrc = "your INDmoney monthly plan (set on the Plan screen)";
+    } else {
+      const ins = win.map((m) =>
+        c.items.reduce((a, it) => a + it.lots.filter((l) => l.d.slice(0, 7) === m).reduce((x, l) => x + l.q * l.p, 0), 0),
+      );
+      c.sip = Math.round(steadyMonthly(ins) / 100) * 100;
+      c.sipSrc = "your typical month of buying over the last 6 months (no fixed SIP)";
+    }
     c.coverage = c.value ? c.covered / c.value : 0;
   }
   const val = months.map((_, i) => CAT_ORDER.reduce((a, id) => a + cats[id].val[i], 0));

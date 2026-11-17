@@ -5,6 +5,7 @@ import { CATEGORIES, CAT_ORDER } from "@/constants";
 import { goalCalc, type Model } from "@/lib/model";
 import { hasAbroad, holdingRows, lastImport, monthlySplit } from "@/lib/core/abroad";
 import { indHoldings, inTaxSummary } from "@/lib/core/india";
+import { rebalancePlan } from "@/lib/core/rebalance";
 import { dateGaps, FIXES, gapsByFix } from "@/lib/coverage";
 import { daysBetween, fmtDate, iso, TODAY } from "@/lib/dates";
 import { inr } from "@/lib/format";
@@ -111,6 +112,14 @@ export function answer(topic: Topic, S: Portfolio | null, M: Model, today = TODA
         .filter((x) => x.action.tone === "act")
         .slice(0, 4))
         lines.push(`${r.sym}: ${r.action.label}. ${r.action.why}`);
+    if (S && hasAbroad(S)) {
+      const R = rebalancePlan(S, { today });
+      const o = R.orders.slice(0, 3);
+      if (o.length)
+        lines.unshift(
+          `US / global rebalance: sell ${o.map((x) => `${x.qty.toFixed(4)} ${x.sym.replace("LSE~", "")} at a limit of $${x.limit.toFixed(2)} or more`).join("; ")}. Tax about ${L(R.tax)}${R.months != null ? `; or skip selling and let new money fix it in about ${R.months} months` : ""}.`,
+        );
+    }
     const losers = CAT_ORDER.flatMap((id) => M.cats[id].items)
       .filter((x) => x.cost && x.value < x.cost * 0.8)
       .sort((a, b) => a.value / (a.cost || 1) - b.value / (b.cost || 1))
@@ -124,7 +133,10 @@ export function answer(topic: Topic, S: Portfolio | null, M: Model, today = TODA
       topic,
       title: lines.length > 1 ? "A few to look at, nothing urgent" : "Nothing needs selling now",
       lines,
-      link: { href: "/health#todo", label: "Your to-do list" },
+      link:
+        S && hasAbroad(S)
+          ? { href: "/plan#rebalance", label: "Open the rebalance planner" }
+          : { href: "/health#todo", label: "Your to-do list" },
     };
   }
   if (topic === "tax") {

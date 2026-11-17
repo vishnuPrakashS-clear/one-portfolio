@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { GoalsScreen } from "@/components/screens/goals";
+import { FutureScreen } from "@/components/screens/future";
 
-export const metadata: Metadata = { title: "Goals" };
+// Goals now live on the Future page; this address keeps working and lands on the goal section
+export const metadata: Metadata = { title: "Future & goals" };
 
 export default function Page() {
-  return <GoalsScreen />;
+  return <FutureScreen focus="goal" />;
 }

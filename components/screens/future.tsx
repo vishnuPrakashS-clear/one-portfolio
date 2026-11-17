@@ -4,8 +4,9 @@
    month (both read from your statements), and lets you slide the monthly amount, the years and a yearly step-up to see
    the result at once. Big answer first; then how it builds year by year, ready answers for 5, 10, 15, 20 and 25 years,
    and what-ifs. */
+import { GoalSection } from "./goals";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { weightedRate } from "@/lib/model";
 import { grow, monthlyFor, real, type Growth } from "@/lib/future";
@@ -188,7 +189,11 @@ function YearBars({ g, s, adj }: { g: Growth; s: (v: number) => string; adj: (v:
   );
 }
 
-export function FutureScreen() {
+export function FutureScreen({ focus }: { focus?: "goal" } = {}) {
+  // /goals lands on the goal section of this page
+  useEffect(() => {
+    if (focus) setTimeout(() => document.getElementById(focus)?.scrollIntoView({ block: "start" }), 300);
+  }, [focus]);
   const { model, S } = usePortfolio();
   const { s, m } = useMoney();
   const today = model.total;
@@ -333,6 +338,8 @@ export function FutureScreen() {
           </p>
         </div>
       </section>
+
+      <GoalSection />
 
       <Card>
         <CardHead

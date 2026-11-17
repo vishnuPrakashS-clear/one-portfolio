@@ -1,13 +1,12 @@
 "use client";
 
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
-import { CATEGORIES, CAT_ORDER, EXTRA_MONTHLY, GOAL_AMOUNTS, GOAL_COLOR, RATE_NAMES } from "@/constants";
+import { CATEGORIES, CAT_ORDER, EXTRA_MONTHLY, GOAL_AMOUNTS, RATE_NAMES } from "@/constants";
 import { fv, goalCalc, projectAll, type GoalResult, type Model } from "@/lib/model";
 import { TODAY } from "@/lib/dates";
 import { useMoney } from "@/lib/use-money";
-import { Card, CardHead, Hero } from "@/components/sub/ui";
+import { Card, CardHead } from "@/components/sub/ui";
 import { GoalChart } from "@/components/sub/charts";
 import { ProjectionCard } from "@/components/sub/category-parts";
 import { Icon, type IconName } from "@/components/sub/icon";
@@ -123,24 +122,11 @@ function pathSeries(M: Model, r: GoalResult, extra: number): { series: [number[]
   return { series, put };
 }
 
-export function GoalsScreen() {
+/** the goal check, as a section of the Future page: pick an amount and a year, see if you're on track and what it takes */
+export function GoalSection() {
   const { model: M, S, setGoal } = usePortfolio(),
     { m, s } = useMoney();
-  if (!M.total) {
-    return (
-      <Hero badge="Goal check" color={GOAL_COLOR} wash="transparent" title="Upload a statement first" big={false} art="goals">
-        <p className="max-w-[60ch] text-[16.5px] text-body">
-          The goal check works out where your current investments and monthly investing lead, and whether that reaches your goal.
-        </p>
-        <div>
-          <Link href="/upload" className="btn btn-primary">
-            <Icon name="upload" />
-            Upload
-          </Link>
-        </div>
-      </Hero>
-    );
-  }
+  if (!M.total) return null;
   const Y = +TODAY().slice(0, 4),
     years = [5, 10, 15, 20, 25].map((k) => Y + k),
     goal = S?.settings.goal;
@@ -152,39 +138,35 @@ export function GoalsScreen() {
   const path = r ? pathSeries(M, r, extra) : null;
   return (
     <>
-      <Hero
-        badge="Goal check"
-        color={GOAL_COLOR}
-        wash="transparent"
-        title={goal ? `${s(goal.amt)} by ${goal.year}` : "Pick a goal and a year"}
-        big={false}
-        art="goals"
-        aside={
-          <div className="grid gap-4 rounded-[22px] bg-card p-5 shadow-[inset_0_0_0_1px_var(--color-line),var(--shadow-card)]">
-            <Chips label="Goal" items={GOAL_AMOUNTS} value={goal?.amt} onPick={(amt) => setGoal({ amt })} render={s} />
-            <Chips
-              label={`Each month, on top of today's ${m(M.sip)}`}
-              items={EXTRA_MONTHLY}
-              value={goal ? extra : undefined}
-              onPick={(x) => setGoal({ extra: x })}
-              render={(x) => (x ? "+" + s(x) : "Same")}
-            />
-            <Chips
-              label="By"
-              items={years}
-              value={goal?.year}
-              onPick={(year) => setGoal({ year })}
-              render={String}
-              sub={age ? (y) => `age ${age(y)}` : undefined}
-            />
-          </div>
-        }
-      >
-        <p className="max-w-[56ch] text-[16.5px] text-body">
-          Tap an amount and a year. The check uses what you hold today and what goes in each month, read from your statements. Nothing to
-          type.
-        </p>
-      </Hero>
+      <Card id="goal" className="scroll-mt-24">
+        <CardHead
+          title={
+            <>
+              <Icon name="flag" className="size-5 text-goal" />
+              {goal ? `Your goal: ${s(goal.amt)} by ${goal.year}` : "Set a goal"}
+            </>
+          }
+          note="Tap an amount and a year. It checks what you hold today plus what goes in each month, read from your statements."
+        />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Chips label="Goal" items={GOAL_AMOUNTS} value={goal?.amt} onPick={(amt) => setGoal({ amt })} render={s} />
+          <Chips
+            label="By"
+            items={years}
+            value={goal?.year}
+            onPick={(year) => setGoal({ year })}
+            render={String}
+            sub={age ? (y) => `age ${age(y)}` : undefined}
+          />
+          <Chips
+            label={`Each month, on top of today's ${m(M.sip)}`}
+            items={EXTRA_MONTHLY}
+            value={goal ? extra : undefined}
+            onPick={(x) => setGoal({ extra: x })}
+            render={(x) => (x ? "+" + s(x) : "Same")}
+          />
+        </div>
+      </Card>
       {goal && r && vd && path ? (
         <>
           <Card
@@ -285,10 +267,6 @@ export function GoalsScreen() {
           ))}
         </div>
       )}
-      <p className="note max-w-[110ch] text-[12.5px]">
-        Rates are long-run assumptions, not promises: mutual funds 8–14%, stocks 7–16%, bonds 6.5–9.5%, abroad in rupees 7–14% a year.
-        Monthly investing is the average of your last six months of purchases (abroad: your monthly plan). Inflation is not taken out.
-      </p>
     </>
   );
 }

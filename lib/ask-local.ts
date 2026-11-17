@@ -64,7 +64,7 @@ export function answer(topic: Topic, S: Portfolio | null, M: Model, today = TODA
           `You have ${L(M.total)} today, adding about ${L(M.sip)} a month.`,
           "Set a target amount and year on Goals and this answer shows whether you'll get there and what to change.",
         ],
-        link: { href: "/goals", label: "Set a goal" },
+        link: { href: "/future#goal", label: "Set a goal" },
       };
     const r = goalCalc(M, g, today),
       [lo, mid, hi] = r.v,
@@ -80,7 +80,7 @@ export function answer(topic: Topic, S: Portfolio | null, M: Model, today = TODA
           : `You can reach it with ${L(r.need)} a month; you already put in ${L(r.sip)}, so keep it going and don't stop SIPs in a fall.`,
         "As the year gets within 3–5 years, move that goal's money step by step into debt funds or bonds.",
       ],
-      link: { href: "/goals", label: "Open Goals" },
+      link: { href: "/future#goal", label: "Open Goals" },
     };
   }
   if (topic === "buy") {

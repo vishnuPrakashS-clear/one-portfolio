@@ -145,9 +145,10 @@
   html[data-theme="dark"] {
     color-scheme: dark;
   }
+  /* the page colour lives on html only: a body background would paint over the fixed layers behind the page (the
+     backdrop glows and the 3D scene, at z-index −10) */
   body {
     min-height: 100vh;
-    background: var(--color-page);
     color: var(--color-ink);
     font-family: var(--font-sans);
     font-size: 15px;

@@ -339,7 +339,7 @@ export function HomeScreen() {
         <HistNote />
       </Card>
       <div className="grid gap-5 md:grid-cols-2">
-        <Link href="/goals" className="card no-underline transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)]">
+        <Link href="/future#goal" className="card no-underline transition hover:-translate-y-[3px] hover:shadow-[var(--shadow-lift)]">
           <CardHead title={goal ? `Goal: ${s(goal.amt)} by ${goal.year}` : "Will you reach your goal?"} />
           {goal && r ? (
             <>

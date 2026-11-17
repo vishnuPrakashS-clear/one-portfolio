@@ -4,6 +4,7 @@ import { siteConfig } from "@/config";
 import { Providers } from "@/components/providers/providers";
 import { Navbar } from "@/components/main/navbar";
 import { Backdrop } from "@/components/main/backdrop";
+import { AmbientBackground } from "@/components/main/ambient/ambient";
 import { Footer } from "@/components/main/footer";
 import { AppShell } from "@/components/main/app-shell";
 import { THEME_SCRIPT } from "@/lib/theme-script";
@@ -33,6 +34,7 @@ export default function RootLayout({ children }: PropsWithChildren) {
         </a>
         <Providers>
           <Backdrop />
+          <AmbientBackground />
           <Navbar />
           <AppShell>{children}</AppShell>
           <Footer />

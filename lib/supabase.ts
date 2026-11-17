@@ -219,13 +219,25 @@ export interface LiveQuote {
   open: boolean;
   opens: string | null;
 }
+/** growth, risk, trend and yield from 5 years of daily prices (ratios; null where the history is too short) */
+export interface Metrics {
+  r1: number | null;
+  r3: number | null;
+  r5: number | null;
+  vol: number;
+  fromHigh: number;
+  vs200: number;
+  maxDD3: number;
+  yield: number;
+}
 export interface LiveQuotes {
   quotes: Record<string, LiveQuote>;
+  metrics?: Record<string, Metrics>;
   fx: { rate: number; at: string } | null;
   fetchedAt: string;
 }
-export async function liveQuotes(syms: string[]): Promise<LiveQuotes> {
-  const { data, error } = await sb().functions.invoke("live-quotes", { body: { syms } });
+export async function liveQuotes(syms: string[], metrics = false): Promise<LiveQuotes> {
+  const { data, error } = await sb().functions.invoke("live-quotes", { body: { syms, metrics } });
   if (error) throw error;
   if (!data?.ok) throw new Error(data?.error || "No prices came back");
   return data as LiveQuotes;

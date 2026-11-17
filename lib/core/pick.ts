@@ -3,7 +3,7 @@
    its 1-year range) using live prices. Rules only: the same ones the monthly plan follows. Not advice. */
 
 import type { Bucket, Portfolio } from "@/types/portfolio";
-import type { LiveQuote } from "@/lib/supabase";
+import type { LiveQuote, Metrics } from "@/lib/supabase";
 import { bucketView, CATALOG, holdingRows, SINGLE, WHOLE } from "./abroad";
 
 /** US-listed funds and the London (UCITS Acc) version your plan buys instead */
@@ -32,11 +32,87 @@ export function normSym(t: string): string {
 }
 export const show = (s: string) => s.replace(/^LSE~/, "");
 
+/** yearly fund cost (TER, %) of the funds the plan knows; single companies cost nothing to hold */
+export const TER: Record<string, number> = {
+  "LSE~CSPX": 0.07,
+  "LSE~CNDX": 0.3,
+  "LSE~IJPA": 0.15,
+  "LSE~COPX": 0.65,
+  VOO: 0.03,
+  IVV: 0.03,
+  SPY: 0.0945,
+  SPLG: 0.02,
+  VT: 0.06,
+  QQQ: 0.2,
+  QQQM: 0.15,
+  EWJ: 0.5,
+  SCHD: 0.06,
+  VIG: 0.05,
+  EWZ: 0.59,
+  EWY: 0.59,
+  EWT: 0.59,
+  COPX: 0.65,
+};
+
+/** the metrics half of the score (0–100): growth, return per unit of risk, where the price is against its trend,
+    cost, and the tax drag of dividends paid to an Indian resident */
+export function qualityOf(sym: string, isEtf: boolean, m: Metrics | undefined) {
+  const parts: { k: string; v: number; max: number; note: string }[] = [];
+  if (!m) return { score: null as number | null, parts };
+  const pc = (x: number | null) => (x == null ? "—" : `${x >= 0 ? "+" : "−"}${Math.abs(x * 100).toFixed(1)}%`);
+  const g = m.r5 != null && m.r3 != null ? (m.r5 + m.r3) / 2 : (m.r3 ?? m.r1 ?? 0);
+  parts.push({
+    k: "Growth",
+    v: Math.max(0, Math.min(30, (g / 0.15) * 30)),
+    max: 30,
+    note: `${pc(m.r1)} 1y · ${pc(m.r3)} 3y · ${pc(m.r5)} 5y a year`,
+  });
+  const sh = m.vol > 0 ? g / m.vol : 0;
+  parts.push({
+    k: "Return for the risk",
+    v: Math.max(0, Math.min(20, sh * 20)),
+    max: 20,
+    note: `swings ${(m.vol * 100).toFixed(0)}% a year · worst fall in 3y ${pc(m.maxDD3)}`,
+  });
+  // in an uptrend but not stretched scores best; far above the 200-day average is stretched; far below is a downtrend
+  const t = m.vs200;
+  parts.push({
+    k: "Right now",
+    v: Math.max(4, Math.min(20, 20 - Math.abs(t + 0.02) * 80)),
+    max: 20,
+    note: `${pc(t)} vs its 200-day average · ${pc(m.fromHigh)} from its 1-year high`,
+  });
+  const ter = TER[sym];
+  parts.push({
+    k: "Cost",
+    v: !isEtf ? 15 : ter == null ? 8 : Math.max(0, 15 - ter * 15),
+    max: 15,
+    note: !isEtf ? "a single company: no fund fee" : ter == null ? "fund fee not known" : `${ter}% a year`,
+  });
+  const lse = sym.startsWith("LSE~");
+  parts.push({
+    k: "Dividend tax",
+    v: lse || m.yield < 0.001 ? 15 : Math.max(0, 15 - m.yield * 100 * 5),
+    max: 15,
+    note:
+      lse || m.yield < 0.001
+        ? "reinvested inside the fund: nothing to declare each year"
+        : `${(m.yield * 100).toFixed(2)}% paid out: 25% US withholding, then your slab rate`,
+  });
+  return { score: Math.round(parts.reduce((a, x) => a + x.v, 0)), parts };
+}
+
 export interface Pick {
   sym: string;
   name: string;
   bucket: Bucket | null;
   score: number;
+  /** fit with your plan (0–100) and the metrics score (0–100) */
+  fit: number;
+  quality: number | null;
+  parts: ReturnType<typeof qualityOf>["parts"];
+  /** a plan rule rules it out (over the 10% cap, 0% target, being wound down, can't afford a whole share) */
+  blocked: boolean;
   verdict: "best" | "ok" | "skip";
   why: string[];
   price: number | null;
@@ -46,7 +122,13 @@ export interface Pick {
   limit: number | null;
 }
 
-export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: Record<string, LiveQuote>): Pick[] {
+export function pickBest(
+  S: Portfolio,
+  syms: string[],
+  amount: number,
+  quotes: Record<string, LiveQuote>,
+  metrics: Record<string, Metrics> = {},
+): Pick[] {
   const bv = bucketView(S),
     total = bv[0]?.total || 0,
     wsum = bv.reduce((a, b) => a + b.w, 0) || 100,
@@ -57,7 +139,8 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
       q = raw && (!raw.currency || raw.currency.toUpperCase() === "USD") ? raw : undefined,
       cat = CATALOG[sym],
       why: string[] = [];
-    let score = 50;
+    let score = 50,
+      blocked = false;
     const price = q?.price ?? S.holdings.find((h) => h.sym === sym)?.price ?? WHOLE[sym] ?? null;
     if (raw && !q) why.push(`Quoted in ${raw.currency} on the exchange; using your last dollar price.`);
     const isEtf = raw?.type ? /ETF|FUND/i.test(raw.type) : !!cat && !SINGLE.has(sym);
@@ -69,6 +152,10 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
         name: q?.name || cat?.name || "",
         bucket,
         score: -999,
+        fit: 0,
+        quality: null,
+        parts: [],
+        blocked: true,
         verdict: "skip",
         why,
         price: null,
@@ -83,6 +170,7 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
       why.push("Your monthly plan buys this.");
     } else if (cat?.plan === "legacy") {
       score -= 40;
+      blocked = true;
       why.push("You're winding this down in the plan; adding more works against it.");
     } else if (cat?.plan === "keep") {
       score -= 15;
@@ -102,6 +190,7 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
         gap = target - (b?.value || 0);
       if (!b || b.w === 0) {
         score -= 30;
+        blocked = true;
         why.push(`${bucket} has a 0% target in your plan.`);
       } else if (gap > 0) {
         const fill = Math.min(1, gap / amount);
@@ -121,6 +210,7 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
         after = (now + amount) / (total + amount);
       if (after > 0.1) {
         score -= 30;
+        blocked = true;
         why.push(`One company: it would be ${(after * 100).toFixed(0)}% of your US money, over the 10% limit.`);
       } else why.push(`One company: ${(after * 100).toFixed(1)}% of your US money after buying (limit 10%).`);
     }
@@ -128,10 +218,11 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
     const whole = !!WHOLE[sym];
     if (whole && price * 1.0075 > amount) {
       score -= 60;
+      blocked = true;
       why.push(`Sold only in whole shares and 1 share (≈$${(price * 1.0075).toFixed(2)}) is more than $${amount.toFixed(2)}.`);
     }
-    // price within its 1-year range
-    if (q?.hi52 && q.lo52 && q.hi52 > q.lo52) {
+    // price within its 1-year range (only when the 5-year metrics didn't come back; they cover this better)
+    if (!metrics[sym] && q?.hi52 && q.lo52 && q.hi52 > q.lo52) {
       const pos = (price - q.lo52) / (q.hi52 - q.lo52);
       if (pos > 0.9) {
         score -= 8;
@@ -145,12 +236,30 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
       const d = price / q.prevClose - 1;
       if (d < -0.02) why.push(`Down ${(Math.abs(d) * 100).toFixed(1)}% today.`);
     }
-    return { sym, name: raw?.name || cat?.name || "", bucket, score, verdict: "ok", why, price, usd: 0, units: null, limit: null };
+    const fit = Math.max(0, Math.min(100, Math.round(score))),
+      Q = qualityOf(sym, isEtf, metrics[sym]);
+    const final = Q.score == null ? fit : Math.round(0.55 * fit + 0.45 * Q.score);
+    return {
+      sym,
+      name: raw?.name || cat?.name || "",
+      bucket,
+      score: final,
+      fit,
+      quality: Q.score,
+      parts: Q.parts,
+      blocked,
+      verdict: "ok",
+      why,
+      price,
+      usd: 0,
+      units: null,
+      limit: null,
+    };
   });
-  out.sort((a, b) => b.score - a.score);
+  out.sort((a, b) => Number(a.blocked) - Number(b.blocked) || b.score - a.score);
   const top = out[0];
   for (const p of out) {
-    p.verdict = p === top && p.score >= 40 ? "best" : p.score >= 40 ? "ok" : "skip";
+    p.verdict = p.blocked || p.score < 45 ? "skip" : p === top ? "best" : "ok";
     if (p.price && p.verdict !== "skip") {
       p.limit = +(p.price * 1.002).toFixed(2);
       const whole = !!WHOLE[p.sym];

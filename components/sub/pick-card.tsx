@@ -37,8 +37,8 @@ export function PickCard() {
     setBusy(true);
     setErr("");
     try {
-      const L = await liveQuotes(syms);
-      setRes(pickBest(S, syms, amount, L.quotes));
+      const L = await liveQuotes(syms, true);
+      setRes(pickBest(S, syms, amount, L.quotes, L.metrics || {}));
     } catch (x) {
       setErr(cloudErr(x));
     } finally {
@@ -103,6 +103,41 @@ export function PickCard() {
                 </span>
                 <Chip tone={V[p.verdict][0]}>{V[p.verdict][1]}</Chip>
               </div>
+              <div className="grid grid-cols-3 gap-2 max-sm:grid-cols-1">
+                {(
+                  [
+                    ["Overall", p.score],
+                    ["Fit with your plan", p.fit],
+                    ["Fund / stock metrics", p.quality],
+                  ] as [string, number | null][]
+                ).map(([k, v]) => (
+                  <div key={k} className="grid gap-1 rounded-[12px] bg-card px-3 py-2.5">
+                    <span className="flex items-baseline justify-between text-[12.5px] text-muted">
+                      {k}
+                      <b className="num font-display text-[17px] text-ink">{v == null ? "—" : v}</b>
+                    </span>
+                    <span className="h-1.5 overflow-hidden rounded-full bg-tint">
+                      <i className="block h-full rounded-full bg-act-a" style={{ width: `${v ?? 0}%` }} />
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {p.parts.length > 0 && (
+                <div className="grid gap-1.5 rounded-[12px] bg-card p-3">
+                  {p.parts.map((x) => (
+                    <div
+                      key={x.k}
+                      className="grid grid-cols-[9.5rem_4.5rem_minmax(0,1fr)] items-center gap-2 text-[13px] max-sm:grid-cols-[7.5rem_3.5rem_minmax(0,1fr)]"
+                    >
+                      <span className="font-semibold text-ink">{x.k}</span>
+                      <span className="num text-muted">
+                        {Math.round(x.v)} / {x.max}
+                      </span>
+                      <span className="text-body">{x.note}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
               <ul className="grid list-disc gap-1 pl-5 text-[14px] text-body">
                 {p.why.map((w, k) => (
                   <li key={k}>{w}</li>
@@ -130,8 +165,10 @@ export function PickCard() {
         </ol>
       )}
       <p className="note">
-        Ranked by your own plan&apos;s rules, not a market forecast. Splitting across the top two is fine too: the monthly split above does
-        that. Not SEBI-registered advice.
+        Overall = 55% fit with your plan (bucket below target, London Acc version, 10% single-company cap, whole shares) + 45% metrics from
+        5 years of daily prices: growth (30), return for the risk (20), where the price sits against its 200-day average (20), cost (15) and
+        dividend tax for an Indian resident (15). Past growth doesn&apos;t promise future returns; this ranks, it doesn&apos;t forecast.
+        Splitting across the top two is fine too: the monthly split above does that. Not SEBI-registered advice.
       </p>
     </Card>
   );

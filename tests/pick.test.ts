@@ -48,3 +48,29 @@ describe("which should I buy", () => {
     expect(r[0].units).toBe(1);
   });
 });
+
+test("metrics: steady growth, a fair price and an Acc fund score higher than a stretched high-dividend one", async () => {
+  const { qualityOf } = await import("@/lib/core/pick");
+  const good = qualityOf("LSE~CSPX", true, {
+    r1: 0.12,
+    r3: 0.14,
+    r5: 0.13,
+    vol: 0.16,
+    fromHigh: -0.05,
+    vs200: 0.0,
+    maxDD3: -0.2,
+    yield: 0,
+  });
+  const meh = qualityOf("SCHD", true, {
+    r1: 0.02,
+    r3: 0.04,
+    r5: 0.08,
+    vol: 0.15,
+    fromHigh: -0.01,
+    vs200: 0.18,
+    maxDD3: -0.15,
+    yield: 0.037,
+  });
+  expect(good.score!).toBeGreaterThan(meh.score! + 25);
+  expect(qualityOf("X", true, undefined).score).toBeNull();
+});

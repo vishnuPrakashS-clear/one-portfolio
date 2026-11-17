@@ -201,3 +201,29 @@ export async function fillMarketData(): Promise<{ funds?: number; stocks?: numbe
   if (error) throw error;
   return data;
 }
+
+/* ---------- live quotes for the sell-order helper (the live-quotes function; nothing is saved) ---------- */
+export interface LiveQuote {
+  price: number;
+  at: string;
+  prevClose: number | null;
+  dayHigh: number | null;
+  dayLow: number | null;
+  hi52: number | null;
+  lo52: number | null;
+  currency: string;
+  exchange: string;
+  open: boolean;
+  opens: string | null;
+}
+export interface LiveQuotes {
+  quotes: Record<string, LiveQuote>;
+  fx: { rate: number; at: string } | null;
+  fetchedAt: string;
+}
+export async function liveQuotes(syms: string[]): Promise<LiveQuotes> {
+  const { data, error } = await sb().functions.invoke("live-quotes", { body: { syms } });
+  if (error) throw error;
+  if (!data?.ok) throw new Error(data?.error || "No prices came back");
+  return data as LiveQuotes;
+}

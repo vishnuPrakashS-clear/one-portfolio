@@ -114,16 +114,17 @@ function Order({ o, onPrice, base }: { o: SellOrder; onPrice: (p: number | null)
 }
 
 /** rebalance the abroad sleeve: what's off target, what to sell (FIFO, tax-aware), at what limit price, and where the money goes */
-export function RebalanceCard() {
+export function RebalanceCard({ live }: { live?: { prices: Record<string, number>; fx: number } | null }) {
   const { S } = usePortfolio();
   const [share, setShare] = useState(1),
     [mode, setMode] = useState<SellMode>("no-loss"),
     [prices, setPrices] = useState<Record<string, number>>({});
   if (!S) return null;
-  const P = rebalancePlan(S, { share, mode, prices }),
+  const P = rebalancePlan(S, { share, mode, prices: { ...(live?.prices || {}), ...prices }, fx: live?.fx }),
     r = taxRates(S.settings),
     over = P.buckets.filter((b) => b.gap > 1);
-  const base = (sym: string) => S.holdings.find((h) => h.sym === sym)?.price || 0;
+  const base = (sym: string) => live?.prices[sym] ?? S.holdings.find((h) => h.sym === sym)?.price ?? 0;
+  const usdMonth = (S.settings.monthlyInr / S.settings.fx) * (1 - (S.settings.feePct || 0) / 100);
   return (
     <Card id="rebalance" className="scroll-mt-24">
       <CardHead
@@ -171,15 +172,23 @@ export function RebalanceCard() {
           >
             <Icon name="calendar" className="size-6 shrink-0 text-act-a" />
             <p className="min-w-0 flex-1 text-[14.5px] text-body">
-              <b className="text-ink">Option 1: don&apos;t sell.</b>{" "}
-              {P.months != null ? (
+              <b className="text-ink">Option 1: don&apos;t sell, steer new money.</b> Every month your {$(usdMonth, 0)} goes only to the
+              under-target funds, so the over-target ones shrink as a share without paying any tax.{" "}
+              {P.months ? (
                 <>
-                  Sending all new money to the under-target funds gets you back in about <b className="text-ink">{P.months} months</b>, with
-                  no tax at all.
-                  {P.months <= 6 ? " That's quick: selling isn't worth the tax." : " That's slow, so selling some makes sense."}
+                  At that pace it takes about{" "}
+                  <b className="text-ink">
+                    {P.months} month{P.months > 1 ? "s" : ""}
+                  </b>
+                  .{P.months <= 6 ? " That's quick: selling isn't worth the tax." : " That's slow, so selling some (option 2) makes sense."}
                 </>
-              ) : (
-                "A bucket with a 0% target never shrinks to zero with new money alone, so it needs a sale."
+              ) : null}
+              {P.zero.length > 0 && (
+                <>
+                  {" "}
+                  {P.zero.join(" and ")} {P.zero.length > 1 ? "have" : "has"} a 0% target, so new money can&apos;t remove{" "}
+                  {P.zero.length > 1 ? "them" : "it"}; only selling does.
+                </>
               )}
             </p>
           </div>

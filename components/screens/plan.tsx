@@ -13,7 +13,7 @@ import { useMoney } from "@/lib/use-money";
 import { Card, CardHead, Chip, Hero } from "@/components/sub/ui";
 import { Icon } from "@/components/sub/icon";
 import type { SplitRow } from "@/lib/core/abroad";
-import { RebalanceCard } from "@/components/sub/rebalance-card";
+import { SellDesk } from "@/components/sub/sell-desk";
 
 function FlipCard({ r, unitsHint }: { r: SplitRow; unitsHint: string }) {
   const { d } = useMoney(),
@@ -96,10 +96,13 @@ export function PlanScreen() {
         <p className="max-w-[56ch] text-[16.5px] text-body">
           Invest {inr(s.monthlyInr)} in INDmoney {ms.done ? "next month" : "this month"}. Tap a card to see why each fund gets what it gets.
         </p>
-        <div>
-          <a href="#rebalance" className="btn">
+        <div className="flex flex-wrap gap-2">
+          <a href="#sell" className="btn">
             <Icon name="refresh" />
-            Rebalance: what to sell, at what price
+            Sell with live prices
+          </a>
+          <a href="#rebalance" className="btn">
+            Rebalance
           </a>
         </div>
         {ms.done && (
@@ -190,7 +193,7 @@ export function PlanScreen() {
           10% of the sleeve gets nothing until it drops back.
         </p>
       </Card>
-      <RebalanceCard />
+      <SellDesk />
       <div className="grid gap-5 md:grid-cols-2">
         <Card>
           <CardHead title="Why the London-listed (UCITS Acc) versions" />

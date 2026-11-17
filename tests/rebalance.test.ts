@@ -62,3 +62,16 @@ describe("long-term units only", () => {
     expect(P.nextLT).toBe("2028-09-02");
   });
 });
+
+describe("one sell order", () => {
+  test("FIFO units, long-term and no-loss counts, tax", async () => {
+    const { sellTicket } = await import("@/lib/core/rebalance");
+    const t = sellTicket(state(), "LSE~CNDX", 6, 100, 90, "2026-11-17")!;
+    expect(t.ltQty).toBe(5);
+    expect(t.noLossQty).toBe(5); // the 2026 lot at $110 is a loss at $100
+    expect(t.chunks.map((c) => c.q)).toEqual([5, 1]);
+    expect(t.gainLT).toBeCloseTo(5 * (100 * 90 - 60 * 82));
+    expect(t.gainST).toBeCloseTo(100 * 90 - 110 * 88);
+    expect(t.tax).toBeCloseTo((t.gainLT + t.gainST) * 0.125); // the short-term loss offsets the long-term gain
+  });
+});

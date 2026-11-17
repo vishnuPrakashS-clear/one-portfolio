@@ -67,6 +67,8 @@ export interface RebalancePlan {
   into: { bucket: Bucket; buy: string; usd: number }[];
   /** months of new money (all of it to underweight funds) that would rebalance without selling */
   months: number | null;
+  /** overweight buckets with a 0% target: only a sale removes them */
+  zero: Bucket[];
 }
 
 /** tax on a set of gains, with losses offset the way Indian rules allow */
@@ -82,12 +84,12 @@ export function netTax(gainST: number, gainLT: number, rates: { st: number; lt: 
 
 export function rebalancePlan(
   S: Portfolio,
-  opts: { share?: number; mode?: SellMode; prices?: Record<string, number>; today?: ISODate } = {},
+  opts: { share?: number; mode?: SellMode; prices?: Record<string, number>; fx?: number; today?: ISODate } = {},
 ): RebalancePlan {
   const today = opts.today || TODAY(),
     share = opts.share ?? 1,
     mode = opts.mode || "no-loss",
-    fx = S.settings.fx,
+    fx = opts.fx || S.settings.fx,
     rates = taxRates(S.settings);
   const bv = bucketView(S),
     total = bv[0]?.total || 0,
@@ -198,11 +200,14 @@ export function rebalancePlan(
   }));
 
   const usdMonth = (S.settings.monthlyInr / fx) * (1 - (S.settings.feePct || 0) / 100);
-  const months = over.length
-    ? usdMonth > 0
-      ? Math.ceil(Math.max(...over.map((b) => (b.value / (b.w / wsum || 1e-9) - total) / usdMonth)))
-      : null
-    : 0;
+  // only buckets with a target can be diluted by new money; a 0% bucket never gets there without a sale
+  const dil = over.filter((b) => b.w > 0);
+  const months =
+    dil.length && usdMonth > 0
+      ? Math.ceil(Math.max(...dil.map((b) => (b.value / (b.w / wsum) - total) / usdMonth)))
+      : dil.length
+        ? null
+        : 0;
 
   return {
     total,
@@ -222,5 +227,83 @@ export function rebalancePlan(
         .filter((d) => d > today)
         .sort()[0] || null,
     months: months != null && isFinite(months) ? Math.max(0, months) : null,
+    zero: over.filter((b) => b.w <= 0).map((b) => b.bucket),
+  };
+}
+
+/* ---------- one sell order for one holding ---------- */
+export interface Ticket {
+  sym: string;
+  held: number;
+  qty: number;
+  price: number;
+  fx: number;
+  chunks: Chunk[];
+  breakeven: number;
+  gainLT: number;
+  gainST: number;
+  tax: number;
+  proceeds: number;
+  /** units at the front of the FIFO queue that are already long-term */
+  ltQty: number;
+  /** units that can be sold without a rupee loss at this price (FIFO, stopping at the first loss-making unit) */
+  noLossQty: number;
+  nextLT: ISODate | null;
+  waitSaves: number;
+}
+export function sellTicket(S: Portfolio, sym: string, qty: number, price: number, fx: number, today: ISODate = TODAY()): Ticket | null {
+  const h = S.holdings.find((x) => x.sym === sym);
+  if (!h) return null;
+  const rates = taxRates(S.settings),
+    held = qtyOf(h);
+  const lots = [...h.lots]
+    .sort((a, b) => a.d.localeCompare(b.d))
+    .map((l) => {
+      const fxBuy = l.fx || fxOn(S, l.d) || S.settings.fx,
+        ltd = ltcgDate(l.d);
+      return { d: l.d, q: l.q, p: l.p, fxBuy, ltd, isLT: daysBetween(today, ltd) <= 0, gain: 0 };
+    });
+  let ltQty = 0,
+    noLossQty = 0,
+    ltRun = true,
+    nlRun = true;
+  for (const l of lots) {
+    if (ltRun && l.isLT) ltQty += l.q;
+    else ltRun = false;
+    if (nlRun && price * fx >= l.p * l.fxBuy) noLossQty += l.q;
+    else nlRun = false;
+  }
+  qty = Math.max(0, Math.min(qty, held));
+  const chunks: Chunk[] = [];
+  let left = qty;
+  for (const l of lots) {
+    if (left <= 1e-9) break;
+    const q = Math.min(l.q, left);
+    chunks.push({ ...l, q, gain: q * (price * fx - l.p * l.fxBuy) });
+    left -= q;
+  }
+  const gainLT = chunks.filter((c) => c.isLT).reduce((a, c) => a + c.gain, 0),
+    gainST = chunks.filter((c) => !c.isLT).reduce((a, c) => a + c.gain, 0);
+  const cost = chunks.reduce((a, c) => a + c.q * c.p * c.fxBuy, 0);
+  return {
+    sym,
+    held,
+    qty,
+    price,
+    fx,
+    chunks,
+    breakeven: qty ? cost / (qty * fx) : 0,
+    gainLT,
+    gainST,
+    tax: netTax(gainST, gainLT, rates),
+    proceeds: qty * price,
+    ltQty,
+    noLossQty,
+    nextLT:
+      lots
+        .filter((l) => !l.isLT)
+        .map((l) => l.ltd)
+        .sort()[0] || null,
+    waitSaves: Math.max(0, gainST) * (rates.st - rates.lt),
   };
 }

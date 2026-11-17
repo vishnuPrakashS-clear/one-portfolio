@@ -74,3 +74,54 @@ test("metrics: steady growth, a fair price and an Acc fund score higher than a s
   expect(good.score!).toBeGreaterThan(meh.score! + 25);
   expect(qualityOf("X", true, undefined).score).toBeNull();
 });
+
+describe("splitting the wallet", () => {
+  const mk = (sym: string, bucket: string, gap: number, score: number, price: number) =>
+    ({
+      sym,
+      name: "",
+      bucket,
+      score,
+      fit: score,
+      quality: score,
+      parts: [],
+      blocked: false,
+      gap,
+      verdict: "ok",
+      why: [],
+      price,
+      usd: 0,
+      units: null,
+      limit: null,
+    }) as never;
+  test("splits by gap and score, one fund per bucket; a whole share too big for its slice sits out", async () => {
+    const { splitAmount } = await import("@/lib/core/pick");
+    const r = splitAmount(
+      [
+        mk("LSE~CSPX", "US core", 84, 96, 790),
+        mk("LSE~IJPA", "Japan", 60, 86, 76.7),
+        mk("LSE~COPX", "Copper", 55, 77, 51.54),
+        mk("VOO", "US core", 84, 66, 673),
+      ],
+      104.8,
+    );
+    const by = Object.fromEntries(r.map((p) => [p.sym, p.usd]));
+    expect(by["VOO"]).toBe(0);
+    expect(by["LSE~COPX"]).toBe(0);
+    expect(by["LSE~CSPX"]).toBeGreaterThan(by["LSE~IJPA"]);
+    expect(by["LSE~CSPX"] + by["LSE~IJPA"]).toBeCloseTo(104.8, 1);
+    expect(by["LSE~CSPX"]).toBeLessThanOrEqual(84);
+  });
+  test("a whole-share fund with a big enough gap gets 1 share and the rest is split", async () => {
+    const { splitAmount } = await import("@/lib/core/pick");
+    const r = splitAmount([mk("LSE~CSPX", "US core", 40, 90, 790), mk("LSE~COPX", "Copper", 80, 90, 50)], 104.8);
+    const copx = r.find((p) => p.sym === "LSE~COPX")!;
+    expect(copx.units).toBe(1);
+    expect(copx.usd + r.find((p) => p.sym === "LSE~CSPX")!.usd).toBeLessThanOrEqual(104.8);
+  });
+  test("leaving one out re-splits the money among the rest", async () => {
+    const { splitAmount } = await import("@/lib/core/pick");
+    const r = splitAmount([mk("LSE~CSPX", "US core", 84, 96, 790), mk("LSE~IJPA", "Japan", 60, 86, 76.7)], 100, new Set(["LSE~CSPX"]));
+    expect(r.find((p) => p.sym === "LSE~IJPA")!.usd).toBeCloseTo(100, 0);
+  });
+});

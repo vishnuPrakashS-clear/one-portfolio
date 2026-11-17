@@ -3,13 +3,14 @@
 import { useState, type FormEvent } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { useUi } from "@/components/providers/ui-provider";
-import { normSym, pickBest, show, type Pick } from "@/lib/core/pick";
+import { normSym, pickBest, show, splitAmount, type Pick } from "@/lib/core/pick";
+import { WHOLE } from "@/lib/core/abroad";
 import { cloudErr, liveQuotes } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Card, CardHead, Chip } from "./ui";
 import { Icon } from "./icon";
 
-const V = { best: ["good", "Best fit"], ok: ["neutral", "Fits"], skip: ["act", "Skip"] } as const;
+const V = { best: ["good", "Top score"], ok: ["neutral", "Fits"], skip: ["act", "Skip"] } as const;
 
 /** you name a few tickers and the money you have; each is scored against your plan with live prices */
 export function PickCard() {
@@ -18,10 +19,23 @@ export function PickCard() {
   const usd0 = S ? Math.round((S.settings.monthlyInr / S.settings.fx) * (1 - (S.settings.feePct || 0) / 100) * 100) / 100 : 100;
   const [text, setText] = useState(""),
     [amt, setAmt] = useState(String(usd0)),
-    [res, setRes] = useState<Pick[] | null>(null),
+    [raw, setRes] = useState<Pick[] | null>(null),
+    [used, setUsed] = useState(0),
+    [off, setOff] = useState<Set<string>>(new Set()),
     [busy, setBusy] = useState(false),
     [err, setErr] = useState("");
   if (!S) return null;
+  const res = raw ? splitAmount(raw, used, off) : null,
+    orders = (res || []).filter((p) => p.usd > 0 && p.limit),
+    spent = orders.reduce((a, p) => a + p.usd, 0);
+  const line = (p: Pick) => `BUY ${p.units} ${show(p.sym)} LIMIT $${p.limit!.toFixed(2)}`;
+  const toggle = (sym: string) =>
+    setOff((o) => {
+      const n = new Set(o);
+      if (n.has(sym)) n.delete(sym);
+      else n.add(sym);
+      return n;
+    });
   const run = async (e?: FormEvent) => {
     e?.preventDefault();
     const syms = [
@@ -39,6 +53,8 @@ export function PickCard() {
     try {
       const L = await liveQuotes(syms, true);
       setRes(pickBest(S, syms, amount, L.quotes, L.metrics || {}));
+      setUsed(amount);
+      setOff(new Set());
     } catch (x) {
       setErr(cloudErr(x));
     } finally {
@@ -85,6 +101,73 @@ export function PickCard() {
         ))}
       </div>
       {err && <p className="text-loss-ink">{err}</p>}
+      {res && (
+        <div className="grid gap-3 rounded-[16px] bg-gain-wash p-4 shadow-[inset_0_0_0_2px_var(--color-act-a)]">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <b className="font-display text-[19px] text-ink">Your ${used.toFixed(2)}, split</b>
+            <span className="num text-[13.5px] text-muted">
+              ${spent.toFixed(2)} in {orders.length} order{orders.length === 1 ? "" : "s"} · ${(used - spent).toFixed(2)} left in the wallet
+            </span>
+          </div>
+          {orders.length ? (
+            <ul className="grid gap-2">
+              {orders.map((p) => (
+                <li key={p.sym} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[12px] bg-card p-3">
+                  <span className="min-w-0">
+                    <span className="flex items-baseline gap-2">
+                      <b className="font-display text-[17px] text-ink">{show(p.sym)}</b>
+                      <b className="num text-[17px] text-ink">${p.usd.toFixed(2)}</b>
+                      <span className="text-[12.5px] text-muted">
+                        {Math.round((100 * p.usd) / used)}% · {p.bucket}
+                        {p.gap > 0 ? `, $${p.gap.toFixed(0)} below target` : ""}
+                      </span>
+                    </span>
+                    <code className="num mt-0.5 block font-mono text-[13px] text-body">
+                      {line(p)}
+                      {WHOLE[p.sym] ? " (whole shares only)" : ""}
+                    </code>
+                  </span>
+                  <button type="button" className="btn" onClick={() => toggle(p.sym)}>
+                    Leave out
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-body">Nothing fits your plan among these tickers. Try your plan funds: CSPX, IJPA, COPX.</p>
+          )}
+          {off.size > 0 && (
+            <p className="flex flex-wrap items-center gap-2 text-[13.5px] text-body">
+              Left out:
+              {[...off].map((x) => (
+                <button key={x} type="button" className="rounded-full bg-card px-3 py-1 font-semibold" onClick={() => toggle(x)}>
+                  {show(x)} · add back
+                </button>
+              ))}
+            </p>
+          )}
+          {orders.length > 0 && (
+            <div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(orders.map(line).join("\n")).catch(() => {});
+                  toast("Orders copied: enter each in INDmoney");
+                }}
+              >
+                <Icon name="check" />
+                Copy all orders
+              </button>
+            </div>
+          )}
+          <p className="text-[12.5px] text-muted">
+            One fund per bucket, the best-scoring one. Each gets money by how far its bucket is below target, weighted by its score, and no
+            more than the gap while other gaps are open. A whole-share fund (COPX) is bought only when its share covers most of a share.
+            London funds trade 1 pm–8:30 pm IST; US ones about 8 pm–2:30 am IST.
+          </p>
+        </div>
+      )}
       {res && (
         <ol className="grid gap-2.5">
           {res.map((p, i) => (
@@ -143,23 +226,34 @@ export function PickCard() {
                   <li key={k}>{w}</li>
                 ))}
               </ul>
-              {p.verdict !== "skip" && p.limit && (
+              {p.usd > 0 && p.limit ? (
                 <div className="flex flex-wrap items-center gap-3 rounded-[12px] bg-card p-3">
                   <code className="num min-w-0 flex-1 font-mono text-[14.5px] font-semibold text-ink">
-                    BUY {p.units} {show(p.sym)} · LIMIT ${p.limit.toFixed(2)} (≈ ${p.usd.toFixed(2)})
+                    Gets ${p.usd.toFixed(2)}: {line(p)}
                   </code>
                   <button
                     type="button"
                     className="btn"
                     onClick={() => {
-                      void navigator.clipboard?.writeText(`BUY ${p.units} ${show(p.sym)} LIMIT $${p.limit!.toFixed(2)}`).catch(() => {});
+                      void navigator.clipboard?.writeText(line(p)).catch(() => {});
                       toast("Order copied: enter it in INDmoney");
                     }}
                   >
                     Copy
                   </button>
                 </div>
-              )}
+              ) : p.verdict !== "skip" ? (
+                <p className="flex flex-wrap items-center gap-2 text-[13.5px] text-muted">
+                  {off.has(p.sym)
+                    ? "Left out of the split."
+                    : "Not in this split (another fund in the same bucket scored higher, or it was too small)."}
+                  {off.has(p.sym) && (
+                    <button type="button" className="font-semibold text-act-a" onClick={() => toggle(p.sym)}>
+                      Add back
+                    </button>
+                  )}
+                </p>
+              ) : null}
             </li>
           ))}
         </ol>
@@ -167,8 +261,8 @@ export function PickCard() {
       <p className="note">
         Overall = 55% fit with your plan (bucket below target, London Acc version, 10% single-company cap, whole shares) + 45% metrics from
         5 years of daily prices: growth (30), return for the risk (20), where the price sits against its 200-day average (20), cost (15) and
-        dividend tax for an Indian resident (15). Past growth doesn&apos;t promise future returns; this ranks, it doesn&apos;t forecast.
-        Splitting across the top two is fine too: the monthly split above does that. Not SEBI-registered advice.
+        dividend tax for an Indian resident (15). Past growth doesn&apos;t promise future returns; this ranks, it doesn&apos;t forecast. Not
+        SEBI-registered advice.
       </p>
     </Card>
   );

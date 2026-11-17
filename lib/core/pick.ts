@@ -113,6 +113,8 @@ export interface Pick {
   parts: ReturnType<typeof qualityOf>["parts"];
   /** a plan rule rules it out (over the 10% cap, 0% target, being wound down, can't afford a whole share) */
   blocked: boolean;
+  /** $ the bucket is below (+) or above (−) its target, after adding the amount */
+  gap: number;
   verdict: "best" | "ok" | "skip";
   why: string[];
   price: number | null;
@@ -156,6 +158,7 @@ export function pickBest(
         quality: null,
         parts: [],
         blocked: true,
+        gap: 0,
         verdict: "skip",
         why,
         price: null,
@@ -184,10 +187,11 @@ export function pickBest(
       );
     }
     // bucket gap
+    let gap = 0;
     if (bucket) {
       const b = bv.find((x) => x.bucket === bucket);
-      const target = b ? (b.w / wsum) * (total + amount) : 0,
-        gap = target - (b?.value || 0);
+      const target = b ? (b.w / wsum) * (total + amount) : 0;
+      gap = target - (b?.value || 0);
       if (!b || b.w === 0) {
         score -= 30;
         blocked = true;
@@ -248,6 +252,7 @@ export function pickBest(
       quality: Q.score,
       parts: Q.parts,
       blocked,
+      gap,
       verdict: "ok",
       why,
       price,
@@ -260,12 +265,75 @@ export function pickBest(
   const top = out[0];
   for (const p of out) {
     p.verdict = p.blocked || p.score < 45 || p.fit < 35 ? "skip" : p === top ? "best" : "ok"; // good metrics alone don't make a bucket that is over target worth adding to
-    if (p.price && p.verdict !== "skip") {
-      p.limit = +(p.price * 1.002).toFixed(2);
-      const whole = !!WHOLE[p.sym];
-      p.units = whole ? Math.floor(amount / (p.price * 1.0075)) : +(amount / p.limit).toFixed(4);
-      p.usd = whole ? (p.units || 0) * p.price : amount;
+  }
+  return splitAmount(out, amount);
+}
+
+/* Split the money across the picks that fit (or the ones you chose): one fund per bucket (the best-scoring), each bucket
+   getting money in proportion to how far it is below target, weighted by its score, never more than its gap until every
+   gap is filled. A whole-share fund gets 1+ shares only when its share of the money covers most of a share; otherwise it
+   sits out and its money goes to the rest. Orders under $2 are folded into the others. */
+export function splitAmount(picks: Pick[], amount: number, exclude: ReadonlySet<string> = new Set()): Pick[] {
+  const out = picks.map((p) => ({ ...p, usd: 0, units: null as number | null, limit: null as number | null }));
+  const seen = new Set<string>();
+  let pool = out.filter(
+    (p) =>
+      p.verdict !== "skip" && p.price && !exclude.has(p.sym) && !(p.bucket && seen.has(p.bucket)) && (p.bucket ? seen.add(p.bucket) : true),
+  );
+  const share = (ps: typeof pool, money: number) => {
+    const w = ps.map((p) => Math.max(1, p.gap) * (p.score / 100)),
+      ws = w.reduce((a, b) => a + b, 0) || 1;
+    let alloc = ps.map((_, i) => (money * w[i]) / ws);
+    // cap at the gap while other gaps are open, then spread what is left by weight
+    const gapSum = ps.reduce((a, p) => a + Math.max(0, p.gap), 0);
+    if (gapSum >= money) {
+      for (let k = 0; k < 5; k++) {
+        const over = alloc.reduce((a, v, i) => a + Math.max(0, v - Math.max(0, ps[i].gap)), 0);
+        if (over < 0.01) break;
+        alloc = alloc.map((v, i) => Math.min(v, Math.max(0, ps[i].gap)));
+        const room = ps.map((p, i) => Math.max(0, p.gap) - alloc[i]),
+          rs = room.reduce((a, b) => a + b, 0) || 1;
+        alloc = alloc.map((v, i) => v + (over * room[i]) / rs);
+      }
     }
+    return alloc;
+  };
+  for (let round = 0; round < 6 && pool.length; round++) {
+    const alloc = share(pool, amount);
+    // whole-share funds: buy floor(alloc / price) shares, but 1 share if the allocation covers 60% of one and the money allows
+    let fixed = 0,
+      drop: string[] = [];
+    pool.forEach((p, i) => {
+      if (!WHOLE[p.sym]) return;
+      const px = p.price! * 1.0075,
+        n = Math.floor(alloc[i] / px) || (alloc[i] >= 0.6 * px && px <= amount ? 1 : 0);
+      if (!n) drop.push(p.sym);
+      else {
+        p.units = n;
+        p.usd = n * px;
+        fixed += p.usd;
+      }
+    });
+    const rest = pool.filter((p) => !WHOLE[p.sym]);
+    const small = rest.length ? share(rest, amount - fixed) : [];
+    drop = drop.concat(rest.filter((_, i) => small[i] < 2).map((p) => p.sym));
+    if (drop.length && round < 5) {
+      pool.forEach((p) => {
+        p.units = null;
+        p.usd = 0;
+      });
+      pool = pool.filter((p) => !drop.includes(p.sym));
+      continue;
+    }
+    rest.forEach((p, i) => {
+      p.usd = Math.floor(small[i] * 100) / 100;
+    });
+    break;
+  }
+  for (const p of out) {
+    if (!p.usd || !p.price) continue;
+    p.limit = +(p.price * 1.002).toFixed(2);
+    if (!WHOLE[p.sym]) p.units = Math.floor((p.usd / p.limit) * 10000) / 10000;
   }
   return out;
 }

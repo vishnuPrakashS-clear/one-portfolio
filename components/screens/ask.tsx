@@ -1,8 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
-import { ASK_PRESETS, CATEGORIES, CAT_ORDER } from "@/constants";
+import { CATEGORIES, CAT_ORDER } from "@/constants";
+import { answer, topicOf, TOPICS, type LocalAnswer, type Topic } from "@/lib/ask-local";
+import { Icon } from "@/components/sub/icon";
+import { cn } from "@/lib/utils";
 import { goalCalc } from "@/lib/model";
 import { hasAbroad, health, holdingRows, monthlySplit } from "@/lib/core/abroad";
 import { TODAY } from "@/lib/dates";
@@ -12,9 +16,20 @@ export function AskScreen() {
   const { S, model, ai } = usePortfolio();
   const [q, setQ] = useState(""),
     [a, setA] = useState(""),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState(false),
+    [local, setLocal] = useState<LocalAnswer | null>(null),
+    [miss, setMiss] = useState(false);
+  const pick = (t: Topic) => {
+    setMiss(false);
+    setA("");
+    setLocal(answer(t, S, model));
+  };
   async function ask(question: string) {
-    if (!ai || !question.trim()) return;
+    if (!question.trim()) return;
+    const t = topicOf(question);
+    setLocal(t ? answer(t, S, model) : null);
+    setMiss(!t && !ai);
+    if (!ai) return setA("");
     setBusy(true);
     setA("Thinking…");
     const goal = S?.settings.goal,
@@ -84,43 +99,72 @@ Question: ${question}`;
         <p className="max-w-[60ch] text-[16.5px] text-body">Answers use your holdings, monthly investing, goal and tax dates.</p>
       </Hero>
       <Card>
-        <CardHead title="Questions people ask" />
-        <div className="flex flex-wrap gap-2">
-          {ASK_PRESETS.map((p) => (
+        <CardHead title="Quick answers" note="Worked out from your own numbers, instantly." />
+        <div className="grid grid-cols-2 gap-2.5 max-md:grid-cols-1">
+          {TOPICS.map((t) => (
             <button
-              key={p}
+              key={t.id}
               type="button"
-              className="btn font-medium"
-              disabled={!ai || busy}
-              onClick={() => {
-                setQ(p);
-                void ask(p);
-              }}
+              aria-pressed={local?.topic === t.id && !a}
+              onClick={() => pick(t.id)}
+              className={cn(
+                "flex items-center justify-between gap-3 rounded-[16px] px-4 py-3.5 text-left text-[15px] font-semibold transition active:scale-[0.98]",
+                local?.topic === t.id && !a
+                  ? "bg-act-a text-on-act shadow-md"
+                  : "bg-tint text-ink hover:shadow-[inset_0_0_0_2px_var(--color-act-a)]",
+              )}
             >
-              {p}
+              {t.q}
+              <Icon name="arrow" className="size-4 shrink-0" />
             </button>
           ))}
         </div>
-        <form onSubmit={submit} className="grid gap-2.5">
+        {local && (
+          <div className="grid gap-2.5 rounded-[16px] bg-gain-wash p-4" aria-live="polite">
+            <b className="font-display text-[18px] text-ink">{local.title}</b>
+            <ul className="grid list-disc gap-1.5 pl-5 text-[15px] leading-relaxed text-body">
+              {local.lines.map((l, i) => (
+                <li key={i}>{l}</li>
+              ))}
+            </ul>
+            <div>
+              <Link href={local.link.href} className="btn btn-primary">
+                {local.link.label} <Icon name="arrow" className="size-4" />
+              </Link>
+            </div>
+          </div>
+        )}
+        <form onSubmit={submit} className="grid gap-2.5 border-t border-rule pt-4">
           <label htmlFor="ask-q" className="grid gap-1.5 text-[13.5px] font-medium text-muted">
-            Or ask your own question
+            Or type your own question
             <textarea
               id="ask-q"
               className="field-input min-h-24 resize-y"
-              placeholder="Anything about selling, tax dates, your goal or this month's buys"
+              placeholder="e.g. when can I sell ITC with less tax?"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              disabled={!ai}
             />
           </label>
           <div>
-            <button className="btn btn-primary" type="submit" disabled={!ai || busy}>
+            <button className="btn btn-primary" type="submit" disabled={busy || !q.trim()}>
               {busy ? "Thinking…" : "Ask"}
             </button>
           </div>
         </form>
+        {miss && (
+          <p className="rounded-[14px] bg-tint px-[18px] py-4 text-body">
+            Without the AI helper, typed questions are matched to the five quick answers above (goal, buying, selling, tax dates, uploads),
+            and this one didn&apos;t match any. Try words like &ldquo;sell&rdquo;, &ldquo;tax&rdquo; or &ldquo;goal&rdquo;, or tap a quick
+            answer.
+          </p>
+        )}
         {a && <p className="rounded-[14px] bg-tint px-[18px] py-4 leading-relaxed whitespace-pre-wrap">{a}</p>}
-        {!ai && <p className="note">Asking needs the optional AI helper: a free Gemini key saved as a Supabase secret (see the README).</p>}
+        {!ai && (
+          <p className="note">
+            Free-form answers in your own words need the optional AI helper (a free Gemini key saved as a Supabase secret). Everything above
+            works without it.
+          </p>
+        )}
       </Card>
     </>
   );

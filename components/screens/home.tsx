@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { useUi } from "@/components/providers/ui-provider";
 import { CATEGORIES, CAT_ORDER } from "@/constants";
-import { goalCalc, projectAll } from "@/lib/model";
+import { goalCalc, projectAll, weightedRate } from "@/lib/model";
 import { fmtDate, ist, longDate, monthLong, monthShort, nextRefresh, TODAY } from "@/lib/dates";
 import { pct1 } from "@/lib/format";
 import { useMoney } from "@/lib/use-money";
@@ -16,6 +16,7 @@ import { GameLayer } from "@/components/sub/game-layer";
 import { Icon } from "@/components/sub/icon";
 import { useNow } from "@/lib/hooks";
 import { VERDICTS } from "./goals";
+import { grow } from "@/lib/future";
 
 function HistNote() {
   const { model } = usePortfolio();
@@ -404,6 +405,23 @@ export function HomeScreen() {
           </ul>
         </Card>
       </div>
+      <Link
+        href="/future"
+        className="card grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 no-underline transition hover:shadow-[var(--shadow-lift)]"
+      >
+        <span className="grid size-10 place-items-center rounded-full bg-gain-wash text-lime">
+          <Icon name="sparkles" className="size-5" />
+        </span>
+        <span className="grid min-w-0 gap-0.5">
+          <b className="text-[15.5px] font-semibold text-ink">
+            Your money in 10 years: about {s(grow(model.total, model.sip, 10, weightedRate(model, 1)).value)}
+          </b>
+          <span className="truncate text-[13px] text-muted">
+            At {m(model.sip)} a month. Slide the amount, years and yearly step-up to see 5, 15 or 25 years
+          </span>
+        </span>
+        <Icon name="chevron" className="text-muted" />
+      </Link>
       <Link
         href="/health"
         className="card grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 no-underline transition hover:shadow-[var(--shadow-lift)]"

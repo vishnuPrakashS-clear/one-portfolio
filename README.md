@@ -34,7 +34,7 @@ A game layer (levels, XP, monthly missions, achievements, a buying streak) rewar
 ## Project structure
 
 ```
-app/                    one folder per route: / funds stocks bonds abroad goals health plan tax checklist ask upload
+app/                    one folder per route: / funds stocks (groww, zerodha, indmoney) bonds abroad health future goals plan tax checklist ask upload
   fonts/                Sora and Inter, self-hosted (SIL Open Font License)
   globals.css           design tokens (@theme), surfaces, buttons, chips, charts
 components/
@@ -49,6 +49,8 @@ lib/
   model.ts              monthly growth series, SIP detection, projections, goal check
   game.ts               missions, achievements, streak, level
   analysis.ts           portfolio health: funds opened up, diversification score, overlap, report cards, action plan
+  future.ts             future value: today's money plus a monthly amount with a yearly step-up
+  brokers.ts            Indian stocks grouped by broker
   planner.ts            your plan: fund and stock keep / build up / let go, monthly money, dividends, leaders, vs Nifty 50
   supabase.ts           cloud load/save, refresh now, market data, AI helper
   upload.ts             reads uploaded files and routes them to the right reader

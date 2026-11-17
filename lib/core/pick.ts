@@ -259,7 +259,7 @@ export function pickBest(
   out.sort((a, b) => Number(a.blocked) - Number(b.blocked) || b.score - a.score);
   const top = out[0];
   for (const p of out) {
-    p.verdict = p.blocked || p.score < 45 ? "skip" : p === top ? "best" : "ok";
+    p.verdict = p.blocked || p.score < 45 || p.fit < 35 ? "skip" : p === top ? "best" : "ok"; // good metrics alone don't make a bucket that is over target worth adding to
     if (p.price && p.verdict !== "skip") {
       p.limit = +(p.price * 1.002).toFixed(2);
       const whole = !!WHOLE[p.sym];

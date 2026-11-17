@@ -51,6 +51,32 @@ export const KIND_IN: Record<string, string> = {
 
 /* Wint Wealth "Master Report" workbook: Holding Statement (value, cost, YTM, interest so far), Investment Summary (purchase dates),
    Upcoming Cashflow Statement (future interest and principal) and Repayment Summary (interest already paid) */
+/** order histories add up: Groww downloads one date range at a time, so each new file's orders join the ones already
+    uploaded (an order seen twice, in overlapping ranges, counts once) */
+export function mergeOrders(
+  old: { asOf: ISODate; rows: OrderRow[]; file?: string } | undefined,
+  asOf: ISODate,
+  rows: OrderRow[],
+  file: string,
+): { asOf: ISODate; rows: OrderRow[]; file?: string } {
+  const key = (r: OrderRow) => JSON.stringify([r.d, r.n, r.s, +r.q.toFixed(4), Math.round(r.v * 100)]);
+  // an order can appear more than once in one file (two fills on a day): keep the file's own counts, but don't add a
+  // row again that an earlier upload already has
+  const had = new Map<string, number>();
+  for (const r of old?.rows || []) had.set(key(r), (had.get(key(r)) || 0) + 1);
+  const mine = new Map<string, number>();
+  const add: OrderRow[] = [];
+  for (const r of rows) {
+    const k = key(r),
+      n = (mine.get(k) || 0) + 1;
+    mine.set(k, n);
+    if (n > (had.get(k) || 0)) add.push(r);
+  }
+  const all = [...(old?.rows || []), ...add].sort((a, b) => a.d.localeCompare(b.d));
+  const files = [...new Set([...(old?.file ? old.file.split(" + ") : []), file])].join(" + ");
+  return { asOf: old?.asOf && old.asOf > asOf ? old.asOf : asOf, rows: all, file: files };
+}
+
 export function rowsFromWintBook(sheets: Record<string, Sheet>): IndiaSheet | null {
   const table = (pred: (h: string[]) => boolean) => {
     for (const aoa of Object.values(sheets)) {
@@ -565,8 +591,8 @@ export function applyIndiaSheet(state: Portfolio, rep: IndiaSheet, fname: string
   if (rep.kind === "gr-stocks") I.src.grSt = { asOf, rows: rep.rows, file: fname };
   else if (rep.kind === "zd-hold") I.src.zd = { asOf, rows: rep.rows, file: fname };
   else if (rep.kind === "gr-mf") I.src.grMF = { asOf, rows: rep.rows, file: fname };
-  else if (rep.kind === "gr-st-orders") I.src.grStO = { asOf, rows: rep.rows, file: fname };
-  else if (rep.kind === "gr-mf-orders") I.src.grMFO = { asOf, rows: rep.rows, file: fname };
+  else if (rep.kind === "gr-st-orders") I.src.grStO = mergeOrders(I.src.grStO, asOf, rep.rows, fname);
+  else if (rep.kind === "gr-mf-orders") I.src.grMFO = mergeOrders(I.src.grMFO, asOf, rep.rows, fname);
   else if (rep.kind === "wint") I.src.wint = { asOf, rows: rep.rows, file: fname, flows: rep.flows, paid: rep.paid, ytmAll: rep.ytmAll };
   noteImport(state, { kind: rep.kind, period: asOf, count: rep.rows.length });
   buildWatch(I);

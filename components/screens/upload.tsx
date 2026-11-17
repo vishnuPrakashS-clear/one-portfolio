@@ -3,8 +3,7 @@
 import { useRef, useState, type DragEvent, type FormEvent } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { useUi } from "@/components/providers/ui-provider";
-import { UPLOAD_KIND } from "@/constants";
-import { acceptPending, addedText, handleFiles, type Pending } from "@/lib/upload";
+import { acceptPending, handleFiles, type Pending } from "@/lib/upload";
 import { hasAbroad, lastImport } from "@/lib/core/abroad";
 import { indHoldings } from "@/lib/core/india";
 import { daysBetween, fmtDate, iso, TODAY } from "@/lib/dates";
@@ -14,6 +13,7 @@ import { cloudErr } from "@/lib/supabase";
 import { Card, CardHead, Chip, Hero } from "@/components/sub/ui";
 import { Icon } from "@/components/sub/icon";
 import { Modal } from "@/components/main/dialogs";
+import { MissingDates, ReportsByKind } from "@/components/sub/upload-parts";
 import { cn } from "@/lib/utils";
 import { useNow } from "@/lib/hooks";
 
@@ -314,14 +314,14 @@ export function UploadScreen() {
     {
       app: "Groww",
       what: "Reports → Stocks → Holdings report (Excel)",
-      gives: "buy price of each share and ETF",
+      gives: "the buy price of each share and ETF",
       left: need("Groww", ["stock", "etf", "invit"]),
       tone: "act",
     },
     {
       app: "Groww",
       what: "Reports → Mutual funds → Holdings report (Excel)",
-      gives: "amount invested in each fund",
+      gives: "the amount invested in each fund",
       left: need("Groww", ["mf"]),
       tone: "act",
     },
@@ -335,21 +335,21 @@ export function UploadScreen() {
     {
       app: "Groww",
       what: "Reports → Transactions → Stocks - Order history",
-      gives: "purchase date of each share",
+      gives: "the purchase date of each share",
       left: I?.src?.grStO ? 0 : H.filter((h) => h.acct === "Groww" && h.type !== "mf" && h.type !== "bond").length,
       tone: "act",
     },
     {
       app: "Zerodha",
       what: "Console → Portfolio → Holdings → Download (Excel)",
-      gives: "buy price of each Zerodha holding",
+      gives: "the buy price of each Zerodha holding",
       left: need("Zerodha", ["stock", "etf", "mf"]),
       tone: "act",
     },
     {
       app: "Wint Wealth",
       what: "Master Report (Excel)",
-      gives: "price paid, yield and payouts for each bond",
+      gives: "the price paid, yield and payouts for each bond",
       left: need("Wint Wealth (NSDL)", ["bond"]),
       tone: "act",
     },
@@ -358,14 +358,13 @@ export function UploadScreen() {
           {
             app: "INDmoney",
             what: "US Stocks → Taxation Documents → Transactions Report",
-            gives: "every buy and sell abroad with its date",
+            gives: "each buy and sell abroad with its date",
             left: !lastImport(S, "transactions") || daysBetween(String(lastImport(S, "transactions")?.period), TODAY()) > 95 ? 1 : 0,
             tone: "act",
           },
         ]
       : []),
   ].filter((g) => g.left > 0);
-  const history = (S?.imports || []).slice().sort((a, b) => String(b.at || b.period || "").localeCompare(String(a.at || a.period || "")));
   const log = (S?.log || []).slice(-10).reverse();
   return (
     <>
@@ -415,7 +414,7 @@ export function UploadScreen() {
                   <b>{g.app}</b> <span className="text-body">{g.what}</span>
                 </span>
                 <span className="note">
-                  Adds the {g.gives}
+                  Adds {g.gives}
                   {g.left > 1 ? ` · ${g.left} holdings` : ""}
                 </span>
               </li>
@@ -423,52 +422,8 @@ export function UploadScreen() {
           </ol>
         </Card>
       )}
-      <Card>
-        <CardHead title="Uploaded reports" right={<Chip>{history.length} uploaded</Chip>} />
-        {history.length ? (
-          <div className="-mx-2 overflow-x-auto px-2 max-sm:mx-0 max-sm:px-0">
-            <table className="stack">
-              <thead>
-                <tr>
-                  <th>Report</th>
-                  <th>Covers</th>
-                  <th>Uploaded on</th>
-                  <th>Added</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((x, i) => (
-                  <tr key={i}>
-                    <td className="stack-full">
-                      <b>{UPLOAD_KIND[x.kind] || x.kind}</b>
-                      <span className="block max-w-[34ch] truncate text-[12.5px] text-muted max-sm:max-w-none">{x.file || ""}</span>
-                    </td>
-                    <td data-label="Covers" className="num whitespace-nowrap">
-                      {x.period ? fmtDate(String(x.period)) : "—"}
-                    </td>
-                    <td data-label="Uploaded on" className="num whitespace-nowrap">
-                      {x.at
-                        ? new Date(x.at).toLocaleString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })
-                        : "—"}
-                    </td>
-                    <td data-label="Added" className="stack-full">
-                      {addedText(x)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <p className="text-muted">Nothing uploaded yet.</p>
-        )}
-      </Card>
+      <MissingDates />
+      <ReportsByKind />
       <Card>
         <CardHead
           title={<>App lock {S?.lock ? <Chip tone="good">On</Chip> : <Chip>Off</Chip>}</>}

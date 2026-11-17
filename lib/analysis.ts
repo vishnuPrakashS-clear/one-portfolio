@@ -103,6 +103,10 @@ export interface Action {
   title: string;
   body: string;
   impact?: string;
+  /** the one thing to do, in a line */
+  todo?: string;
+  /** where on the Insights screen the details are */
+  go?: "funds" | "stocks" | "overlap" | "plan" | "mix";
 }
 export interface Analysis {
   total: number;
@@ -745,6 +749,8 @@ function plan(x: {
     A.push({
       level: 1,
       kind: "overlap",
+      todo: `Keep ${keep.short}; stop new money into ${drop.map((f) => f.short).join(", ")}`,
+      go: "overlap",
       title:
         fs.length === 2
           ? `${fs[0].short} and ${fs[1].short} hold ${Math.round(top.pct)}% the same stocks`
@@ -769,6 +775,8 @@ function plan(x: {
     A.push({
       level: 2,
       kind: "overlap",
+      todo: "When you add money, pick the better fund of each pair",
+      go: "overlap",
       title: `${mid.length} more pair${mid.length > 1 ? "s" : ""} of funds share a quarter or more of their stocks`,
       body:
         mid
@@ -791,6 +799,8 @@ function plan(x: {
     A.push({
       level: fs.length >= 3 ? 1 : 2,
       kind: "duplicate",
+      todo: `Put new money only into ${best.short}`,
+      go: "funds",
       title: `${fs.length} ${sub} funds doing the same job`,
       body: `${fs.map((f) => f.short).join(", ")}. One fund per kind is enough; funds of the same kind buy mostly the same companies. ${best.short} has the best record of these${why(best) ? ` (${why(best)})` : ""}: point new money there and let the others run down as their purchases turn a year old.`,
     });
@@ -800,6 +810,8 @@ function plan(x: {
     A.push({
       level: 2,
       kind: "too-many",
+      todo: "Aim for 4 or 5 funds; stop SIPs in the weakest",
+      go: "funds",
       title: `${eqN} equity funds is more than you need`,
       body: "Four or five well-chosen funds cover the whole market: a Nifty 50 or large-cap index fund, one flexi-cap, one mid-cap, one small-cap, and optionally one international fund. More funds mostly means more of the same stocks, more paperwork and harder tax planning.",
     });
@@ -810,6 +822,8 @@ function plan(x: {
     A.push({
       level: top.pct > 0.12 ? 1 : 2,
       kind: "stock",
+      todo: `Don't buy more ${top.name} directly`,
+      go: "mix",
       title: `${top.name} is ${pctTxt(top.pct)} of your shares`,
       body: `It reaches you ${top.direct ? `directly (${inr(top.direct)})` : ""}${top.direct && top.via.length ? " and " : ""}${top.via.length ? `through ${top.via.length} fund${top.via.length > 1 ? "s" : ""}` : ""}, ${inr(top.value)} in all. A bad year for one company shouldn't dent your whole plan: avoid buying more of it directly, and favour funds that hold less of it.`,
     });
@@ -818,6 +832,8 @@ function plan(x: {
     A.push({
       level: 2,
       kind: "sector",
+      todo: `Send new money to broad funds lighter on ${sec.name.toLowerCase()}`,
+      go: "mix",
       title: `${sec.name} is ${pctTxt(sec.pct)} of your shares`,
       body: `Most diversified funds keep any one sector near 15–30%. When ${sec.name.toLowerCase()} has a bad patch, a third of your shares fall together. New money into broad funds that are lighter on it (an index fund of the whole market, or a fund focused elsewhere) evens this out without selling.`,
     });
@@ -832,6 +848,8 @@ function plan(x: {
       A.push({
         level: 2,
         kind: "size",
+        todo: "Keep small companies near 15–25% of your shares",
+        go: "mix",
         title: `Small companies are ${pctTxt(Sm)} of your shares`,
         body: "Small companies can grow faster but fall 30–50% in bad years and take longer to recover. Keeping them nearer 15–25% and the rest in large and mid companies keeps the ride bearable while still capturing growth.",
       });
@@ -839,6 +857,8 @@ function plan(x: {
       A.push({
         level: 3,
         kind: "size",
+        todo: "Put 20–40% of new money in a mid- or small-cap index fund",
+        go: "mix",
         title: `Only ${pctTxt(Mi + Sm)} of your shares are in mid and small companies`,
         body: "Over 10+ years mid and small companies have usually grown faster than large ones, with bigger swings. For goals 7+ years away, a mid-cap or small-cap index fund for 20–40% of new money adds that growth at low cost.",
       });
@@ -846,6 +866,8 @@ function plan(x: {
       A.push({
         level: 2,
         kind: "size",
+        todo: "Start a Nifty 50 or Nifty 100 index fund with new money",
+        go: "mix",
         title: `Large companies are only ${pctTxt(L)} of your shares`,
         body: "Large companies are the steady core. A Nifty 50 or Nifty 100 index fund for new money brings the split nearer 55 / 25 / 20.",
       });
@@ -859,6 +881,8 @@ function plan(x: {
       A.push({
         level: 3,
         kind: "assets",
+        todo: "Keep 10–20% of your money outside India",
+        go: "mix",
         title: "Almost nothing outside India",
         body: "Some money in global companies (a US index fund or a fund of funds) means one country's bad decade doesn't hit everything, and it gains when the rupee weakens. 10–20% is a common share.",
       });
@@ -866,6 +890,8 @@ function plan(x: {
       A.push({
         level: 3,
         kind: "assets",
+        todo: "Keep money for goals under 5 years away in bonds or debt funds",
+        go: "mix",
         title: "No cushion of bonds, debt funds or gold",
         body: "If any goal is under five years away, the money for it belongs in bonds or debt funds, not shares, so a market fall doesn't arrive right when you need it.",
       });
@@ -880,6 +906,8 @@ function plan(x: {
     A.push({
       level: gain > 10000 ? 1 : 2,
       kind: "cost",
+      todo: "Start new SIPs in the direct plan of the same fund",
+      go: "funds",
       title: `Switch ${reg.length} regular plan${reg.length > 1 ? "s" : ""} to direct`,
       body: `${reg.map((f) => f.short).join(", ")}: the same fund, same stocks, just a distributor commission inside the yearly cost. Start new SIPs in the direct plan now; switch the existing money once each purchase is a year old.`,
       impact: `About ${inr(gain)} more after 10 years`,
@@ -894,6 +922,8 @@ function plan(x: {
     A.push({
       level: 3,
       kind: "cost",
+      todo: "Prefer funds under 0.6% a year, or an index fund near 0.2%",
+      go: "funds",
       title: `${costly.length} fund${costly.length > 1 ? "s" : ""} charge over 1% a year`,
       body: `${costly.map((f) => `${f.short} (${f.data!.info!.er!.toFixed(2)}%)`).join(", ")}. Cost is the one part of returns you control. Unless a fund has clearly beaten its category for 5 years, a similar fund near 0.6% (or an index fund near 0.2%) keeps more for you.`,
       impact: `Up to ${inr(gain)} more after 10 years`,
@@ -906,6 +936,8 @@ function plan(x: {
     A.push({
       level: 2,
       kind: "laggard",
+      todo: "Stop new money into them first",
+      go: "funds",
       title: `${lag.length} fund${lag.length > 1 ? "s have trailed their" : " has trailed its"} category for years`,
       body: `${lag.map((f) => f.short).join(", ")}. One bad year is normal; 3 and 5 years behind usually isn't luck. Stop new money first; decide on the rest after a year-old check on tax and exit load. An index fund of the same kind is the simple fallback.`,
     });
@@ -916,6 +948,8 @@ function plan(x: {
     A.push({
       level: red.some((s) => s.pct > 0.01) ? 1 : 2,
       kind: "red-flag",
+      todo: "Take a fresh look before you add more",
+      go: "stocks",
       title: `${red.length} stock${red.length > 1 ? "s carry" : " carries"} a red flag`,
       body:
         red
@@ -929,6 +963,8 @@ function plan(x: {
     A.push({
       level: 2,
       kind: "tiny",
+      todo: "Fold the ones you don't need into an index fund over time",
+      go: "stocks",
       title: `${tiny.length} stocks are each under 0.5% of your money`,
       body: `Together ${inr(v)}. Positions that small can't move your returns either way, but each needs tracking, and many small bets usually add up to an expensive index fund. Consider folding the ones without a clear reason to hold into a Nifty 500 or flexi-cap index fund as they turn a year old.`,
     });

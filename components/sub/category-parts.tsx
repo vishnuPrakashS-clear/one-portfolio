@@ -1,76 +1,91 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { CATEGORIES, IND_CLASS_COLOR, PROJECTION_YEARS, type CatId } from "@/constants";
-import { fv, type CategoryModel, type ModelItem } from "@/lib/model";
+import { CATEGORIES, IND_CLASS_COLOR, type CatId } from "@/constants";
+import { type CategoryModel, type ModelItem } from "@/lib/model";
 import { inr2, pct1, qty } from "@/lib/format";
 import { itemXirr } from "@/lib/planner";
 import { useMoney } from "@/lib/use-money";
 import { useUi } from "@/components/providers/ui-provider";
 import { Card, CardHead } from "./ui";
+import { Icon } from "./icon";
+import { grow } from "@/lib/future";
 import { cn } from "@/lib/utils";
 
 const rate = (r: number) => (r * 100).toFixed(1).replace(".0", "") + "%";
 
-/** where today's money and the monthly amount could be in 5, 10, 15 and 20 years, as a cautious–strong range */
-export function ProjectionCard({ c, title = "Where this could be" }: { c: CategoryModel; title?: string }) {
+/** where this category could be in 5, 10 and 20 years at the likely rate: what you put in vs what growth adds */
+export function ProjectionCard({ c, title = "If you keep going" }: { c: CategoryModel; title?: string }) {
   const { m, s } = useMoney(),
     cat = CATEGORIES[c.id],
     [lo, mid, hi] = cat.rates;
-  const top = fv(c.value, c.sip, hi, 20);
+  if (!c.value && !c.sip) return null;
+  const rows = [5, 10, 20].map((y) => ({
+      y,
+      g: grow(c.value, c.sip, y, mid),
+      lo: grow(c.value, c.sip, y, lo).value,
+      hi: grow(c.value, c.sip, y, hi).value,
+    })),
+    top = rows[rows.length - 1].g.value,
+    ten = rows[1].g;
   return (
     <Card style={{ ["--c" as string]: cat.hex }}>
-      <CardHead
-        title={title}
-        note={
+      <CardHead title={title} />
+      <p className="text-[17px] leading-snug text-body max-sm:text-[15.5px]">
+        {c.sip ? (
           <>
-            Today {m(c.value)}
-            {c.sip ? (
-              <>
-                , adding {m(c.sip)} a month ({c.sipSrc})
-              </>
-            ) : (
-              ", with nothing more added"
-            )}
-            . Cautious {rate(lo)}, likely {rate(mid)}, strong {rate(hi)} a year
-            {c.xirr != null ? (
-              <>
-                . Your own past return: <b className="text-ink">{pct1(c.xirr)} a year</b>
-              </>
-            ) : null}
-            .
+            Keep adding <b className="text-ink">{m(c.sip)} a month</b> and today&apos;s <b className="text-ink">{s(c.value)}</b> could
+            become{" "}
           </>
-        }
-      />
-      <div className="grid grid-cols-2 gap-2.5">
-        {PROJECTION_YEARS.map((y) => {
-          const v = cat.rates.map((r) => fv(c.value, c.sip, r, y)),
-            put = c.value + c.sip * 12 * y;
-          return (
-            <div key={y} className="grid gap-0.5 rounded-[14px] bg-tint px-4 py-3.5">
-              <span className="text-[12.5px] text-muted">In {y} years</span>
-              <b className="num font-display text-[24px] leading-tight font-bold tracking-[-0.02em] text-ink max-sm:text-[20px]">
-                {s(v[1])}
-              </b>
-              <span className="num text-[13px] text-body">
-                {s(v[0])} – {s(v[2])}
+        ) : (
+          <>
+            Left alone, today&apos;s <b className="text-ink">{s(c.value)}</b> could become{" "}
+          </>
+        )}
+        <b className="num font-display text-[22px] text-ink max-sm:text-[19px]">{s(ten.value)}</b> in 10 years.{" "}
+        <span className="text-muted">
+          You&apos;d put in {s(ten.put)}; growth adds {s(ten.gain)}.
+        </span>
+      </p>
+      <ul className="mt-1 grid gap-3.5">
+        {rows.map(({ y, g, lo: a, hi: b }) => (
+          <li
+            key={y}
+            className="grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 max-sm:grid-cols-[3.6rem_minmax(0,1fr)_auto]"
+          >
+            <span className="text-[14px] font-semibold text-muted">{y} years</span>
+            <span className="flex h-3.5 overflow-hidden rounded-full bg-tint" aria-hidden>
+              <i className="h-full bg-ink/25" style={{ width: `${(100 * g.put) / top}%` }} />
+              <i
+                className="h-full"
+                style={{ width: `${(100 * Math.max(0, g.gain)) / top}%`, background: `linear-gradient(90deg, ${cat.hex}, ${cat.hex2})` }}
+              />
+            </span>
+            <span className="grid text-right">
+              <b className="num font-display text-[17px] text-ink">{s(g.value)}</b>
+              <span className="num text-[11.5px] text-muted">
+                {s(a)} – {s(b)}
               </span>
-              <span className="relative mt-1.5 mb-0.5 h-2 overflow-hidden rounded-full bg-tint" aria-hidden>
-                <i className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${(100 * v[0]) / top}%`, background: cat.hex2 }} />
-                <i
-                  className="absolute inset-y-0 rounded-full"
-                  style={{
-                    left: `${(100 * v[0]) / top}%`,
-                    width: `${(100 * (v[2] - v[0])) / top}%`,
-                    background: `linear-gradient(90deg, ${cat.hex}, ${cat.hex2})`,
-                  }}
-                />
-                <i className="absolute bottom-0 left-0 h-[3px] rounded-full bg-ink/40" style={{ width: `${(100 * put) / top}%` }} />
-              </span>
-              <span className="text-[12px] text-muted">you put in {s(put)}</span>
-            </div>
-          );
-        })}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-rule pt-3 text-[13px] text-muted">
+        <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="inline-flex items-center gap-1.5">
+            <i className="size-2.5 rounded-full bg-ink/25" /> you put in
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <i className="size-2.5 rounded-full" style={{ background: cat.hex }} /> growth
+          </span>
+          <span>
+            at {rate(mid)} a year (range {rate(lo)}–{rate(hi)}){c.xirr != null ? ` · yours so far ${pct1(c.xirr)}` : ""}
+          </span>
+        </span>
+        <Link href="/future" className="btn">
+          Try other amounts <Icon name="arrow" className="size-4" />
+        </Link>
       </div>
     </Card>
   );

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, type ReactNode } from "react";
 import { usePortfolio } from "@/components/providers/portfolio-provider";
 import { useUi } from "@/components/providers/ui-provider";
@@ -45,6 +46,16 @@ function DL({ rows }: { rows: [ReactNode, ReactNode, string?][] }) {
 const Sub = ({ children, className }: { children: ReactNode; className?: string }) => (
   <span className={cn("block text-[12.5px] font-normal text-muted", className)}>{children}</span>
 );
+
+/** to the Upload screen's list of which report fills in purchase dates */
+function DatesLink() {
+  const { closeItem } = useUi();
+  return (
+    <Link href="/upload#dates" onClick={closeItem} className="font-semibold text-act-a underline-offset-2 hover:underline">
+      how to add it
+    </Link>
+  );
+}
 
 function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
   const today = TODAY(),
@@ -144,10 +155,16 @@ function IndiaDetail({ h, I }: { h: IndHolding; I: IndiaState }) {
                     xr != null ? (
                       <>
                         {pctf(xr)}
-                        {partial && <Sub>on the {qty(dq)} units with a purchase date</Sub>}
+                        {partial && (
+                          <Sub>
+                            on the {qty(dq)} units with a purchase date · <DatesLink />
+                          </Sub>
+                        )}
                       </>
                     ) : (
-                      <Sub>needs purchase dates</Sub>
+                      <Sub>
+                        no purchase date on file · <DatesLink />
+                      </Sub>
                     ),
                     xr != null ? (xr >= 0 ? "text-gain-ink" : "text-loss-ink") : "",
                   ] as [ReactNode, ReactNode, string],

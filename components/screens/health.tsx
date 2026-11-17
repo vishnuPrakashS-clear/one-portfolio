@@ -17,6 +17,7 @@ import {
   forStocks,
   BUCKET_NAME,
   CAP_NAME,
+  type Action,
   type Analysis,
   type Bucket,
   type Exposure,
@@ -146,7 +147,11 @@ export function HealthScreen() {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2" role="tablist" aria-label="What to look at">
+      <div
+        className="sticky top-2 z-20 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full bg-card/90 p-1 shadow-[0_6px_24px_-12px_rgb(0_0_0/0.35),inset_0_0_0_1px_var(--color-line)] backdrop-blur"
+        role="tablist"
+        aria-label="What to look at"
+      >
         {(["funds", "stocks", "all"] as Scope[])
           .filter((k) => k === "all" || model.cats[k].items.length)
           .map((k) => (
@@ -157,8 +162,8 @@ export function HealthScreen() {
               aria-selected={scope === k}
               onClick={() => setScope(k)}
               className={cn(
-                "btn min-h-10 px-5 text-[14.5px]",
-                scope === k && "bg-act-a text-on-act shadow-none hover:bg-act-a hover:brightness-110",
+                "inline-flex min-h-10 items-center gap-2 rounded-full px-5 text-[14.5px] font-semibold whitespace-nowrap transition active:scale-95",
+                scope === k ? "bg-act-a text-on-act shadow-md" : "text-body hover:bg-tint",
               )}
             >
               {TAB_NAME[k]}
@@ -190,9 +195,13 @@ export function HealthScreen() {
                 </Pill>
               )}
               {X.asOf && <Pill>Fund holdings as of {monthLong(X.asOf.slice(0, 7))}</Pill>}
-              <a href="#plan" className="btn btn-primary">
+              <a href="#todo" className="btn btn-primary">
+                <Icon name="bulb" />
+                To-do list
+              </a>
+              <a href="#plan" className="btn">
                 <Icon name="arrow" />
-                Your plan
+                This month&apos;s plan
               </a>
             </div>
           </>
@@ -218,7 +227,7 @@ export function HealthScreen() {
       {X && A && (
         <>
           <Breakdown A={X} />
-          <Actions A={X} />
+          <Actions A={X} scope={scope} onTab={setScope} />
           {load.data && <PlanCards A={A} D={load.data} scope={scope} />}
           <Mix A={X} s={s} />
           <TopCompanies A={X} s={s} />
@@ -274,53 +283,130 @@ function Breakdown({ A }: { A: Analysis }) {
   );
 }
 
-function Actions({ A }: { A: Analysis }) {
+const GO: Record<NonNullable<Action["go"]>, { label: string; tab: Scope[] }> = {
+  funds: { label: "See your funds", tab: ["funds"] },
+  overlap: { label: "See the overlap", tab: ["funds"] },
+  stocks: { label: "See your stocks", tab: ["stocks"] },
+  mix: { label: "See where your money is", tab: ["funds", "stocks", "all"] },
+  plan: { label: "See this month's plan", tab: ["funds", "stocks", "all"] },
+};
+
+/** the to-do list: one line each, most useful first; tap a row for what to do, why, and a jump to the details */
+function Actions({ A, scope, onTab }: { A: Analysis; scope: Scope; onTab: (s: Scope) => void }) {
+  const [open, setOpen] = useState<number | null>(0),
+    [lvl, setLvl] = useState<0 | 1 | 2 | 3>(0);
+  const counts = ([1, 2, 3] as const).map((l) => A.actions.filter((a) => a.level === l).length),
+    rows = A.actions.map((a, i) => ({ a, i })).filter(({ a }) => !lvl || a.level === lvl);
+  const jump = (go: NonNullable<Action["go"]>) => {
+    const g = GO[go];
+    if (!g.tab.includes(scope)) onTab(g.tab[0]);
+    setTimeout(() => document.getElementById(go)?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
+  };
   return (
-    <Card>
+    <Card id="todo" className="scroll-mt-24">
       <CardHead
         title={
           <>
             <Icon name="bulb" className="size-5 text-lime" />
-            What to do
+            Your to-do list
           </>
         }
-        note="Most useful first. Diversifying doesn't raise returns by itself; it stops one company, sector or fund from setting them. The levers that do lift what you keep are lower costs, funds that keep beating their category, the right mix for each goal's timeline, and staying invested."
+        note="Most useful first. Tap one to see what to do and why."
       />
       {A.actions.length ? (
-        <ol className="grid gap-3">
-          {A.actions.map((a, i) => (
-            <li
-              key={i}
-              className="well grid gap-2 p-4"
-              style={{ boxShadow: `inset 3px 0 0 ${toneColor(a.level === 1 ? 10 : a.level === 2 ? 35 : 80)}` }}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <Chip tone={LEVEL[a.level].tone}>{LEVEL[a.level].label}</Chip>
-                {a.impact && <Chip tone="good">{a.impact}</Chip>}
-              </div>
-              <b className="text-[17px] leading-snug font-semibold text-ink">{a.title}</b>
-              {a.body.length > 160 ? (
-                <details className="group">
-                  <summary className="cursor-pointer list-none text-[14.5px] leading-relaxed text-body">
-                    <span className="group-open:hidden">
-                      {a.body.slice(0, a.body.slice(0, 150).lastIndexOf(" "))}… <span className="font-semibold text-lime">more</span>
+        <>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by priority">
+            {([0, 1, 2, 3] as const).map((l) =>
+              l && !counts[l - 1] ? null : (
+                <button
+                  key={l}
+                  type="button"
+                  aria-pressed={lvl === l}
+                  onClick={() => setLvl(l)}
+                  className={cn(
+                    "rounded-full px-3.5 py-1.5 text-[13.5px] font-semibold transition active:scale-95",
+                    lvl === l ? "bg-act-a text-on-act" : "bg-tint text-body hover:shadow-[inset_0_0_0_2px_var(--color-act-a)]",
+                  )}
+                >
+                  {l ? LEVEL[l].label : "All"} <span className="num opacity-75">{l ? counts[l - 1] : A.actions.length}</span>
+                </button>
+              ),
+            )}
+          </div>
+          <ol className="grid gap-2">
+            {rows.map(({ a, i }) => {
+              const on = open === i,
+                g = a.go ? GO[a.go] : null;
+              return (
+                <li
+                  key={i}
+                  className={cn("overflow-hidden rounded-[16px] bg-tint transition", on && "shadow-[inset_0_0_0_2px_var(--color-act-a)]")}
+                >
+                  <button
+                    type="button"
+                    aria-expanded={on}
+                    onClick={() => setOpen(on ? null : i)}
+                    className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 p-3.5 text-left hover:bg-tint-2/50"
+                  >
+                    <span
+                      className="size-2.5 rounded-full"
+                      style={{ background: toneColor(a.level === 1 ? 10 : a.level === 2 ? 35 : 80) }}
+                      title={LEVEL[a.level].label}
+                    />
+                    <span className="grid gap-0.5">
+                      <b className="leading-snug font-semibold text-ink">{a.title}</b>
+                      {!on && a.todo && <span className="truncate text-[13.5px] text-body">→ {a.todo}</span>}
                     </span>
-                  </summary>
-                  <p className="text-[14.5px] leading-relaxed text-body">{a.body}</p>
-                </details>
-              ) : (
-                <p className="text-[14.5px] leading-relaxed text-body">{a.body}</p>
-              )}
-            </li>
-          ))}
-        </ol>
+                    <span className="flex items-center gap-2">
+                      {a.impact && (
+                        <Chip tone="good" className="max-sm:hidden">
+                          {a.impact.replace(/^(About|Up to) /, "+")}
+                        </Chip>
+                      )}
+                      <Icon name="chevron" className={cn("size-5 text-muted transition", on ? "rotate-90" : "")} />
+                    </span>
+                  </button>
+                  {on && (
+                    <div className="grid gap-3 px-3.5 pb-4 sm:pl-9">
+                      {a.todo && (
+                        <p className="rounded-[12px] bg-card p-3 text-[15px] text-ink shadow-[inset_0_0_0_1px_var(--color-line)]">
+                          <span className="kicker mb-0.5 block">Do this</span>
+                          <b className="font-semibold">{a.todo}</b>
+                          {a.impact && <span className="mt-1 block text-[13.5px] text-gain-ink">{a.impact}</span>}
+                        </p>
+                      )}
+                      <div>
+                        <span className="kicker mb-0.5 block">Why</span>
+                        <p className="text-[14.5px] leading-relaxed text-body">{a.body}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {g && (
+                          <button type="button" className="btn btn-primary" onClick={() => jump(a.go!)}>
+                            {g.label} <Icon name="arrow" className="size-4" />
+                          </button>
+                        )}
+                        <button type="button" className="btn" onClick={() => jump("plan")}>
+                          This month&apos;s plan
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+        </>
       ) : (
         <p className="well p-4 text-body">Nothing stands out. Keep investing steadily and check back after your next statement.</p>
       )}
-      <p className="note">
-        A planning aid built from public data, not SEBI-registered advice. Check exit loads and tax before moving money, and talk to an
-        adviser for big changes.
-      </p>
+      <details className="text-[13.5px] text-muted">
+        <summary className="cursor-pointer font-semibold text-body">How these are picked</summary>
+        <p className="mt-1.5">
+          Spreading money out doesn&apos;t raise returns by itself; it stops one company, sector or fund from deciding them. What lifts what
+          you keep: lower costs, funds that keep beating their category, the right mix for each goal&apos;s timeline, and staying invested.
+          A planning aid from public data, not SEBI-registered advice: check exit loads and tax before moving money.
+        </p>
+      </details>
     </Card>
   );
 }
@@ -330,7 +416,7 @@ function Mix({ A, s }: { A: Analysis; s: (v: number) => string }) {
   const sec = A.sectors.slice(0, 10),
     capT = Object.values(A.caps).reduce((a, b) => a + b, 0) || 1;
   return (
-    <Card>
+    <Card id="mix" className="scroll-mt-24">
       <CardHead title="Where your money really is" note="Every fund opened up and added to your own shares, bonds and money abroad." />
       <div className="grid gap-2">
         <div className="flex h-4 overflow-hidden rounded-full bg-tint-2">
@@ -457,7 +543,7 @@ function OverlapCard({ A, m }: { A: Analysis; m: (v: number) => string }) {
   const heat = (p: number) =>
     p >= 40 ? "var(--color-loss)" : p >= 25 ? "var(--color-warn)" : p >= 10 ? "var(--color-tint-2)" : "var(--color-tint)";
   return (
-    <Card>
+    <Card id="overlap" className="scroll-mt-24">
       <CardHead
         title="Fund overlap"
         note="How much of each pair of funds is the same stocks (the smaller weight of every shared stock, added up). Over 40% is high: the two funds mostly do the same job. Tap a square to see what they share."
@@ -530,7 +616,7 @@ function FundCards({ A, s, onOpen }: { A: Analysis; s: (v: number) => string; on
   const missing = A.funds.filter((f) => !f.data?.info);
   const V = { good: ["good", "Doing well"], ok: ["neutral", "Fine"], review: ["act", "Review"], unknown: ["neutral", "No data"] } as const;
   return (
-    <Card>
+    <Card id="funds" className="scroll-mt-24">
       <CardHead
         title="Fund report card"
         note="Each fund against the average of funds of its kind, its cost, and anything worth a second look. Returns are yearly averages."
@@ -627,7 +713,7 @@ function StockCards({ A, s, onOpen }: { A: Analysis; s: (v: number) => string; o
   if (!A.stocks.length) return null;
   const rows = A.stocks.slice(0, all ? 400 : 15);
   return (
-    <Card>
+    <Card id="stocks" className="scroll-mt-24">
       <CardHead
         title="Stock scorecard and red flags"
         note="Each stock you hold directly, scored 0–100 like Tickertape: valuation (P/E against its industry), growth (sales and profit), quality (return on equity, debt, losses) and momentum (price over 6 and 12 months)."

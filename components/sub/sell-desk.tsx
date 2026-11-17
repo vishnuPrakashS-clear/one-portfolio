@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardHead, Chip } from "./ui";
 import { Icon } from "./icon";
 import { RebalanceCard } from "./rebalance-card";
+import { PickCard } from "./pick-card";
 
 const $ = (v: number, dp = 2) =>
   (v < 0 ? "−" : "") + "$" + Math.abs(v).toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp });
@@ -312,6 +313,7 @@ export function SellDesk() {
           )}
         </span>
       </div>
+      <PickCard />
       <SellTicketCard live={live} />
       <RebalanceCard
         live={

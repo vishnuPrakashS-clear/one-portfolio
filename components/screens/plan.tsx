@@ -97,6 +97,10 @@ export function PlanScreen() {
           Invest {inr(s.monthlyInr)} in INDmoney {ms.done ? "next month" : "this month"}. Tap a card to see why each fund gets what it gets.
         </p>
         <div className="flex flex-wrap gap-2">
+          <a href="#pick" className="btn btn-primary">
+            <Icon name="bulb" />
+            Which should I buy?
+          </a>
           <a href="#sell" className="btn">
             <Icon name="refresh" />
             Sell with live prices

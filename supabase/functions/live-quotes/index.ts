@@ -31,6 +31,8 @@ async function quote(sym: string) {
       lo52: m.fiftyTwoWeekLow ?? null,
       currency: String(m.currency || ""),
       exchange: String(m.fullExchangeName || m.exchangeName || ""),
+      name: String(m.longName || m.shortName || ""),
+      type: String(m.instrumentType || ""),
       open: !!reg && now >= reg.start && now < reg.end,
       opens: reg && now < reg.start ? new Date(reg.start * 1000).toISOString() : null,
     };

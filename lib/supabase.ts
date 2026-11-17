@@ -213,6 +213,9 @@ export interface LiveQuote {
   lo52: number | null;
   currency: string;
   exchange: string;
+  /** full name and kind ("ETF", "EQUITY") */
+  name?: string;
+  type?: string;
   open: boolean;
   opens: string | null;
 }

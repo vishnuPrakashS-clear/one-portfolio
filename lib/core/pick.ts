@@ -52,12 +52,15 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
     wsum = bv.reduce((a, b) => a + b.w, 0) || 100,
     rows = holdingRows(S);
   const out: Pick[] = syms.map((sym) => {
-    const q = quotes[sym],
+    const raw = quotes[sym],
+      // a quote in another currency (London sometimes quotes in £) can't be compared with dollars: use the last $ price
+      q = raw && (!raw.currency || raw.currency.toUpperCase() === "USD") ? raw : undefined,
       cat = CATALOG[sym],
       why: string[] = [];
     let score = 50;
-    const price = q?.price ?? S.holdings.find((h) => h.sym === sym)?.price ?? null;
-    const isEtf = q?.type ? /ETF|FUND/i.test(q.type) : !!cat && !SINGLE.has(sym);
+    const price = q?.price ?? S.holdings.find((h) => h.sym === sym)?.price ?? WHOLE[sym] ?? null;
+    if (raw && !q) why.push(`Quoted in ${raw.currency} on the exchange; using your last dollar price.`);
+    const isEtf = raw?.type ? /ETF|FUND/i.test(raw.type) : !!cat && !SINGLE.has(sym);
     const bucket: Bucket | null = cat?.bucket ?? (isEtf ? null : "Satellite");
     if (!price) {
       why.push("No price found for this symbol: check the spelling (London funds: CSPX, CNDX, IJPA, COPX).");
@@ -77,7 +80,7 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
     // the plan's own view of this symbol
     if (cat?.plan === "core") {
       score += 15;
-      why.push("A fund your monthly plan buys.");
+      why.push("Your monthly plan buys this.");
     } else if (cat?.plan === "legacy") {
       score -= 40;
       why.push("You're winding this down in the plan; adding more works against it.");
@@ -105,7 +108,7 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
         score += 10 + 25 * fill;
         why.push(`${bucket} is below target by $${gap.toFixed(0)} (${b.pct.toFixed(0)}% now vs ${b.w}%).`);
       } else {
-        score -= 15 + Math.min(20, (-gap / Math.max(1, total)) * 100);
+        score -= 30 + Math.min(20, (-gap / Math.max(1, total)) * 100);
         why.push(`${bucket} is already above target (${b.pct.toFixed(0)}% vs ${b.w}%).`);
       }
     } else {
@@ -142,7 +145,7 @@ export function pickBest(S: Portfolio, syms: string[], amount: number, quotes: R
       const d = price / q.prevClose - 1;
       if (d < -0.02) why.push(`Down ${(Math.abs(d) * 100).toFixed(1)}% today.`);
     }
-    return { sym, name: q?.name || cat?.name || "", bucket, score, verdict: "ok", why, price, usd: 0, units: null, limit: null };
+    return { sym, name: raw?.name || cat?.name || "", bucket, score, verdict: "ok", why, price, usd: 0, units: null, limit: null };
   });
   out.sort((a, b) => b.score - a.score);
   const top = out[0];

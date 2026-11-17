@@ -281,7 +281,10 @@ export function SellDesk() {
     setBusy(true);
     setErr("");
     try {
-      setLive(await liveQuotes(syms));
+      const L = await liveQuotes(syms);
+      // keep dollar quotes only (London sometimes quotes a fund in £); the others keep the last uploaded $ price
+      L.quotes = Object.fromEntries(Object.entries(L.quotes).filter(([, v]) => !v.currency || v.currency.toUpperCase() === "USD"));
+      setLive(L);
     } catch (e) {
       setErr(cloudErr(e));
     } finally {
@@ -318,7 +321,14 @@ export function SellDesk() {
       <RebalanceCard
         live={
           live
-            ? { prices: Object.fromEntries(Object.entries(live.quotes).map(([k, v]) => [k, v.price])), fx: live.fx?.rate || S.settings.fx }
+            ? {
+                prices: Object.fromEntries(
+                  Object.entries(live.quotes)
+                    .filter(([, v]) => v.currency.toUpperCase() === "USD")
+                    .map(([k, v]) => [k, v.price]),
+                ),
+                fx: live.fx?.rate || S.settings.fx,
+              }
             : null
         }
       />
